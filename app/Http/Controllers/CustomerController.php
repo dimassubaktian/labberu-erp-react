@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\CustomerStoreRequest;
+use App\Http\Requests\CustomerUpdateRequest;
+use App\Models\Customer;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CustomerController extends Controller
+{
+    /**
+     * Display a listing of the customers.
+     */
+    public function index(): Response
+    {
+        $customers = Customer::query()
+            ->orderBy('name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return Inertia::render('customers/index', [
+            'customers' => $customers,
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new customer.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('customers/create');
+    }
+
+    /**
+     * Store a newly created customer.
+     */
+    public function store(CustomerStoreRequest $request): RedirectResponse
+    {
+        $customer = Customer::create($request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Customer created.')]);
+
+        return to_route('customers.show', $customer);
+    }
+
+    /**
+     * Display the specified customer.
+     */
+    public function show(Customer $customer): Response
+    {
+        $customer->load(['projects' => function ($query): void {
+            $query->orderByDesc('request_date');
+        }]);
+
+        return Inertia::render('customers/show', [
+            'customer' => $customer,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified customer.
+     */
+    public function edit(Customer $customer): Response
+    {
+        return Inertia::render('customers/edit', [
+            'customer' => $customer,
+        ]);
+    }
+
+    /**
+     * Update the specified customer.
+     */
+    public function update(CustomerUpdateRequest $request, Customer $customer): RedirectResponse
+    {
+        $customer->update($request->validated());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Customer updated.')]);
+
+        return to_route('customers.show', $customer);
+    }
+
+    /**
+     * Remove the specified customer.
+     */
+    public function destroy(Customer $customer): RedirectResponse
+    {
+        $customer->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Customer deleted.')]);
+
+        return to_route('customers.index');
+    }
+}

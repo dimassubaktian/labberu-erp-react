@@ -35,9 +35,12 @@ import {
 import { dashboard } from '@/routes';
 import { edit as companySettingsEdit } from '@/routes/company-settings';
 import { index as currenciesIndex } from '@/routes/currencies';
+import { index as customersIndex } from '@/routes/customers';
 import { index as jobTitlesIndex } from '@/routes/job-titles';
 import { index as productsIndex } from '@/routes/products';
+import { index as projectsIndex } from '@/routes/projects';
 import { index as taxesIndex } from '@/routes/taxes';
+import { index as vendorsIndex } from '@/routes/vendors';
 import { index as workforcesIndex } from '@/routes/workforces';
 import type { NavGroup } from '@/types';
 
@@ -57,13 +60,12 @@ const mainNavGroups: NavGroup[] = [
         items: [
             {
                 title: 'Projects',
-                href: '#',
+                href: projectsIndex(),
                 icon: FolderKanban,
-                disabled: true,
             },
             { title: 'Quotations', href: '#', icon: FileText, disabled: true },
             { title: 'Deliver Orders', href: '#', icon: Truck, disabled: true },
-            { title: 'Customers', href: '#', icon: Contact, disabled: true },
+            { title: 'Customers', href: customersIndex(), icon: Contact },
         ],
     },
     {
@@ -81,7 +83,7 @@ const mainNavGroups: NavGroup[] = [
                 icon: PackageCheck,
                 disabled: true,
             },
-            { title: 'Vendors', href: '#', icon: Building2, disabled: true },
+            { title: 'Vendors', href: vendorsIndex(), icon: Building2 },
         ],
     },
     {

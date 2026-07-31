@@ -2,9 +2,12 @@
 
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\JobTitleController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaxController;
+use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WorkforceController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +59,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
+    Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+    Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
+    Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+    Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+
+    Route::get('vendors', [VendorController::class, 'index'])->name('vendors.index');
+    Route::get('vendors/create', [VendorController::class, 'create'])->name('vendors.create');
+    Route::post('vendors', [VendorController::class, 'store'])->name('vendors.store');
+    Route::get('vendors/{vendor}', [VendorController::class, 'show'])->name('vendors.show');
+    Route::get('vendors/{vendor}/edit', [VendorController::class, 'edit'])->name('vendors.edit');
+    Route::put('vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
+    Route::delete('vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
+
+    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('projects/create', [ProjectController::class, 'create'])->name('projects.create');
+    Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+    Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+    Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 });
 
 require __DIR__.'/settings.php';
