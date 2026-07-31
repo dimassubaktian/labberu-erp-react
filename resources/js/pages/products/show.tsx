@@ -14,7 +14,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, formatNumber } from '@/lib/utils';
 import { destroy, edit, index, show } from '@/routes/products';
 
 type Product = {
@@ -27,6 +27,8 @@ type Product = {
     brand: string;
     unit: string;
     type: string;
+    price: string;
+    cost: string;
     status: string;
     created_at: string;
     updated_at: string;
@@ -119,6 +121,24 @@ export default function ProductsShow({ product }: Props) {
                                     Unit
                                 </dt>
                                 <dd className="font-medium">{product.unit}</dd>
+                            </div>
+
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Price
+                                </dt>
+                                <dd className="font-medium">
+                                    {formatNumber(product.price)}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Cost
+                                </dt>
+                                <dd className="font-medium">
+                                    {formatNumber(product.cost)}
+                                </dd>
                             </div>
 
                             <div>

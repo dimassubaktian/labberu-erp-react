@@ -39,6 +39,7 @@ import { index as customersIndex } from '@/routes/customers';
 import { index as jobTitlesIndex } from '@/routes/job-titles';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
+import { index as quotationsIndex } from '@/routes/quotations';
 import { index as taxesIndex } from '@/routes/taxes';
 import { index as vendorsIndex } from '@/routes/vendors';
 import { index as workforcesIndex } from '@/routes/workforces';
@@ -63,7 +64,7 @@ const mainNavGroups: NavGroup[] = [
                 href: projectsIndex(),
                 icon: FolderKanban,
             },
-            { title: 'Quotations', href: '#', icon: FileText, disabled: true },
+            { title: 'Quotations', href: quotationsIndex(), icon: FileText },
             { title: 'Deliver Orders', href: '#', icon: Truck, disabled: true },
             { title: 'Customers', href: customersIndex(), icon: Contact },
         ],

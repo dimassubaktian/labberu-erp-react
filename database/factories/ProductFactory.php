@@ -24,6 +24,8 @@ class ProductFactory extends Factory
             'brand' => fake()->company(),
             'unit' => fake()->randomElement(['pcs', 'box', 'kg', 'liter']),
             'type' => fake()->randomElement(['goods', 'service']),
+            'price' => fake()->randomFloat(2, 10_000, 500_000),
+            'cost' => fake()->randomFloat(2, 5_000, 300_000),
             'status' => 'active',
         ];
     }

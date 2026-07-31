@@ -35,6 +35,8 @@ test('product can be updated', function () {
             'brand' => 'ABB',
             'unit' => 'Box',
             'type' => 'goods',
+            'price' => '175000.00',
+            'cost' => '95000.00',
             'status' => 'inactive',
         ]);
 
@@ -48,6 +50,8 @@ test('product can be updated', function () {
         'reference_number' => 'REF-00099999',
         'brand' => 'ABB',
         'unit' => 'Box',
+        'price' => 175000.00,
+        'cost' => 95000.00,
         'status' => 'inactive',
     ]);
 });

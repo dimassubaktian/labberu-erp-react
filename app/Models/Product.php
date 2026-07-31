@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
  * @property string $brand
  * @property string $unit
  * @property string $type
+ * @property string $price
+ * @property string $cost
  * @property string $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -32,6 +34,8 @@ use Illuminate\Support\Str;
     'brand',
     'unit',
     'type',
+    'price',
+    'cost',
     'status',
 ])]
 class Product extends Model
@@ -66,6 +70,8 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'price' => 'decimal:2',
+            'cost' => 'decimal:2',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

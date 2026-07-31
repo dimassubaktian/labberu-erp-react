@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\JobTitleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WorkforceController;
@@ -83,6 +84,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+
+    Route::get('quotations', [QuotationController::class, 'index'])->name('quotations.index');
+    Route::get('quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
+    Route::post('quotations', [QuotationController::class, 'store'])->name('quotations.store');
+    Route::get('quotations/{quotation}', [QuotationController::class, 'show'])->name('quotations.show');
+    Route::get('quotations/{quotation}/edit', [QuotationController::class, 'edit'])->name('quotations.edit');
+    Route::put('quotations/{quotation}', [QuotationController::class, 'update'])->name('quotations.update');
+    Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('quotations.status.update');
+    Route::post('quotations/{quotation}/revisions', [QuotationController::class, 'storeRevision'])->name('quotations.revisions.store');
+    Route::delete('quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
 });
 
 require __DIR__.'/settings.php';

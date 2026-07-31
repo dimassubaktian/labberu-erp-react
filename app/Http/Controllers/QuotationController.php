@@ -1,0 +1,372 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\QuotationRevisionRequest;
+use App\Http\Requests\QuotationStatusUpdateRequest;
+use App\Http\Requests\QuotationStoreRequest;
+use App\Http\Requests\QuotationUpdateRequest;
+use App\Models\Currency;
+use App\Models\Product;
+use App\Models\Project;
+use App\Models\Quotation;
+use App\Models\Tax;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class QuotationController extends Controller
+{
+    /**
+     * Display a listing of the quotations.
+     */
+    public function index(): Response
+    {
+        $quotations = Quotation::query()
+            ->where('is_current', true)
+            ->with(['project.customer', 'currency'])
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        return Inertia::render('quotations/index', [
+            'quotations' => $quotations,
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new quotation.
+     */
+    public function create(): Response
+    {
+        $projects = Project::query()
+            ->with('customer:id,name')
+            ->orderByDesc('request_date')
+            ->get(['id', 'name', 'project_code', 'customer_id']);
+
+        $currencies = Currency::query()
+            ->where('status', 'active')
+            ->orderBy('iso_code')
+            ->get(['id', 'iso_code', 'name', 'symbol']);
+
+        $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
+
+        $products = Product::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'product_code', 'unit', 'price', 'cost']);
+
+        return Inertia::render('quotations/create', [
+            'projects' => $projects,
+            'currencies' => $currencies,
+            'taxes' => $taxes,
+            'products' => $products,
+        ]);
+    }
+
+    /**
+     * Store a newly created quotation.
+     */
+    public function store(QuotationStoreRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $quotation = DB::transaction(function () use ($data): Quotation {
+            $quotation = Quotation::create([
+                'project_id' => $data['project_id'],
+                'status' => 'draft',
+                'currency_id' => $data['currency_id'],
+                'valid_until' => $data['valid_until'] ?? null,
+                'discount_type' => $data['discount_type'] ?? null,
+                'discount_value' => $data['discount_value'] ?? null,
+                'tax_id' => $data['tax_id'] ?? null,
+                'remarks' => $data['remarks'] ?? null,
+            ]);
+
+            $subtotal = 0;
+
+            foreach ($data['items'] as $item) {
+                $calculated = $this->calculateItem($item);
+
+                $quotation->items()->create($calculated);
+
+                $subtotal += $calculated['total_price'];
+            }
+
+            $discountAmount = $this->calculateDiscountAmount($subtotal, $data['discount_type'] ?? null, $data['discount_value'] ?? null);
+            $discountedSubtotal = $subtotal - $discountAmount;
+
+            $tax = isset($data['tax_id']) ? Tax::query()->firstWhere('id', $data['tax_id']) : null;
+            $taxAmount = $this->calculateTaxAmount($discountedSubtotal, $tax);
+
+            $quotation->update([
+                'subtotal' => $subtotal,
+                'discount_amount' => $discountAmount,
+                'tax_amount' => $taxAmount,
+                'total' => $discountedSubtotal + $taxAmount,
+            ]);
+
+            return $quotation;
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation created.')]);
+
+        return to_route('quotations.show', $quotation);
+    }
+
+    /**
+     * Display the specified quotation.
+     */
+    public function show(Quotation $quotation): Response
+    {
+        $quotation->load(['project.customer', 'currency', 'tax', 'approver', 'items.product']);
+
+        $rootId = $quotation->root_quotation_id ?? $quotation->id;
+
+        $history = Quotation::query()
+            ->where('id', $rootId)
+            ->orWhere('root_quotation_id', $rootId)
+            ->orderBy('version_major')
+            ->orderBy('version_minor')
+            ->get(['id', 'uuid', 'version_major', 'version_minor', 'status', 'is_current', 'created_at']);
+
+        return Inertia::render('quotations/show', [
+            'quotation' => $quotation,
+            'history' => $history,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified quotation.
+     */
+    public function edit(Quotation $quotation): Response
+    {
+        abort_if($quotation->status !== 'draft', 403, 'Only draft quotations can be edited.');
+
+        $quotation->load(['project.customer', 'items.product']);
+
+        $currencies = Currency::query()
+            ->where('status', 'active')
+            ->orderBy('iso_code')
+            ->get(['id', 'iso_code', 'name', 'symbol']);
+
+        $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
+
+        $products = Product::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name', 'product_code', 'unit', 'price', 'cost']);
+
+        return Inertia::render('quotations/edit', [
+            'quotation' => $quotation,
+            'currencies' => $currencies,
+            'taxes' => $taxes,
+            'products' => $products,
+        ]);
+    }
+
+    /**
+     * Update the specified quotation.
+     */
+    public function update(QuotationUpdateRequest $request, Quotation $quotation): RedirectResponse
+    {
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $quotation): void {
+            $quotation->items()->delete();
+
+            $subtotal = 0;
+
+            foreach ($data['items'] as $item) {
+                $calculated = $this->calculateItem($item);
+
+                $quotation->items()->create($calculated);
+
+                $subtotal += $calculated['total_price'];
+            }
+
+            $discountAmount = $this->calculateDiscountAmount($subtotal, $data['discount_type'] ?? null, $data['discount_value'] ?? null);
+            $discountedSubtotal = $subtotal - $discountAmount;
+
+            $tax = isset($data['tax_id']) ? Tax::query()->firstWhere('id', $data['tax_id']) : null;
+            $taxAmount = $this->calculateTaxAmount($discountedSubtotal, $tax);
+
+            $quotation->update([
+                'currency_id' => $data['currency_id'],
+                'valid_until' => $data['valid_until'] ?? null,
+                'discount_type' => $data['discount_type'] ?? null,
+                'discount_value' => $data['discount_value'] ?? null,
+                'tax_id' => $data['tax_id'] ?? null,
+                'remarks' => $data['remarks'] ?? null,
+                'subtotal' => $subtotal,
+                'discount_amount' => $discountAmount,
+                'tax_amount' => $taxAmount,
+                'total' => $discountedSubtotal + $taxAmount,
+            ]);
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation updated.')]);
+
+        return to_route('quotations.show', $quotation);
+    }
+
+    /**
+     * Remove the specified quotation.
+     */
+    public function destroy(Quotation $quotation): RedirectResponse
+    {
+        abort_if($quotation->status !== 'draft', 403, 'Only draft quotations can be deleted.');
+
+        $rootId = $quotation->root_quotation_id ?? $quotation->id;
+
+        $hasRevisions = Quotation::query()
+            ->where('id', '!=', $quotation->id)
+            ->where(function ($query) use ($rootId): void {
+                $query->where('id', $rootId)->orWhere('root_quotation_id', $rootId);
+            })
+            ->exists();
+
+        abort_if($hasRevisions, 422, 'Cannot delete a quotation that has other revisions.');
+
+        $quotation->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation deleted.')]);
+
+        return to_route('quotations.index');
+    }
+
+    /**
+     * Transition the specified quotation to a new status.
+     */
+    public function updateStatus(QuotationStatusUpdateRequest $request, Quotation $quotation): RedirectResponse
+    {
+        $status = $request->validated('status');
+
+        $quotation->update([
+            'status' => $status,
+            'approved_by' => $status === 'approved' ? $request->user()->id : $quotation->approved_by,
+            'approved_at' => $status === 'approved' ? now() : $quotation->approved_at,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation status updated.')]);
+
+        return to_route('quotations.show', $quotation);
+    }
+
+    /**
+     * Create a new revision of the specified quotation.
+     */
+    public function storeRevision(QuotationRevisionRequest $request, Quotation $quotation): RedirectResponse
+    {
+        $isMajor = $request->validated('version_type') === 'major';
+
+        $revision = DB::transaction(function () use ($quotation, $isMajor): Quotation {
+            $quotation->update(['is_current' => false]);
+
+            $revision = Quotation::create([
+                'project_id' => $quotation->project_id,
+                'root_quotation_id' => $quotation->root_quotation_id ?? $quotation->id,
+                'version_major' => $isMajor ? $quotation->version_major + 1 : $quotation->version_major,
+                'version_minor' => $isMajor ? 0 : $quotation->version_minor + 1,
+                'is_current' => true,
+                'status' => 'draft',
+                'currency_id' => $quotation->currency_id,
+                'valid_until' => $quotation->valid_until,
+                'discount_type' => $quotation->discount_type,
+                'discount_value' => $quotation->discount_value,
+                'tax_id' => $quotation->tax_id,
+                'subtotal' => $quotation->subtotal,
+                'discount_amount' => $quotation->discount_amount,
+                'tax_amount' => $quotation->tax_amount,
+                'total' => $quotation->total,
+                'remarks' => $quotation->remarks,
+            ]);
+
+            foreach ($quotation->items as $item) {
+                $revision->items()->create([
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                    'unit_price' => $item->unit_price,
+                    'unit_cost' => $item->unit_cost,
+                    'discount_type' => $item->discount_type,
+                    'discount_value' => $item->discount_value,
+                    'total_price' => $item->total_price,
+                    'total_cost' => $item->total_cost,
+                    'margin' => $item->margin,
+                    'margin_percent' => $item->margin_percent,
+                ]);
+            }
+
+            return $revision;
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Revision created.')]);
+
+        return to_route('quotations.edit', $revision);
+    }
+
+    /**
+     * Calculate a single line item's totals, margin, and margin percentage.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function calculateItem(array $item): array
+    {
+        $quantity = (float) $item['quantity'];
+        $unitPrice = (float) $item['unit_price'];
+        $unitCost = (float) $item['unit_cost'];
+
+        $lineTotal = $quantity * $unitPrice;
+        $totalPrice = $lineTotal - $this->calculateDiscountAmount($lineTotal, $item['discount_type'] ?? null, $item['discount_value'] ?? null);
+        $totalCost = $quantity * $unitCost;
+        $margin = $totalPrice - $totalCost;
+        $marginPercent = $totalPrice > 0 ? round($margin / $totalPrice * 100, 2) : 0;
+
+        return [
+            'product_id' => $item['product_id'],
+            'quantity' => $quantity,
+            'unit' => $item['unit'],
+            'unit_price' => $unitPrice,
+            'unit_cost' => $unitCost,
+            'discount_type' => $item['discount_type'] ?? null,
+            'discount_value' => $item['discount_value'] ?? null,
+            'total_price' => $totalPrice,
+            'total_cost' => $totalCost,
+            'margin' => $margin,
+            'margin_percent' => $marginPercent,
+        ];
+    }
+
+    /**
+     * Calculate a percentage or fixed discount amount against a base value.
+     */
+    private function calculateDiscountAmount(float $base, ?string $discountType, mixed $discountValue): float
+    {
+        if (! $discountType || $discountValue === null) {
+            return 0;
+        }
+
+        $discountValue = (float) $discountValue;
+
+        return $discountType === 'percentage'
+            ? min($base, $base * $discountValue / 100)
+            : min($base, $discountValue);
+    }
+
+    /**
+     * Calculate the tax amount for a discounted subtotal.
+     */
+    private function calculateTaxAmount(float $discountedSubtotal, ?Tax $tax): float
+    {
+        if (! $tax) {
+            return 0;
+        }
+
+        return $tax->type === 'percentage'
+            ? $discountedSubtotal * (float) $tax->rate / 100
+            : (float) $tax->rate;
+    }
+}

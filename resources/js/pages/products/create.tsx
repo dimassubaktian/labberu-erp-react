@@ -166,6 +166,34 @@ export default function ProductsCreate() {
 
                             <div className="grid gap-2 sm:grid-cols-2">
                                 <div className="grid gap-2">
+                                    <Label htmlFor="price">Price</Label>
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name="price"
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.price} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="cost">Cost</Label>
+                                    <Input
+                                        id="cost"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name="cost"
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.cost} />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="grid gap-2">
                                     <Label htmlFor="type">Type</Label>
                                     <input
                                         type="hidden"

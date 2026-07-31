@@ -41,6 +41,48 @@ test('product can be created', function () {
     ]);
 });
 
+test('price and cost are optional and default to zero', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('products.store'), [
+        'name' => 'MCB 1 Phase 10A',
+        'reference_number' => 'REF-00012345',
+        'descriptions' => 'Description',
+        'brand' => 'Schneider Electric',
+        'unit' => 'Pcs',
+        'type' => 'goods',
+        'status' => 'active',
+    ]);
+
+    $this->assertDatabaseHas('products', [
+        'name' => 'MCB 1 Phase 10A',
+        'price' => 0,
+        'cost' => 0,
+    ]);
+});
+
+test('price and cost can be set', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('products.store'), [
+        'name' => 'MCB 1 Phase 10A',
+        'reference_number' => 'REF-00012345',
+        'descriptions' => 'Description',
+        'brand' => 'Schneider Electric',
+        'unit' => 'Pcs',
+        'type' => 'goods',
+        'price' => '150000.50',
+        'cost' => '90000.25',
+        'status' => 'active',
+    ]);
+
+    $this->assertDatabaseHas('products', [
+        'name' => 'MCB 1 Phase 10A',
+        'price' => 150000.50,
+        'cost' => 90000.25,
+    ]);
+});
+
 test('product code is generated automatically', function () {
     $user = User::factory()->create();
 

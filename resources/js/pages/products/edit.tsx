@@ -53,6 +53,8 @@ type Product = {
     brand: string;
     unit: string;
     type: string;
+    price: string;
+    cost: string;
     status: string;
 };
 
@@ -189,6 +191,36 @@ export default function ProductsEdit({ product }: Props) {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.unit} />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="price">Price</Label>
+                                    <Input
+                                        id="price"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name="price"
+                                        defaultValue={product.price}
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.price} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="cost">Cost</Label>
+                                    <Input
+                                        id="cost"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        name="cost"
+                                        defaultValue={product.cost}
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.cost} />
                                 </div>
                             </div>
 
