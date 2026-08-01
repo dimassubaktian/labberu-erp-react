@@ -6,7 +6,6 @@ use App\Http\Requests\BomStoreRequest;
 use App\Http\Requests\BomUpdateRequest;
 use App\Models\Bom;
 use App\Models\BomSubgroup;
-use App\Models\Product;
 use App\Models\Quotation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -23,14 +22,8 @@ class BomController extends Controller
         abort_if($quotation->status !== 'draft', 403, 'Only draft quotations can have a BOM created.');
         abort_if($quotation->bom()->exists(), 409, 'This quotation already has a BOM.');
 
-        $products = Product::query()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'name', 'product_code', 'descriptions', 'brand', 'unit', 'cost']);
-
         return Inertia::render('boms/create', [
             'quotation' => $quotation,
-            'products' => $products,
         ]);
     }
 
@@ -94,15 +87,9 @@ class BomController extends Controller
             ])
             ->firstOrFail();
 
-        $products = Product::query()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'name', 'product_code', 'descriptions', 'brand', 'unit', 'cost']);
-
         return Inertia::render('boms/edit', [
             'quotation' => $quotation,
             'bom' => $bom,
-            'products' => $products,
         ]);
     }
 

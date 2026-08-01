@@ -4,15 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectUpdateRequest;
-use App\Models\Customer;
 use App\Models\Project;
 use App\Models\Workforce;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProjectController extends Controller
 {
+    /**
+     * Search projects for async select pickers.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = (string) $request->query('q', '');
+
+        $projects = Project::query()
+            ->with('customer:id,name')
+            ->when($query !== '', function ($builder) use ($query): void {
+                $builder->where(function ($inner) use ($query): void {
+                    $inner->where('name', 'like', "%{$query}%")
+                        ->orWhere('project_code', 'like', "%{$query}%");
+                });
+            })
+            ->orderByDesc('request_date')
+            ->limit(20)
+            ->get(['id', 'name', 'project_code', 'customer_id']);
+
+        return response()->json(['data' => $projects]);
+    }
+
     /**
      * Display a listing of the projects.
      */
@@ -34,15 +57,12 @@ class ProjectController extends Controller
      */
     public function create(): Response
     {
-        $customers = Customer::query()->orderBy('name')->get(['id', 'name']);
-
         $workforces = Workforce::query()
             ->where('status', 'active')
             ->orderBy('full_name')
             ->get(['id', 'full_name']);
 
         return Inertia::render('projects/create', [
-            'customers' => $customers,
             'workforces' => $workforces,
         ]);
     }
@@ -82,7 +102,7 @@ class ProjectController extends Controller
      */
     public function edit(Project $project): Response
     {
-        $customers = Customer::query()->orderBy('name')->get(['id', 'name']);
+        $project->load('customer:id,name,customer_code');
 
         $workforces = Workforce::query()
             ->where(function ($query) use ($project): void {
@@ -94,7 +114,6 @@ class ProjectController extends Controller
 
         return Inertia::render('projects/edit', [
             'project' => $project,
-            'customers' => $customers,
             'workforces' => $workforces,
         ]);
     }

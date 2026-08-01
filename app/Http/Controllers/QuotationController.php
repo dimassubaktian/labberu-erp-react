@@ -10,8 +10,6 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomSubgroup;
 use App\Models\Currency;
-use App\Models\Product;
-use App\Models\Project;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Tax;
@@ -44,11 +42,6 @@ class QuotationController extends Controller
      */
     public function create(): Response
     {
-        $projects = Project::query()
-            ->with('customer:id,name')
-            ->orderByDesc('request_date')
-            ->get(['id', 'name', 'project_code', 'customer_id']);
-
         $currencies = Currency::query()
             ->where('status', 'active')
             ->orderBy('iso_code')
@@ -56,16 +49,9 @@ class QuotationController extends Controller
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
-        $products = Product::query()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'name', 'product_code', 'descriptions', 'unit', 'price', 'cost']);
-
         return Inertia::render('quotations/create', [
-            'projects' => $projects,
             'currencies' => $currencies,
             'taxes' => $taxes,
-            'products' => $products,
         ]);
     }
 
@@ -149,16 +135,10 @@ class QuotationController extends Controller
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
-        $products = Product::query()
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get(['id', 'name', 'product_code', 'descriptions', 'unit', 'price', 'cost']);
-
         return Inertia::render('quotations/edit', [
             'quotation' => $quotation,
             'currencies' => $currencies,
             'taxes' => $taxes,
-            'products' => $products,
         ]);
     }
 

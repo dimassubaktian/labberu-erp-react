@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/utils';
+import { search as searchProducts } from '@/routes/products';
 import { index, show as showQuotation } from '@/routes/quotations';
 import { create, store } from '@/routes/quotations/bom';
 
@@ -60,7 +62,6 @@ type GroupState = {
 
 type Props = {
     quotation: QuotationOption;
-    products: ProductOption[];
 };
 
 function emptyItem(): LineItem {
@@ -124,7 +125,7 @@ type LineItemFieldsProps = {
     namePrefix: string;
     errorPrefix: string;
     item: LineItem;
-    products: ProductOption[];
+    initialProduct?: ProductOption | null;
     errors: Partial<Record<string, string>>;
     onChange: (changes: Partial<LineItem>) => void;
     onRemove?: () => void;
@@ -134,7 +135,7 @@ function LineItemFields({
     namePrefix,
     errorPrefix,
     item,
-    products,
+    initialProduct = null,
     errors,
     onChange,
     onRemove,
@@ -142,9 +143,10 @@ function LineItemFields({
     const totalCost = calculateItemTotalCost(item);
     const fieldId = namePrefix.replace(/[[\].]/g, '-');
 
-    function handleProductChange(productId: string): void {
-        const product = products.find((p) => String(p.id) === productId);
-
+    function handleProductChange(
+        productId: string,
+        product?: ProductOption,
+    ): void {
         onChange({
             product_id: productId,
             description: product?.descriptions ?? '',
@@ -164,33 +166,18 @@ function LineItemFields({
                         name={`${namePrefix}[product_id]`}
                         value={item.product_id}
                     />
-                    <Select
+                    <AsyncCombobox<ProductOption>
+                        id={`${fieldId}-product`}
                         value={item.product_id}
                         onValueChange={handleProductChange}
-                    >
-                        <SelectTrigger
-                            id={`${fieldId}-product`}
-                            className="w-full min-w-0"
-                        >
-                            <SelectValue
-                                placeholder="Select a product"
-                                className="truncate"
-                            />
-                        </SelectTrigger>
-                        <SelectContent className="max-w-(--radix-select-trigger-width)">
-                            {products.map((product) => (
-                                <SelectItem
-                                    key={product.id}
-                                    value={String(product.id)}
-                                >
-                                    <span className="block truncate">
-                                        {product.product_code} &mdash;{' '}
-                                        {product.name}
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        searchUrl={searchProducts().url}
+                        getOptionId={(product) => String(product.id)}
+                        getOptionLabel={(product) =>
+                            `${product.product_code} — ${product.name}`
+                        }
+                        initialOption={initialProduct}
+                        placeholder="Select a product"
+                    />
                     <InputError message={errors[`${errorPrefix}.product_id`]} />
                 </div>
 
@@ -348,7 +335,6 @@ type SubgroupFieldsProps = {
     namePrefix: string;
     errorPrefix: string;
     subgroup: SubgroupState;
-    products: ProductOption[];
     errors: Partial<Record<string, string>>;
     onNameChange: (name: string) => void;
     onAddItem: () => void;
@@ -361,7 +347,6 @@ function SubgroupFields({
     namePrefix,
     errorPrefix,
     subgroup,
-    products,
     errors,
     onNameChange,
     onAddItem,
@@ -373,8 +358,8 @@ function SubgroupFields({
     const fieldId = namePrefix.replace(/[[\].]/g, '-');
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-2">
+        <div className="space-y-4 rounded-lg border border-border/50 p-4">
+            <div className="flex items-start justify-between gap-2">
                 <div className="grid flex-1 gap-2">
                     <Label htmlFor={`${fieldId}-name`}>Phase name</Label>
                     <Input
@@ -395,8 +380,8 @@ function SubgroupFields({
                 >
                     <Trash2 className="text-destructive" />
                 </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+            <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <Label>Materials</Label>
                     <Button type="button" size="sm" onClick={onAddItem}>
@@ -412,7 +397,6 @@ function SubgroupFields({
                         namePrefix={`${namePrefix}[items][${itemIndex}]`}
                         errorPrefix={`${errorPrefix}.items.${itemIndex}`}
                         item={item}
-                        products={products}
                         errors={errors}
                         onChange={(changes) => onUpdateItem(itemIndex, changes)}
                         onRemove={
@@ -432,12 +416,12 @@ function SubgroupFields({
                     <dt>Phase subtotal</dt>
                     <dd>{formatNumber(subtotal)}</dd>
                 </dl>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
-export default function BomsCreate({ quotation, products }: Props) {
+export default function BomsCreate({ quotation }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Quotations', href: index() },
@@ -784,8 +768,11 @@ export default function BomsCreate({ quotation, products }: Props) {
                                     groupTotals[groupIndex];
 
                                 return (
-                                    <Card key={groupIndex}>
-                                        <CardHeader className="flex flex-row items-start justify-between gap-2">
+                                    <div
+                                        key={groupIndex}
+                                        className="space-y-4 rounded-lg border border-border/50 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
                                             <div className="grid flex-1 gap-2">
                                                 <Label
                                                     htmlFor={`group-${groupIndex}-name`}
@@ -826,8 +813,8 @@ export default function BomsCreate({ quotation, products }: Props) {
                                             >
                                                 <Trash2 className="text-destructive" />
                                             </Button>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
+                                        </div>
+                                        <div className="space-y-4">
                                             <div className="space-y-4">
                                                 <div className="flex items-center justify-between">
                                                     <Label>
@@ -870,7 +857,6 @@ export default function BomsCreate({ quotation, products }: Props) {
                                                             namePrefix={`${groupNamePrefix}[items][${itemIndex}]`}
                                                             errorPrefix={`${groupErrorPrefix}.items.${itemIndex}`}
                                                             item={item}
-                                                            products={products}
                                                             errors={errors}
                                                             onChange={(
                                                                 changes,
@@ -930,7 +916,6 @@ export default function BomsCreate({ quotation, products }: Props) {
                                                             namePrefix={`${groupNamePrefix}[subgroups][${subgroupIndex}]`}
                                                             errorPrefix={`${groupErrorPrefix}.subgroups.${subgroupIndex}`}
                                                             subgroup={subgroup}
-                                                            products={products}
                                                             errors={errors}
                                                             onNameChange={(
                                                                 name,
@@ -986,8 +971,8 @@ export default function BomsCreate({ quotation, products }: Props) {
                                                     )}
                                                 </dd>
                                             </dl>
-                                        </CardContent>
-                                    </Card>
+                                        </div>
+                                    </div>
                                 );
                             })}
 
@@ -1017,7 +1002,6 @@ export default function BomsCreate({ quotation, products }: Props) {
                                         namePrefix={`subgroups[${subgroupIndex}]`}
                                         errorPrefix={`subgroups.${subgroupIndex}`}
                                         subgroup={subgroup}
-                                        products={products}
                                         errors={errors}
                                         onNameChange={(name) =>
                                             updateSubgroupName(
@@ -1077,7 +1061,6 @@ export default function BomsCreate({ quotation, products }: Props) {
                                             namePrefix={`items[${index}]`}
                                             errorPrefix={`items.${index}`}
                                             item={item}
-                                            products={products}
                                             errors={errors}
                                             onChange={(changes) =>
                                                 updateItem(index, changes)

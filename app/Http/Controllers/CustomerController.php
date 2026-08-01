@@ -5,12 +5,35 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CustomerStoreRequest;
 use App\Http\Requests\CustomerUpdateRequest;
 use App\Models\Customer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CustomerController extends Controller
 {
+    /**
+     * Search customers for async select pickers.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = (string) $request->query('q', '');
+
+        $customers = Customer::query()
+            ->when($query !== '', function ($builder) use ($query): void {
+                $builder->where(function ($inner) use ($query): void {
+                    $inner->where('name', 'like', "%{$query}%")
+                        ->orWhere('customer_code', 'like', "%{$query}%");
+                });
+            })
+            ->orderBy('name')
+            ->limit(20)
+            ->get(['id', 'name', 'customer_code']);
+
+        return response()->json(['data' => $customers]);
+    }
+
     /**
      * Display a listing of the customers.
      */

@@ -1,5 +1,6 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
+import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -14,11 +15,13 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { search as searchCustomers } from '@/routes/customers';
 import { create, index, store } from '@/routes/projects';
 
 type CustomerOption = {
     id: number;
     name: string;
+    customer_code: string;
 };
 
 type WorkforceOption = {
@@ -27,11 +30,10 @@ type WorkforceOption = {
 };
 
 type Props = {
-    customers: CustomerOption[];
     workforces: WorkforceOption[];
 };
 
-export default function ProjectsCreate({ customers, workforces }: Props) {
+export default function ProjectsCreate({ workforces }: Props) {
     const [customerId, setCustomerId] = useState('');
     const [personInChargeId, setPersonInChargeId] = useState('');
     const [status, setStatus] = useState('planning');
@@ -72,27 +74,19 @@ export default function ProjectsCreate({ customers, workforces }: Props) {
                                         name="customer_id"
                                         value={customerId}
                                     />
-                                    <Select
+                                    <AsyncCombobox<CustomerOption>
+                                        id="customer_id"
                                         value={customerId}
                                         onValueChange={setCustomerId}
-                                    >
-                                        <SelectTrigger
-                                            id="customer_id"
-                                            className="w-full"
-                                        >
-                                            <SelectValue placeholder="Select a customer" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {customers.map((customer) => (
-                                                <SelectItem
-                                                    key={customer.id}
-                                                    value={String(customer.id)}
-                                                >
-                                                    {customer.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        searchUrl={searchCustomers().url}
+                                        getOptionId={(customer) =>
+                                            String(customer.id)
+                                        }
+                                        getOptionLabel={(customer) =>
+                                            customer.name
+                                        }
+                                        placeholder="Select a customer"
+                                    />
                                     <InputError message={errors.customer_id} />
                                 </div>
 

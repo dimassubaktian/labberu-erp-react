@@ -1,5 +1,6 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { useState } from 'react';
+import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -14,11 +15,13 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { search as searchCustomers } from '@/routes/customers';
 import { edit, index, show, update } from '@/routes/projects';
 
 type CustomerOption = {
     id: number;
     name: string;
+    customer_code: string;
 };
 
 type WorkforceOption = {
@@ -32,6 +35,7 @@ type Project = {
     project_code: string;
     name: string;
     customer_id: number;
+    customer: CustomerOption;
     request_date: string;
     person_in_charge_id: number | null;
     description: string | null;
@@ -48,7 +52,6 @@ type Project = {
 
 type Props = {
     project: Project;
-    customers: CustomerOption[];
     workforces: WorkforceOption[];
 };
 
@@ -56,11 +59,7 @@ function toDateInputValue(value: string | null): string {
     return value ? value.slice(0, 10) : '';
 }
 
-export default function ProjectsEdit({
-    project,
-    customers,
-    workforces,
-}: Props) {
+export default function ProjectsEdit({ project, workforces }: Props) {
     const [customerId, setCustomerId] = useState(String(project.customer_id));
     const [personInChargeId, setPersonInChargeId] = useState(
         project.person_in_charge_id ? String(project.person_in_charge_id) : '',
@@ -112,27 +111,20 @@ export default function ProjectsEdit({
                                         name="customer_id"
                                         value={customerId}
                                     />
-                                    <Select
+                                    <AsyncCombobox<CustomerOption>
+                                        id="customer_id"
                                         value={customerId}
                                         onValueChange={setCustomerId}
-                                    >
-                                        <SelectTrigger
-                                            id="customer_id"
-                                            className="w-full"
-                                        >
-                                            <SelectValue placeholder="Select a customer" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {customers.map((customer) => (
-                                                <SelectItem
-                                                    key={customer.id}
-                                                    value={String(customer.id)}
-                                                >
-                                                    {customer.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        searchUrl={searchCustomers().url}
+                                        getOptionId={(customer) =>
+                                            String(customer.id)
+                                        }
+                                        getOptionLabel={(customer) =>
+                                            customer.name
+                                        }
+                                        initialOption={project.customer}
+                                        placeholder="Select a customer"
+                                    />
                                     <InputError message={errors.customer_id} />
                                 </div>
 

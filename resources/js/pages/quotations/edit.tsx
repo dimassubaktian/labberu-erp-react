@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/utils';
+import { search as searchProducts } from '@/routes/products';
 import { edit, index, show, update } from '@/routes/quotations';
 
 type CurrencyOption = {
@@ -52,6 +54,7 @@ type LineItem = {
     unit_cost: string;
     discount_type: string;
     discount_value: string;
+    initialProduct?: ProductOption;
 };
 
 type GroupState = {
@@ -72,7 +75,7 @@ type QuotationItemProp = {
     unit_cost: string;
     discount_type: string | null;
     discount_value: string | null;
-    product: { id: number; name: string; product_code: string };
+    product: ProductOption;
 };
 
 type Quotation = {
@@ -106,7 +109,6 @@ type Props = {
     quotation: Quotation;
     currencies: CurrencyOption[];
     taxes: TaxOption[];
-    products: ProductOption[];
 };
 
 function calculateDiscount(
@@ -181,6 +183,7 @@ function toLineItem(item: QuotationItemProp): LineItem {
         unit_cost: item.unit_cost,
         discount_type: item.discount_type ?? 'none',
         discount_value: item.discount_value ?? '',
+        initialProduct: item.product,
     };
 }
 
@@ -211,7 +214,7 @@ type LineItemFieldsProps = {
     namePrefix: string;
     errorPrefix: string;
     item: LineItem;
-    products: ProductOption[];
+    initialProduct?: ProductOption | null;
     errors: Partial<Record<string, string>>;
     onChange: (changes: Partial<LineItem>) => void;
     onRemove?: () => void;
@@ -221,7 +224,7 @@ function LineItemFields({
     namePrefix,
     errorPrefix,
     item,
-    products,
+    initialProduct = null,
     errors,
     onChange,
     onRemove,
@@ -229,9 +232,10 @@ function LineItemFields({
     const totals = calculateItemTotals(item);
     const fieldId = namePrefix.replace(/[[\].]/g, '-');
 
-    function handleProductChange(productId: string): void {
-        const product = products.find((p) => String(p.id) === productId);
-
+    function handleProductChange(
+        productId: string,
+        product?: ProductOption,
+    ): void {
         onChange({
             product_id: productId,
             description: product?.descriptions ?? '',
@@ -251,33 +255,18 @@ function LineItemFields({
                         name={`${namePrefix}[product_id]`}
                         value={item.product_id}
                     />
-                    <Select
+                    <AsyncCombobox<ProductOption>
+                        id={`${fieldId}-product`}
                         value={item.product_id}
                         onValueChange={handleProductChange}
-                    >
-                        <SelectTrigger
-                            id={`${fieldId}-product`}
-                            className="w-full min-w-0"
-                        >
-                            <SelectValue
-                                placeholder="Select a product"
-                                className="truncate"
-                            />
-                        </SelectTrigger>
-                        <SelectContent className="max-w-(--radix-select-trigger-width)">
-                            {products.map((product) => (
-                                <SelectItem
-                                    key={product.id}
-                                    value={String(product.id)}
-                                >
-                                    <span className="block truncate">
-                                        {product.product_code} &mdash;{' '}
-                                        {product.name}
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        searchUrl={searchProducts().url}
+                        getOptionId={(product) => String(product.id)}
+                        getOptionLabel={(product) =>
+                            `${product.product_code} — ${product.name}`
+                        }
+                        initialOption={initialProduct}
+                        placeholder="Select a product"
+                    />
                     <InputError message={errors[`${errorPrefix}.product_id`]} />
                 </div>
 
@@ -466,7 +455,6 @@ export default function QuotationsEdit({
     quotation,
     currencies,
     taxes,
-    products,
 }: Props) {
     setLayoutProps({
         breadcrumbs: [
@@ -731,8 +719,11 @@ export default function QuotationsEdit({
                                 const groupErrorPrefix = `groups.${groupIndex}`;
 
                                 return (
-                                    <Card key={groupIndex}>
-                                        <CardHeader className="flex flex-row items-start justify-between gap-2">
+                                    <div
+                                        key={groupIndex}
+                                        className="space-y-4 rounded-lg border border-border/50 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
                                             <div className="grid flex-1 gap-2">
                                                 <Label
                                                     htmlFor={`group-${groupIndex}-name`}
@@ -773,239 +764,169 @@ export default function QuotationsEdit({
                                             >
                                                 <Trash2 className="text-destructive" />
                                             </Button>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6">
-                                            <div className="grid gap-2 sm:grid-cols-3">
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`group-${groupIndex}-discount-type`}
+                                        </div>
+                                        <div className="grid gap-2 sm:grid-cols-3">
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`group-${groupIndex}-discount-type`}
+                                                >
+                                                    Discount type
+                                                </Label>
+                                                <input
+                                                    type="hidden"
+                                                    name={`${groupNamePrefix}[discount_type]`}
+                                                    value={
+                                                        group.discount_type ===
+                                                        'none'
+                                                            ? ''
+                                                            : group.discount_type
+                                                    }
+                                                />
+                                                <Select
+                                                    value={group.discount_type}
+                                                    onValueChange={(value) =>
+                                                        updateGroup(
+                                                            groupIndex,
+                                                            {
+                                                                discount_type:
+                                                                    value,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger
+                                                        id={`group-${groupIndex}-discount-type`}
+                                                        className="w-full"
                                                     >
-                                                        Discount type
-                                                    </Label>
-                                                    <input
-                                                        type="hidden"
-                                                        name={`${groupNamePrefix}[discount_type]`}
-                                                        value={
-                                                            group.discount_type ===
-                                                            'none'
-                                                                ? ''
-                                                                : group.discount_type
-                                                        }
-                                                    />
-                                                    <Select
-                                                        value={
-                                                            group.discount_type
-                                                        }
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            updateGroup(
-                                                                groupIndex,
-                                                                {
-                                                                    discount_type:
-                                                                        value,
-                                                                },
-                                                            )
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            id={`group-${groupIndex}-discount-type`}
-                                                            className="w-full"
-                                                        >
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="none">
-                                                                No discount
-                                                            </SelectItem>
-                                                            <SelectItem value="percentage">
-                                                                Percentage
-                                                            </SelectItem>
-                                                            <SelectItem value="fixed">
-                                                                Fixed amount
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <InputError
-                                                        message={
-                                                            errors[
-                                                                `${groupErrorPrefix}.discount_type`
-                                                            ]
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`group-${groupIndex}-discount-value`}
-                                                    >
-                                                        Discount value
-                                                    </Label>
-                                                    <Input
-                                                        id={`group-${groupIndex}-discount-value`}
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        name={`${groupNamePrefix}[discount_value]`}
-                                                        value={
-                                                            group.discount_value
-                                                        }
-                                                        onChange={(e) =>
-                                                            updateGroup(
-                                                                groupIndex,
-                                                                {
-                                                                    discount_value:
-                                                                        e.target
-                                                                            .value,
-                                                                },
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            group.discount_type ===
-                                                            'none'
-                                                        }
-                                                        placeholder="Optional"
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            errors[
-                                                                `${groupErrorPrefix}.discount_value`
-                                                            ]
-                                                        }
-                                                    />
-                                                </div>
-
-                                                <div className="grid gap-2">
-                                                    <Label
-                                                        htmlFor={`group-${groupIndex}-tax`}
-                                                    >
-                                                        Tax
-                                                    </Label>
-                                                    <input
-                                                        type="hidden"
-                                                        name={`${groupNamePrefix}[tax_id]`}
-                                                        value={
-                                                            group.tax_id ===
-                                                            'none'
-                                                                ? ''
-                                                                : group.tax_id
-                                                        }
-                                                    />
-                                                    <Select
-                                                        value={group.tax_id}
-                                                        onValueChange={(
-                                                            value,
-                                                        ) =>
-                                                            updateGroup(
-                                                                groupIndex,
-                                                                {
-                                                                    tax_id: value,
-                                                                },
-                                                            )
-                                                        }
-                                                    >
-                                                        <SelectTrigger
-                                                            id={`group-${groupIndex}-tax`}
-                                                            className="w-full min-w-0"
-                                                        >
-                                                            <SelectValue className="truncate" />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                            <SelectItem value="none">
-                                                                No tax
-                                                            </SelectItem>
-                                                            {taxes.map(
-                                                                (tax) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            tax.id
-                                                                        }
-                                                                        value={String(
-                                                                            tax.id,
-                                                                        )}
-                                                                    >
-                                                                        <span className="block truncate">
-                                                                            {
-                                                                                tax.name
-                                                                            }{' '}
-                                                                            (
-                                                                            {tax.type ===
-                                                                            'percentage'
-                                                                                ? `${tax.rate}%`
-                                                                                : tax.rate}
-                                                                            )
-                                                                        </span>
-                                                                    </SelectItem>
-                                                                ),
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <InputError
-                                                        message={
-                                                            errors[
-                                                                `${groupErrorPrefix}.tax_id`
-                                                            ]
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <Label>Group items</Label>
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            addGroupItem(
-                                                                groupIndex,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Plus />
-                                                        Add line
-                                                    </Button>
-                                                </div>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">
+                                                            No discount
+                                                        </SelectItem>
+                                                        <SelectItem value="percentage">
+                                                            Percentage
+                                                        </SelectItem>
+                                                        <SelectItem value="fixed">
+                                                            Fixed amount
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                                 <InputError
                                                     message={
                                                         errors[
-                                                            `${groupErrorPrefix}.items`
+                                                            `${groupErrorPrefix}.discount_type`
                                                         ]
                                                     }
                                                 />
+                                            </div>
 
-                                                {group.items.map(
-                                                    (item, itemIndex) => (
-                                                        <LineItemFields
-                                                            key={itemIndex}
-                                                            namePrefix={`${groupNamePrefix}[items][${itemIndex}]`}
-                                                            errorPrefix={`${groupErrorPrefix}.items.${itemIndex}`}
-                                                            item={item}
-                                                            products={products}
-                                                            errors={errors}
-                                                            onChange={(
-                                                                changes,
-                                                            ) =>
-                                                                updateGroupItem(
-                                                                    groupIndex,
-                                                                    itemIndex,
-                                                                    changes,
-                                                                )
-                                                            }
-                                                            onRemove={
-                                                                group.items
-                                                                    .length > 1
-                                                                    ? () =>
-                                                                          removeGroupItem(
-                                                                              groupIndex,
-                                                                              itemIndex,
-                                                                          )
-                                                                    : undefined
-                                                            }
-                                                        />
-                                                    ),
-                                                )}
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`group-${groupIndex}-discount-value`}
+                                                >
+                                                    Discount value
+                                                </Label>
+                                                <Input
+                                                    id={`group-${groupIndex}-discount-value`}
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    name={`${groupNamePrefix}[discount_value]`}
+                                                    value={group.discount_value}
+                                                    onChange={(e) =>
+                                                        updateGroup(
+                                                            groupIndex,
+                                                            {
+                                                                discount_value:
+                                                                    e.target
+                                                                        .value,
+                                                            },
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        group.discount_type ===
+                                                        'none'
+                                                    }
+                                                    placeholder="Optional"
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            `${groupErrorPrefix}.discount_value`
+                                                        ]
+                                                    }
+                                                />
+                                            </div>
 
+                                            <div className="grid gap-2">
+                                                <Label
+                                                    htmlFor={`group-${groupIndex}-tax`}
+                                                >
+                                                    Tax
+                                                </Label>
+                                                <input
+                                                    type="hidden"
+                                                    name={`${groupNamePrefix}[tax_id]`}
+                                                    value={
+                                                        group.tax_id === 'none'
+                                                            ? ''
+                                                            : group.tax_id
+                                                    }
+                                                />
+                                                <Select
+                                                    value={group.tax_id}
+                                                    onValueChange={(value) =>
+                                                        updateGroup(
+                                                            groupIndex,
+                                                            {
+                                                                tax_id: value,
+                                                            },
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger
+                                                        id={`group-${groupIndex}-tax`}
+                                                        className="w-full min-w-0"
+                                                    >
+                                                        <SelectValue className="truncate" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                        <SelectItem value="none">
+                                                            No tax
+                                                        </SelectItem>
+                                                        {taxes.map((tax) => (
+                                                            <SelectItem
+                                                                key={tax.id}
+                                                                value={String(
+                                                                    tax.id,
+                                                                )}
+                                                            >
+                                                                <span className="block truncate">
+                                                                    {tax.name} (
+                                                                    {tax.type ===
+                                                                    'percentage'
+                                                                        ? `${tax.rate}%`
+                                                                        : tax.rate}
+                                                                    )
+                                                                </span>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            `${groupErrorPrefix}.tax_id`
+                                                        ]
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <Label>Group items</Label>
                                                 <Button
                                                     type="button"
                                                     size="sm"
@@ -1017,49 +938,97 @@ export default function QuotationsEdit({
                                                     Add line
                                                 </Button>
                                             </div>
+                                            <InputError
+                                                message={
+                                                    errors[
+                                                        `${groupErrorPrefix}.items`
+                                                    ]
+                                                }
+                                            />
 
-                                            <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Group subtotal
-                                                    </dt>
-                                                    <dd className="font-medium">
-                                                        {formatNumber(
-                                                            totals.subtotal,
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Group discount
-                                                    </dt>
-                                                    <dd className="font-medium">
-                                                        {formatNumber(
-                                                            totals.discountAmount,
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <dt className="text-muted-foreground">
-                                                        Group tax
-                                                    </dt>
-                                                    <dd className="font-medium">
-                                                        {formatNumber(
-                                                            totals.taxAmount,
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                                <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
-                                                    <dt>Group total</dt>
-                                                    <dd>
-                                                        {formatNumber(
-                                                            totals.total,
-                                                        )}
-                                                    </dd>
-                                                </div>
-                                            </dl>
-                                        </CardContent>
-                                    </Card>
+                                            {group.items.map(
+                                                (item, itemIndex) => (
+                                                    <LineItemFields
+                                                        key={itemIndex}
+                                                        namePrefix={`${groupNamePrefix}[items][${itemIndex}]`}
+                                                        errorPrefix={`${groupErrorPrefix}.items.${itemIndex}`}
+                                                        item={item}
+                                                        initialProduct={
+                                                            item.initialProduct
+                                                        }
+                                                        errors={errors}
+                                                        onChange={(changes) =>
+                                                            updateGroupItem(
+                                                                groupIndex,
+                                                                itemIndex,
+                                                                changes,
+                                                            )
+                                                        }
+                                                        onRemove={
+                                                            group.items.length >
+                                                            1
+                                                                ? () =>
+                                                                      removeGroupItem(
+                                                                          groupIndex,
+                                                                          itemIndex,
+                                                                      )
+                                                                : undefined
+                                                        }
+                                                    />
+                                                ),
+                                            )}
+
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                onClick={() =>
+                                                    addGroupItem(groupIndex)
+                                                }
+                                            >
+                                                <Plus />
+                                                Add line
+                                            </Button>
+                                        </div>
+
+                                        <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">
+                                                    Group subtotal
+                                                </dt>
+                                                <dd className="font-medium">
+                                                    {formatNumber(
+                                                        totals.subtotal,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">
+                                                    Group discount
+                                                </dt>
+                                                <dd className="font-medium">
+                                                    {formatNumber(
+                                                        totals.discountAmount,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">
+                                                    Group tax
+                                                </dt>
+                                                <dd className="font-medium">
+                                                    {formatNumber(
+                                                        totals.taxAmount,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                                <dt>Group total</dt>
+                                                <dd>
+                                                    {formatNumber(totals.total)}
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                    </div>
                                 );
                             })}
 
@@ -1096,7 +1065,7 @@ export default function QuotationsEdit({
                                             namePrefix={`items[${index}]`}
                                             errorPrefix={`items.${index}`}
                                             item={item}
-                                            products={products}
+                                            initialProduct={item.initialProduct}
                                             errors={errors}
                                             onChange={(changes) =>
                                                 updateItem(index, changes)

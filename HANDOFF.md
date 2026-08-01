@@ -65,6 +65,22 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 11. **Project Attachments** — file upload capability added to `Project` (deliberately *not*
     `Quotation`), for supporting documents (customer POs, drawings, etc.) that apply to the
     whole engagement rather than one specific quotation revision. See its own section below.
+12. **Table UI polish**: faded the shared `Table` component's row/header borders (`border-b`
+    → `border-b-border/50`) and the outer wrapper `Card`-style border every index page uses
+    (`border-sidebar-border/70` → `border-border/50`) — user felt the original borders were
+    too strong. Both are in the shared component/pattern, so this applied everywhere at once.
+13. **Nested form spacing fix**: Quotation "Group" cards and BOM "Group"/"Subgroup" cards used
+    the full `Card`/`CardHeader`/`CardContent` component at every nesting level, stacking
+    `py-6`/`px-6` padding (plus a redundant border/shadow) 2–3 levels deep. Replaced the
+    *nested* levels only (not top-level cards like Details/Summary) with a lighter
+    `rounded-lg border border-border/50 p-4` div — same visual separation, less wasted space.
+    Affects `quotations/create.tsx`/`edit.tsx` (Group) and `boms/create.tsx`/`edit.tsx`
+    (Group and Subgroup).
+14. **Searchable async pickers for high-cardinality selects**: Customer (Projects), Project
+    (Quotations), and Product (every Quotation/BOM line item) previously loaded their *entire*
+    table into the page props on every create/edit visit, rendered as a plain `Select` with no
+    search — fine for small reference tables, not for what could become hundreds/thousands of
+    rows. See its own section below for the full design.
 
 ## The established CRUD pattern (repeat this for future modules)
 
@@ -354,6 +370,62 @@ upload date — no original filename shown), Download + Delete (behind a confirm
 `variant="destructive"`) per row. No status/draft restriction on upload, unlike BOM — can be
 added to a project at any time.
 
+## Async search comboboxes — Customer / Project / Product pickers
+
+Discussed with the user as a "hybrid" fix: small, bounded reference tables (Job Titles,
+Currencies, Taxes, Workforces) stay as the original plain `Select` with the full list passed
+in via Inertia props — no reason to touch those. The three pickers that are genuinely
+high-cardinality — **Customer** (on `projects/create.tsx`/`edit.tsx`), **Project** (on
+`quotations/create.tsx`), and **Product** (every line item in `quotations/create.tsx`/
+`edit.tsx` and `boms/create.tsx`/`edit.tsx`) — were switched to a server-side searchable
+combobox instead.
+
+**New dependencies** (explicitly approved by the user before adding): `@radix-ui/react-popover`
+and `cmdk`. New shadcn-style primitives `resources/js/components/ui/popover.tsx` and
+`resources/js/components/ui/command.tsx` wrap them, following this project's existing
+`data-slot` + `cn()` convention from the other `ui/` components.
+
+**`resources/js/components/async-combobox.tsx`** — the reusable piece. Generic over the option
+type `T`. Props: `value`/`onValueChange(value, option?)` (mirrors the existing `Select` API so
+call sites stay familiar — the hidden-input-for-Inertia-`<Form>` pattern is unchanged),
+`searchUrl`, `getOptionId`/`getOptionLabel` (`renderOption` optional for richer list rendering),
+and `initialOption` (pre-populates the trigger's label on edit pages without an extra fetch —
+important since edit pages no longer receive the full option list to look the label up from).
+Internally debounces (300ms) via `useHttp` (Inertia v3's standalone-HTTP-request hook — *not*
+`router` or raw `fetch`, matches the one other place in the app that needed a non-page-visit
+request, `hooks/use-two-factor-auth.ts`) and fetches an initial top-20 batch when the popover
+first opens.
+
+**Backend**: each of `CustomerController`, `ProductController`, `ProjectController` gained a
+`search(Request $request): JsonResponse` action — `?q=` matched against name *or* code
+(`LIKE '%...%'`), capped at 20 results, ordered the same way the existing `index()`/`create()`
+queries were. Routes are `GET {resource}/search`, registered **before** the `{resource}`
+wildcard route (same static-before-wildcard rule as everywhere else in `routes/web.php`).
+Product's search also respects `status = active` (matching what `create()`/`edit()` used to
+filter for); Customer/Project have no status column so no extra filter.
+
+**Controllers no longer preload full lists.** `ProjectController::create()`/`edit()`,
+`QuotationController::create()`/`edit()`, and `BomController::create()`/`edit()` had their
+`Customer::all()`/`Project::all()`/`Product::all()` calls removed entirely — the combobox now
+sources everything via `/…/search`. Edit pages still eager-load *just* the currently-assigned
+record (e.g. `$project->load('customer:id,name,customer_code')`) so `initialOption` has
+something to render immediately.
+
+**Product autofill quirk to know about**: selecting a product used to look up the full record
+from a locally-passed `products[]` array to autofill unit/price/cost/description onto the line
+item. Since that array no longer exists, `AsyncCombobox`'s `onValueChange` now hands back the
+*entire* selected option object (not just its id) — `LineItemFields`' `handleProductChange` in
+all four line-item forms uses that directly instead of an array `.find()`. For **edit** forms,
+each `LineItem`/`BomItem` state type grew an `initialProduct?: ProductOption` field, populated
+from the existing `item.product` relation in `toLineItem()` — this is what feeds
+`AsyncCombobox`'s `initialOption` so an already-selected line item shows its product's label
+immediately without a search round-trip.
+
+**15 new feature tests** in `tests/Feature/Customers/SearchTest.php`,
+`tests/Feature/Products/SearchTest.php`, `tests/Feature/Projects/SearchTest.php` — name match,
+code match, inactive/trashed exclusion, result limit, guest gets 401 (not a redirect, since
+these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
+
 ## Bugs fixed along the way (worth knowing about)
 
 - **Soft-delete + unique constraint bug**: `workforces.email` had a plain DB-level
@@ -430,6 +502,10 @@ added to a project at any time.
 - Reference/supporting documents (e.g. Project Attachments) should **not** be deep-copied
   across quotation revisions the way pricing content (items/groups/BOM) is — only content
   that represents what was actually priced/planned needs a frozen snapshot per revision.
+- Not every `Select` needs to become a searchable async combobox — only convert one once a
+  table is genuinely high-cardinality (hundreds/thousands of rows). Small bounded reference
+  data (Job Titles, Currencies, Taxes, Workforces) stays as a plain `Select` with the full list
+  passed via Inertia props; converting those would just be unnecessary network round-trips.
 
 ## What's NOT built yet (natural next steps)
 
@@ -449,6 +525,9 @@ added to a project at any time.
 - `BomController` has no `destroy` — a BOM can be edited down to empty but not deleted.
 - No customer-facing acceptance step (e-signature/"customer accepted" status) — the status
   workflow only tracks internal staff approval.
+- Workforce ("person in charge" on Projects) still uses a plain full-list `Select`, not the new
+  async combobox — deliberately deferred, but worth revisiting if headcount grows into the
+  hundreds. Same `AsyncCombobox` component would apply directly.
 
 ## Where to resume
 
