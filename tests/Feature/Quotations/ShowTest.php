@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Quotation;
+use App\Models\QuotationGroup;
 use App\Models\QuotationItem;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -18,6 +19,24 @@ test('quotation detail page is displayed', function () {
             ->where('quotation.uuid', $quotation->uuid)
             ->where('quotation.quotation_code', $quotation->quotation_code)
             ->has('quotation.items', 1),
+        );
+});
+
+test('quotation detail page separates grouped items from ungrouped items', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create();
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id]);
+    $group = QuotationGroup::factory()->create(['quotation_id' => $quotation->id]);
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id, 'quotation_group_id' => $group->id]);
+
+    $this->actingAs($user)
+        ->get(route('quotations.show', $quotation))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('quotations/show')
+            ->has('quotation.items', 1)
+            ->has('quotation.groups', 1)
+            ->has('quotation.groups.0.items', 1),
         );
 });
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Quotation;
+use App\Models\QuotationGroup;
 use App\Models\QuotationItem;
 use App\Models\User;
 
@@ -74,6 +75,31 @@ test('a second revision inherits the original root, not the previous revision', 
     expect($secondRevision->root_quotation_id)->toBe($root->id);
     expect($firstRevision->refresh()->is_current)->toBeFalse();
     expect($secondRevision->is_current)->toBeTrue();
+});
+
+test('revising a quotation copies its groups and their items', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create(['status' => 'approved']);
+    $group = QuotationGroup::factory()->create([
+        'quotation_id' => $quotation->id,
+        'name' => 'Labor',
+        'subtotal' => 100_000,
+        'total' => 100_000,
+    ]);
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id, 'quotation_group_id' => $group->id]);
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id]);
+
+    $this->actingAs($user)
+        ->post(route('quotations.revisions.store', $quotation), ['version_type' => 'minor'])
+        ->assertSessionHasNoErrors();
+
+    $revision = Quotation::where('id', '!=', $quotation->id)->sole();
+
+    $revisedGroup = $revision->groups()->sole();
+    expect($revisedGroup->name)->toBe('Labor');
+    expect((float) $revisedGroup->total)->toBe(100_000.0);
+    expect($revisedGroup->items()->count())->toBe(1);
+    expect($revision->items()->whereNull('quotation_group_id')->count())->toBe(1);
 });
 
 test('a non-current quotation cannot be revised', function () {

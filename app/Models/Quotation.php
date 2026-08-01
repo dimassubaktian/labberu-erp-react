@@ -192,6 +192,16 @@ class Quotation extends Model
     }
 
     /**
+     * Get the item groups on this quotation.
+     *
+     * @return HasMany<QuotationGroup, $this>
+     */
+    public function groups(): HasMany
+    {
+        return $this->hasMany(QuotationGroup::class)->orderBy('sort_order');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -99,6 +99,41 @@ test('quotation-level discount and tax are recalculated on update', function () 
     expect((float) $quotation->total)->toBe(199_800.0);
 });
 
+test('groups are replaced and totals recalculated on update', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create();
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id]);
+    $currency = Currency::factory()->create();
+    $tax = Tax::factory()->percentage()->create(['rate' => 10]);
+    $product = Product::factory()->create(['price' => 100_000, 'cost' => 50_000]);
+
+    $response = $this->actingAs($user)->put(route('quotations.update', $quotation), [
+        'currency_id' => $currency->id,
+        'groups' => [
+            [
+                'name' => 'Labor',
+                'tax_id' => $tax->id,
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 2, 'unit' => 'Pcs', 'unit_price' => 100_000, 'unit_cost' => 50_000],
+                ],
+            ],
+        ],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $quotation->refresh();
+    $group = $quotation->groups()->sole();
+
+    expect($group->name)->toBe('Labor');
+    expect((float) $group->subtotal)->toBe(200_000.0);
+    expect((float) $group->tax_amount)->toBe(20_000.0);
+    expect((float) $group->total)->toBe(220_000.0);
+    expect((float) $quotation->subtotal)->toBe(220_000.0);
+    expect((float) $quotation->total)->toBe(220_000.0);
+    expect($quotation->items()->whereNull('quotation_group_id')->count())->toBe(0);
+});
+
 test('required fields are validated on update', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create();

@@ -10,6 +10,7 @@ use App\Models\Currency;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Quotation;
+use App\Models\QuotationItem;
 use App\Models\Tax;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -55,7 +56,7 @@ class QuotationController extends Controller
         $products = Product::query()
             ->where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'name', 'product_code', 'unit', 'price', 'cost']);
+            ->get(['id', 'name', 'product_code', 'descriptions', 'unit', 'price', 'cost']);
 
         return Inertia::render('quotations/create', [
             'projects' => $projects,
@@ -84,28 +85,7 @@ class QuotationController extends Controller
                 'remarks' => $data['remarks'] ?? null,
             ]);
 
-            $subtotal = 0;
-
-            foreach ($data['items'] as $item) {
-                $calculated = $this->calculateItem($item);
-
-                $quotation->items()->create($calculated);
-
-                $subtotal += $calculated['total_price'];
-            }
-
-            $discountAmount = $this->calculateDiscountAmount($subtotal, $data['discount_type'] ?? null, $data['discount_value'] ?? null);
-            $discountedSubtotal = $subtotal - $discountAmount;
-
-            $tax = isset($data['tax_id']) ? Tax::query()->firstWhere('id', $data['tax_id']) : null;
-            $taxAmount = $this->calculateTaxAmount($discountedSubtotal, $tax);
-
-            $quotation->update([
-                'subtotal' => $subtotal,
-                'discount_amount' => $discountAmount,
-                'tax_amount' => $taxAmount,
-                'total' => $discountedSubtotal + $taxAmount,
-            ]);
+            $this->syncGroupsAndItems($quotation, $data);
 
             return $quotation;
         });
@@ -120,7 +100,15 @@ class QuotationController extends Controller
      */
     public function show(Quotation $quotation): Response
     {
-        $quotation->load(['project.customer', 'currency', 'tax', 'approver', 'items.product']);
+        $quotation->load([
+            'project.customer',
+            'currency',
+            'tax',
+            'approver',
+            'groups.tax',
+            'groups.items.product',
+            'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
+        ]);
 
         $rootId = $quotation->root_quotation_id ?? $quotation->id;
 
@@ -144,7 +132,11 @@ class QuotationController extends Controller
     {
         abort_if($quotation->status !== 'draft', 403, 'Only draft quotations can be edited.');
 
-        $quotation->load(['project.customer', 'items.product']);
+        $quotation->load([
+            'project.customer',
+            'groups.items.product',
+            'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
+        ]);
 
         $currencies = Currency::query()
             ->where('status', 'active')
@@ -156,7 +148,7 @@ class QuotationController extends Controller
         $products = Product::query()
             ->where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'name', 'product_code', 'unit', 'price', 'cost']);
+            ->get(['id', 'name', 'product_code', 'descriptions', 'unit', 'price', 'cost']);
 
         return Inertia::render('quotations/edit', [
             'quotation' => $quotation,
@@ -175,22 +167,7 @@ class QuotationController extends Controller
 
         DB::transaction(function () use ($data, $quotation): void {
             $quotation->items()->delete();
-
-            $subtotal = 0;
-
-            foreach ($data['items'] as $item) {
-                $calculated = $this->calculateItem($item);
-
-                $quotation->items()->create($calculated);
-
-                $subtotal += $calculated['total_price'];
-            }
-
-            $discountAmount = $this->calculateDiscountAmount($subtotal, $data['discount_type'] ?? null, $data['discount_value'] ?? null);
-            $discountedSubtotal = $subtotal - $discountAmount;
-
-            $tax = isset($data['tax_id']) ? Tax::query()->firstWhere('id', $data['tax_id']) : null;
-            $taxAmount = $this->calculateTaxAmount($discountedSubtotal, $tax);
+            $quotation->groups()->delete();
 
             $quotation->update([
                 'currency_id' => $data['currency_id'],
@@ -199,11 +176,9 @@ class QuotationController extends Controller
                 'discount_value' => $data['discount_value'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
                 'remarks' => $data['remarks'] ?? null,
-                'subtotal' => $subtotal,
-                'discount_amount' => $discountAmount,
-                'tax_amount' => $taxAmount,
-                'total' => $discountedSubtotal + $taxAmount,
             ]);
+
+            $this->syncGroupsAndItems($quotation, $data);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation updated.')]);
@@ -261,6 +236,8 @@ class QuotationController extends Controller
     {
         $isMajor = $request->validated('version_type') === 'major';
 
+        $quotation->load(['groups.items', 'items' => fn ($query) => $query->whereNull('quotation_group_id')]);
+
         $revision = DB::transaction(function () use ($quotation, $isMajor): Quotation {
             $quotation->update(['is_current' => false]);
 
@@ -283,20 +260,26 @@ class QuotationController extends Controller
                 'remarks' => $quotation->remarks,
             ]);
 
-            foreach ($quotation->items as $item) {
-                $revision->items()->create([
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->quantity,
-                    'unit' => $item->unit,
-                    'unit_price' => $item->unit_price,
-                    'unit_cost' => $item->unit_cost,
-                    'discount_type' => $item->discount_type,
-                    'discount_value' => $item->discount_value,
-                    'total_price' => $item->total_price,
-                    'total_cost' => $item->total_cost,
-                    'margin' => $item->margin,
-                    'margin_percent' => $item->margin_percent,
+            foreach ($quotation->groups as $group) {
+                $newGroup = $revision->groups()->create([
+                    'name' => $group->name,
+                    'sort_order' => $group->sort_order,
+                    'discount_type' => $group->discount_type,
+                    'discount_value' => $group->discount_value,
+                    'tax_id' => $group->tax_id,
+                    'subtotal' => $group->subtotal,
+                    'discount_amount' => $group->discount_amount,
+                    'tax_amount' => $group->tax_amount,
+                    'total' => $group->total,
                 ]);
+
+                foreach ($group->items as $item) {
+                    $revision->items()->create($this->copyItemAttributes($item) + ['quotation_group_id' => $newGroup->id]);
+                }
+            }
+
+            foreach ($quotation->items as $item) {
+                $revision->items()->create($this->copyItemAttributes($item));
             }
 
             return $revision;
@@ -305,6 +288,120 @@ class QuotationController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Revision created.')]);
 
         return to_route('quotations.edit', $revision);
+    }
+
+    /**
+     * Create the quotation's ungrouped items and groups (with their own items), then
+     * compute and persist the quotation's header-level subtotal/discount/tax/total from
+     * the sum of the ungrouped items and each group's own total.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function syncGroupsAndItems(Quotation $quotation, array $data): void
+    {
+        $ungroupedTotal = 0;
+
+        foreach ($data['items'] ?? [] as $item) {
+            $calculated = $this->calculateItem($item);
+
+            $quotation->items()->create($calculated);
+
+            $ungroupedTotal += $calculated['total_price'];
+        }
+
+        $groupsTotal = 0;
+
+        foreach ($data['groups'] ?? [] as $index => $groupData) {
+            $calculatedGroup = $this->calculateGroup($groupData);
+
+            $group = $quotation->groups()->create([
+                'name' => $groupData['name'],
+                'sort_order' => $index,
+                'discount_type' => $groupData['discount_type'] ?? null,
+                'discount_value' => $groupData['discount_value'] ?? null,
+                'tax_id' => $groupData['tax_id'] ?? null,
+                'subtotal' => $calculatedGroup['subtotal'],
+                'discount_amount' => $calculatedGroup['discount_amount'],
+                'tax_amount' => $calculatedGroup['tax_amount'],
+                'total' => $calculatedGroup['total'],
+            ]);
+
+            foreach ($calculatedGroup['items'] as $itemData) {
+                $quotation->items()->create($itemData + ['quotation_group_id' => $group->id]);
+            }
+
+            $groupsTotal += $calculatedGroup['total'];
+        }
+
+        $subtotal = $ungroupedTotal + $groupsTotal;
+
+        $discountAmount = $this->calculateDiscountAmount($subtotal, $data['discount_type'] ?? null, $data['discount_value'] ?? null);
+        $discountedSubtotal = $subtotal - $discountAmount;
+
+        $tax = isset($data['tax_id']) ? Tax::query()->firstWhere('id', $data['tax_id']) : null;
+        $taxAmount = $this->calculateTaxAmount($discountedSubtotal, $tax);
+
+        $quotation->update([
+            'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'tax_amount' => $taxAmount,
+            'total' => $discountedSubtotal + $taxAmount,
+        ]);
+    }
+
+    /**
+     * Calculate a group's items, subtotal, discount, tax, and total.
+     *
+     * @param  array<string, mixed>  $group
+     * @return array<string, mixed>
+     */
+    private function calculateGroup(array $group): array
+    {
+        $subtotal = 0;
+        $items = [];
+
+        foreach ($group['items'] as $item) {
+            $calculated = $this->calculateItem($item);
+            $items[] = $calculated;
+            $subtotal += $calculated['total_price'];
+        }
+
+        $discountAmount = $this->calculateDiscountAmount($subtotal, $group['discount_type'] ?? null, $group['discount_value'] ?? null);
+        $discountedSubtotal = $subtotal - $discountAmount;
+
+        $tax = isset($group['tax_id']) ? Tax::query()->firstWhere('id', $group['tax_id']) : null;
+        $taxAmount = $this->calculateTaxAmount($discountedSubtotal, $tax);
+
+        return [
+            'items' => $items,
+            'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'tax_amount' => $taxAmount,
+            'total' => $discountedSubtotal + $taxAmount,
+        ];
+    }
+
+    /**
+     * Copy a line item's persisted attributes for duplication onto a new quotation.
+     *
+     * @return array<string, mixed>
+     */
+    private function copyItemAttributes(QuotationItem $item): array
+    {
+        return [
+            'product_id' => $item->product_id,
+            'description' => $item->description,
+            'quantity' => $item->quantity,
+            'unit' => $item->unit,
+            'unit_price' => $item->unit_price,
+            'unit_cost' => $item->unit_cost,
+            'discount_type' => $item->discount_type,
+            'discount_value' => $item->discount_value,
+            'total_price' => $item->total_price,
+            'total_cost' => $item->total_cost,
+            'margin' => $item->margin,
+            'margin_percent' => $item->margin_percent,
+        ];
     }
 
     /**
@@ -327,6 +424,7 @@ class QuotationController extends Controller
 
         return [
             'product_id' => $item['product_id'],
+            'description' => $item['description'] ?? null,
             'quantity' => $quantity,
             'unit' => $item['unit'],
             'unit_price' => $unitPrice,

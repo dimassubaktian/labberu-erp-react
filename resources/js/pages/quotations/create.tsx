@@ -44,6 +44,7 @@ type ProductOption = {
     id: number;
     name: string;
     product_code: string;
+    descriptions: string;
     unit: string;
     price: string;
     cost: string;
@@ -51,12 +52,21 @@ type ProductOption = {
 
 type LineItem = {
     product_id: string;
+    description: string;
     quantity: string;
     unit: string;
     unit_price: string;
     unit_cost: string;
     discount_type: string;
     discount_value: string;
+};
+
+type GroupState = {
+    name: string;
+    discount_type: string;
+    discount_value: string;
+    tax_id: string;
+    items: LineItem[];
 };
 
 type Props = {
@@ -76,12 +86,23 @@ function defaultValidUntil(): string {
 function emptyItem(): LineItem {
     return {
         product_id: '',
+        description: '',
         quantity: '1',
         unit: '',
         unit_price: '0',
         unit_cost: '0',
         discount_type: 'none',
         discount_value: '',
+    };
+}
+
+function emptyGroup(): GroupState {
+    return {
+        name: '',
+        discount_type: 'none',
+        discount_value: '',
+        tax_id: 'none',
+        items: [emptyItem()],
     };
 }
 
@@ -117,6 +138,291 @@ function calculateItemTotals(item: LineItem) {
     return { totalPrice, totalCost, margin, marginPercent };
 }
 
+function calculateItemsSubtotal(items: LineItem[]): number {
+    return items.reduce(
+        (sum, item) => sum + calculateItemTotals(item).totalPrice,
+        0,
+    );
+}
+
+function calculateGroupTotals(group: GroupState, taxes: TaxOption[]) {
+    const subtotal = calculateItemsSubtotal(group.items);
+    const discountAmount = calculateDiscount(
+        subtotal,
+        group.discount_type,
+        group.discount_value,
+    );
+    const discountedSubtotal = subtotal - discountAmount;
+    const tax = taxes.find((t) => String(t.id) === group.tax_id);
+    const taxAmount = tax
+        ? tax.type === 'percentage'
+            ? (discountedSubtotal * Number(tax.rate)) / 100
+            : Number(tax.rate)
+        : 0;
+
+    return {
+        subtotal,
+        discountAmount,
+        taxAmount,
+        total: discountedSubtotal + taxAmount,
+    };
+}
+
+type LineItemFieldsProps = {
+    namePrefix: string;
+    errorPrefix: string;
+    item: LineItem;
+    products: ProductOption[];
+    errors: Partial<Record<string, string>>;
+    onChange: (changes: Partial<LineItem>) => void;
+    onRemove?: () => void;
+};
+
+function LineItemFields({
+    namePrefix,
+    errorPrefix,
+    item,
+    products,
+    errors,
+    onChange,
+    onRemove,
+}: LineItemFieldsProps) {
+    const totals = calculateItemTotals(item);
+    const fieldId = namePrefix.replace(/[[\].]/g, '-');
+
+    function handleProductChange(productId: string): void {
+        const product = products.find((p) => String(p.id) === productId);
+
+        onChange({
+            product_id: productId,
+            description: product?.descriptions ?? '',
+            unit: product?.unit ?? '',
+            unit_price: product?.price ?? '0',
+            unit_cost: product?.cost ?? '0',
+        });
+    }
+
+    return (
+        <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
+            <div className="flex items-start justify-between gap-2">
+                <div className="grid flex-1 gap-2">
+                    <Label htmlFor={`${fieldId}-product`}>Product</Label>
+                    <input
+                        type="hidden"
+                        name={`${namePrefix}[product_id]`}
+                        value={item.product_id}
+                    />
+                    <Select
+                        value={item.product_id}
+                        onValueChange={handleProductChange}
+                    >
+                        <SelectTrigger
+                            id={`${fieldId}-product`}
+                            className="w-full min-w-0"
+                        >
+                            <SelectValue
+                                placeholder="Select a product"
+                                className="truncate"
+                            />
+                        </SelectTrigger>
+                        <SelectContent className="max-w-(--radix-select-trigger-width)">
+                            {products.map((product) => (
+                                <SelectItem
+                                    key={product.id}
+                                    value={String(product.id)}
+                                >
+                                    <span className="block truncate">
+                                        {product.product_code} &mdash;{' '}
+                                        {product.name}
+                                    </span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors[`${errorPrefix}.product_id`]} />
+                </div>
+
+                {onRemove && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mt-6"
+                        onClick={onRemove}
+                    >
+                        <Trash2 className="text-destructive" />
+                    </Button>
+                )}
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor={`${fieldId}-description`}>Description</Label>
+                <Textarea
+                    id={`${fieldId}-description`}
+                    name={`${namePrefix}[description]`}
+                    value={item.description}
+                    onChange={(e) => onChange({ description: e.target.value })}
+                    placeholder="Optional"
+                    rows={2}
+                />
+                <InputError message={errors[`${errorPrefix}.description`]} />
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-4">
+                <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-quantity`}>Quantity</Label>
+                    <Input
+                        id={`${fieldId}-quantity`}
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        name={`${namePrefix}[quantity]`}
+                        value={item.quantity}
+                        onChange={(e) => onChange({ quantity: e.target.value })}
+                    />
+                    <InputError message={errors[`${errorPrefix}.quantity`]} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-unit`}>Unit</Label>
+                    <Input
+                        id={`${fieldId}-unit`}
+                        name={`${namePrefix}[unit]`}
+                        value={item.unit}
+                        onChange={(e) => onChange({ unit: e.target.value })}
+                    />
+                    <InputError message={errors[`${errorPrefix}.unit`]} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-unit-price`}>Unit price</Label>
+                    <Input
+                        id={`${fieldId}-unit-price`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name={`${namePrefix}[unit_price]`}
+                        value={item.unit_price}
+                        onChange={(e) =>
+                            onChange({ unit_price: e.target.value })
+                        }
+                    />
+                    <InputError message={errors[`${errorPrefix}.unit_price`]} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-unit-cost`}>Unit cost</Label>
+                    <Input
+                        id={`${fieldId}-unit-cost`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name={`${namePrefix}[unit_cost]`}
+                        value={item.unit_cost}
+                        onChange={(e) =>
+                            onChange({ unit_cost: e.target.value })
+                        }
+                    />
+                    <InputError message={errors[`${errorPrefix}.unit_cost`]} />
+                </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-discount-type`}>
+                        Line discount type
+                    </Label>
+                    <input
+                        type="hidden"
+                        name={`${namePrefix}[discount_type]`}
+                        value={
+                            item.discount_type === 'none'
+                                ? ''
+                                : item.discount_type
+                        }
+                    />
+                    <Select
+                        value={item.discount_type}
+                        onValueChange={(value) =>
+                            onChange({ discount_type: value })
+                        }
+                    >
+                        <SelectTrigger
+                            id={`${fieldId}-discount-type`}
+                            className="w-full"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No discount</SelectItem>
+                            <SelectItem value="percentage">
+                                Percentage
+                            </SelectItem>
+                            <SelectItem value="fixed">Fixed amount</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError
+                        message={errors[`${errorPrefix}.discount_type`]}
+                    />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor={`${fieldId}-discount-value`}>
+                        Line discount value
+                    </Label>
+                    <Input
+                        id={`${fieldId}-discount-value`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name={`${namePrefix}[discount_value]`}
+                        value={item.discount_value}
+                        onChange={(e) =>
+                            onChange({ discount_value: e.target.value })
+                        }
+                        disabled={item.discount_type === 'none'}
+                        placeholder="Optional"
+                    />
+                    <InputError
+                        message={errors[`${errorPrefix}.discount_value`]}
+                    />
+                </div>
+            </div>
+
+            <dl className="grid grid-cols-2 gap-4 border-t border-sidebar-border/70 pt-4 sm:grid-cols-4 dark:border-sidebar-border">
+                <div>
+                    <dt className="text-sm text-muted-foreground">
+                        Total price
+                    </dt>
+                    <dd className="font-medium">
+                        {formatNumber(totals.totalPrice)}
+                    </dd>
+                </div>
+                <div>
+                    <dt className="text-sm text-muted-foreground">
+                        Total cost
+                    </dt>
+                    <dd className="font-medium">
+                        {formatNumber(totals.totalCost)}
+                    </dd>
+                </div>
+                <div>
+                    <dt className="text-sm text-muted-foreground">Margin</dt>
+                    <dd className="font-medium">
+                        {formatNumber(totals.margin)}
+                    </dd>
+                </div>
+                <div>
+                    <dt className="text-sm text-muted-foreground">Margin %</dt>
+                    <dd className="font-medium">
+                        {totals.marginPercent.toFixed(2)}%
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    );
+}
+
 export default function QuotationsCreate({
     projects,
     currencies,
@@ -129,6 +435,7 @@ export default function QuotationsCreate({
     const [discountType, setDiscountType] = useState('none');
     const [discountValue, setDiscountValue] = useState('');
     const [items, setItems] = useState<LineItem[]>([emptyItem()]);
+    const [groups, setGroups] = useState<GroupState[]>([]);
 
     function updateItem(index: number, changes: Partial<LineItem>): void {
         setItems((current) =>
@@ -136,17 +443,6 @@ export default function QuotationsCreate({
                 i === index ? { ...item, ...changes } : item,
             ),
         );
-    }
-
-    function handleProductChange(index: number, productId: string): void {
-        const product = products.find((p) => String(p.id) === productId);
-
-        updateItem(index, {
-            product_id: productId,
-            unit: product?.unit ?? '',
-            unit_price: product?.price ?? '0',
-            unit_cost: product?.cost ?? '0',
-        });
     }
 
     function addItem(): void {
@@ -157,10 +453,76 @@ export default function QuotationsCreate({
         setItems((current) => current.filter((_, i) => i !== index));
     }
 
-    const subtotal = items.reduce(
-        (sum, item) => sum + calculateItemTotals(item).totalPrice,
+    function addGroup(): void {
+        setGroups((current) => [...current, emptyGroup()]);
+    }
+
+    function removeGroup(groupIndex: number): void {
+        setGroups((current) => current.filter((_, i) => i !== groupIndex));
+    }
+
+    function updateGroup(
+        groupIndex: number,
+        changes: Partial<GroupState>,
+    ): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex ? { ...group, ...changes } : group,
+            ),
+        );
+    }
+
+    function addGroupItem(groupIndex: number): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? { ...group, items: [...group.items, emptyItem()] }
+                    : group,
+            ),
+        );
+    }
+
+    function removeGroupItem(groupIndex: number, itemIndex: number): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? {
+                          ...group,
+                          items: group.items.filter((_, j) => j !== itemIndex),
+                      }
+                    : group,
+            ),
+        );
+    }
+
+    function updateGroupItem(
+        groupIndex: number,
+        itemIndex: number,
+        changes: Partial<LineItem>,
+    ): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? {
+                          ...group,
+                          items: group.items.map((item, j) =>
+                              j === itemIndex ? { ...item, ...changes } : item,
+                          ),
+                      }
+                    : group,
+            ),
+        );
+    }
+
+    const ungroupedSubtotal = calculateItemsSubtotal(items);
+    const groupTotals = groups.map((group) =>
+        calculateGroupTotals(group, taxes),
+    );
+    const groupsSubtotal = groupTotals.reduce(
+        (sum, group) => sum + group.total,
         0,
     );
+    const subtotal = ungroupedSubtotal + groupsSubtotal;
     const quotationDiscountAmount = calculateDiscount(
         subtotal,
         discountType,
@@ -319,7 +681,9 @@ export default function QuotationsCreate({
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="tax_id">Tax</Label>
+                                            <Label htmlFor="tax_id">
+                                                Overall tax
+                                            </Label>
                                             <input
                                                 type="hidden"
                                                 name="tax_id"
@@ -371,7 +735,7 @@ export default function QuotationsCreate({
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="grid gap-2">
                                             <Label htmlFor="discount_type">
-                                                Discount type
+                                                Overall discount type
                                             </Label>
                                             <input
                                                 type="hidden"
@@ -411,7 +775,7 @@ export default function QuotationsCreate({
 
                                         <div className="grid gap-2">
                                             <Label htmlFor="discount_value">
-                                                Discount value
+                                                Overall discount value
                                             </Label>
                                             <Input
                                                 id="discount_value"
@@ -448,12 +812,354 @@ export default function QuotationsCreate({
                                 </CardContent>
                             </Card>
 
+                            {groups.map((group, groupIndex) => {
+                                const totals = groupTotals[groupIndex];
+                                const groupNamePrefix = `groups[${groupIndex}]`;
+                                const groupErrorPrefix = `groups.${groupIndex}`;
+
+                                return (
+                                    <Card key={groupIndex}>
+                                        <CardHeader className="flex flex-row items-start justify-between gap-2">
+                                            <div className="grid flex-1 gap-2">
+                                                <Label
+                                                    htmlFor={`group-${groupIndex}-name`}
+                                                >
+                                                    Group name
+                                                </Label>
+                                                <Input
+                                                    id={`group-${groupIndex}-name`}
+                                                    name={`${groupNamePrefix}[name]`}
+                                                    placeholder="e.g. Labor, Materials"
+                                                    value={group.name}
+                                                    onChange={(e) =>
+                                                        updateGroup(
+                                                            groupIndex,
+                                                            {
+                                                                name: e.target
+                                                                    .value,
+                                                            },
+                                                        )
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            `${groupErrorPrefix}.name`
+                                                        ]
+                                                    }
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="mt-6"
+                                                onClick={() =>
+                                                    removeGroup(groupIndex)
+                                                }
+                                            >
+                                                <Trash2 className="text-destructive" />
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            <div className="grid gap-2 sm:grid-cols-3">
+                                                <div className="grid gap-2">
+                                                    <Label
+                                                        htmlFor={`group-${groupIndex}-discount-type`}
+                                                    >
+                                                        Discount type
+                                                    </Label>
+                                                    <input
+                                                        type="hidden"
+                                                        name={`${groupNamePrefix}[discount_type]`}
+                                                        value={
+                                                            group.discount_type ===
+                                                            'none'
+                                                                ? ''
+                                                                : group.discount_type
+                                                        }
+                                                    />
+                                                    <Select
+                                                        value={
+                                                            group.discount_type
+                                                        }
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            updateGroup(
+                                                                groupIndex,
+                                                                {
+                                                                    discount_type:
+                                                                        value,
+                                                                },
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger
+                                                            id={`group-${groupIndex}-discount-type`}
+                                                            className="w-full"
+                                                        >
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="none">
+                                                                No discount
+                                                            </SelectItem>
+                                                            <SelectItem value="percentage">
+                                                                Percentage
+                                                            </SelectItem>
+                                                            <SelectItem value="fixed">
+                                                                Fixed amount
+                                                            </SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <InputError
+                                                        message={
+                                                            errors[
+                                                                `${groupErrorPrefix}.discount_type`
+                                                            ]
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label
+                                                        htmlFor={`group-${groupIndex}-discount-value`}
+                                                    >
+                                                        Discount value
+                                                    </Label>
+                                                    <Input
+                                                        id={`group-${groupIndex}-discount-value`}
+                                                        type="number"
+                                                        step="0.01"
+                                                        min="0"
+                                                        name={`${groupNamePrefix}[discount_value]`}
+                                                        value={
+                                                            group.discount_value
+                                                        }
+                                                        onChange={(e) =>
+                                                            updateGroup(
+                                                                groupIndex,
+                                                                {
+                                                                    discount_value:
+                                                                        e.target
+                                                                            .value,
+                                                                },
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            group.discount_type ===
+                                                            'none'
+                                                        }
+                                                        placeholder="Optional"
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors[
+                                                                `${groupErrorPrefix}.discount_value`
+                                                            ]
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label
+                                                        htmlFor={`group-${groupIndex}-tax`}
+                                                    >
+                                                        Tax
+                                                    </Label>
+                                                    <input
+                                                        type="hidden"
+                                                        name={`${groupNamePrefix}[tax_id]`}
+                                                        value={
+                                                            group.tax_id ===
+                                                            'none'
+                                                                ? ''
+                                                                : group.tax_id
+                                                        }
+                                                    />
+                                                    <Select
+                                                        value={group.tax_id}
+                                                        onValueChange={(
+                                                            value,
+                                                        ) =>
+                                                            updateGroup(
+                                                                groupIndex,
+                                                                {
+                                                                    tax_id: value,
+                                                                },
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger
+                                                            id={`group-${groupIndex}-tax`}
+                                                            className="w-full min-w-0"
+                                                        >
+                                                            <SelectValue className="truncate" />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                            <SelectItem value="none">
+                                                                No tax
+                                                            </SelectItem>
+                                                            {taxes.map(
+                                                                (tax) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            tax.id
+                                                                        }
+                                                                        value={String(
+                                                                            tax.id,
+                                                                        )}
+                                                                    >
+                                                                        <span className="block truncate">
+                                                                            {
+                                                                                tax.name
+                                                                            }{' '}
+                                                                            (
+                                                                            {tax.type ===
+                                                                            'percentage'
+                                                                                ? `${tax.rate}%`
+                                                                                : tax.rate}
+                                                                            )
+                                                                        </span>
+                                                                    </SelectItem>
+                                                                ),
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <InputError
+                                                        message={
+                                                            errors[
+                                                                `${groupErrorPrefix}.tax_id`
+                                                            ]
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <Label>Group items</Label>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            addGroupItem(
+                                                                groupIndex,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Plus />
+                                                        Add line
+                                                    </Button>
+                                                </div>
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            `${groupErrorPrefix}.items`
+                                                        ]
+                                                    }
+                                                />
+
+                                                {group.items.map(
+                                                    (item, itemIndex) => (
+                                                        <LineItemFields
+                                                            key={itemIndex}
+                                                            namePrefix={`${groupNamePrefix}[items][${itemIndex}]`}
+                                                            errorPrefix={`${groupErrorPrefix}.items.${itemIndex}`}
+                                                            item={item}
+                                                            products={products}
+                                                            errors={errors}
+                                                            onChange={(
+                                                                changes,
+                                                            ) =>
+                                                                updateGroupItem(
+                                                                    groupIndex,
+                                                                    itemIndex,
+                                                                    changes,
+                                                                )
+                                                            }
+                                                            onRemove={
+                                                                group.items
+                                                                    .length > 1
+                                                                    ? () =>
+                                                                          removeGroupItem(
+                                                                              groupIndex,
+                                                                              itemIndex,
+                                                                          )
+                                                                    : undefined
+                                                            }
+                                                        />
+                                                    ),
+                                                )}
+
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        addGroupItem(groupIndex)
+                                                    }
+                                                >
+                                                    <Plus />
+                                                    Add line
+                                                </Button>
+                                            </div>
+
+                                            <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                                <div className="flex justify-between">
+                                                    <dt className="text-muted-foreground">
+                                                        Group subtotal
+                                                    </dt>
+                                                    <dd className="font-medium">
+                                                        {formatNumber(
+                                                            totals.subtotal,
+                                                        )}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-muted-foreground">
+                                                        Group discount
+                                                    </dt>
+                                                    <dd className="font-medium">
+                                                        {formatNumber(
+                                                            totals.discountAmount,
+                                                        )}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <dt className="text-muted-foreground">
+                                                        Group tax
+                                                    </dt>
+                                                    <dd className="font-medium">
+                                                        {formatNumber(
+                                                            totals.taxAmount,
+                                                        )}
+                                                    </dd>
+                                                </div>
+                                                <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                                    <dt>Group total</dt>
+                                                    <dd>
+                                                        {formatNumber(
+                                                            totals.total,
+                                                        )}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
+
+                            <Button type="button" onClick={addGroup}>
+                                <Plus />
+                                Add group
+                            </Button>
+
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle>Line items</CardTitle>
+                                    <CardTitle>Ungrouped items</CardTitle>
                                     <Button
                                         type="button"
-                                        variant="outline"
                                         size="sm"
                                         onClick={addItem}
                                     >
@@ -464,392 +1170,36 @@ export default function QuotationsCreate({
                                 <CardContent className="space-y-4">
                                     <InputError message={errors.items} />
 
-                                    {items.map((item, index) => {
-                                        const totals =
-                                            calculateItemTotals(item);
+                                    {items.length === 0 && (
+                                        <p className="text-sm text-muted-foreground">
+                                            No ungrouped items. Add one above,
+                                            or put items inside a group.
+                                        </p>
+                                    )}
 
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="space-y-4 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border"
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="grid flex-1 gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-product`}
-                                                        >
-                                                            Product
-                                                        </Label>
-                                                        <input
-                                                            type="hidden"
-                                                            name={`items[${index}][product_id]`}
-                                                            value={
-                                                                item.product_id
-                                                            }
-                                                        />
-                                                        <Select
-                                                            value={
-                                                                item.product_id
-                                                            }
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                handleProductChange(
-                                                                    index,
-                                                                    value,
-                                                                )
-                                                            }
-                                                        >
-                                                            <SelectTrigger
-                                                                id={`item-${index}-product`}
-                                                                className="w-full min-w-0"
-                                                            >
-                                                                <SelectValue
-                                                                    placeholder="Select a product"
-                                                                    className="truncate"
-                                                                />
-                                                            </SelectTrigger>
-                                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                                {products.map(
-                                                                    (
-                                                                        product,
-                                                                    ) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                product.id
-                                                                            }
-                                                                            value={String(
-                                                                                product.id,
-                                                                            )}
-                                                                        >
-                                                                            <span className="block truncate">
-                                                                                {
-                                                                                    product.product_code
-                                                                                }{' '}
-                                                                                &mdash;{' '}
-                                                                                {
-                                                                                    product.name
-                                                                                }
-                                                                            </span>
-                                                                        </SelectItem>
-                                                                    ),
-                                                                )}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.product_id`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
+                                    {items.map((item, index) => (
+                                        <LineItemFields
+                                            key={index}
+                                            namePrefix={`items[${index}]`}
+                                            errorPrefix={`items.${index}`}
+                                            item={item}
+                                            products={products}
+                                            errors={errors}
+                                            onChange={(changes) =>
+                                                updateItem(index, changes)
+                                            }
+                                            onRemove={() => removeItem(index)}
+                                        />
+                                    ))}
 
-                                                    {items.length > 1 && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="mt-6"
-                                                            onClick={() =>
-                                                                removeItem(
-                                                                    index,
-                                                                )
-                                                            }
-                                                        >
-                                                            <Trash2 className="text-destructive" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-
-                                                <div className="grid gap-2 sm:grid-cols-4">
-                                                    <div className="grid gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-quantity`}
-                                                        >
-                                                            Quantity
-                                                        </Label>
-                                                        <Input
-                                                            id={`item-${index}-quantity`}
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0.01"
-                                                            name={`items[${index}][quantity]`}
-                                                            value={
-                                                                item.quantity
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateItem(
-                                                                    index,
-                                                                    {
-                                                                        quantity:
-                                                                            e
-                                                                                .target
-                                                                                .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.quantity`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-unit`}
-                                                        >
-                                                            Unit
-                                                        </Label>
-                                                        <Input
-                                                            id={`item-${index}-unit`}
-                                                            name={`items[${index}][unit]`}
-                                                            value={item.unit}
-                                                            onChange={(e) =>
-                                                                updateItem(
-                                                                    index,
-                                                                    {
-                                                                        unit: e
-                                                                            .target
-                                                                            .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.unit`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-unit-price`}
-                                                        >
-                                                            Unit price
-                                                        </Label>
-                                                        <Input
-                                                            id={`item-${index}-unit-price`}
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            name={`items[${index}][unit_price]`}
-                                                            value={
-                                                                item.unit_price
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateItem(
-                                                                    index,
-                                                                    {
-                                                                        unit_price:
-                                                                            e
-                                                                                .target
-                                                                                .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.unit_price`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-unit-cost`}
-                                                        >
-                                                            Unit cost
-                                                        </Label>
-                                                        <Input
-                                                            id={`item-${index}-unit-cost`}
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            name={`items[${index}][unit_cost]`}
-                                                            value={
-                                                                item.unit_cost
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateItem(
-                                                                    index,
-                                                                    {
-                                                                        unit_cost:
-                                                                            e
-                                                                                .target
-                                                                                .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.unit_cost`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid gap-2 sm:grid-cols-2">
-                                                    <div className="grid gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-discount-type`}
-                                                        >
-                                                            Line discount type
-                                                        </Label>
-                                                        <input
-                                                            type="hidden"
-                                                            name={`items[${index}][discount_type]`}
-                                                            value={
-                                                                item.discount_type ===
-                                                                'none'
-                                                                    ? ''
-                                                                    : item.discount_type
-                                                            }
-                                                        />
-                                                        <Select
-                                                            value={
-                                                                item.discount_type
-                                                            }
-                                                            onValueChange={(
-                                                                value,
-                                                            ) =>
-                                                                updateItem(
-                                                                    index,
-                                                                    {
-                                                                        discount_type:
-                                                                            value,
-                                                                    },
-                                                                )
-                                                            }
-                                                        >
-                                                            <SelectTrigger
-                                                                id={`item-${index}-discount-type`}
-                                                                className="w-full"
-                                                            >
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="none">
-                                                                    No discount
-                                                                </SelectItem>
-                                                                <SelectItem value="percentage">
-                                                                    Percentage
-                                                                </SelectItem>
-                                                                <SelectItem value="fixed">
-                                                                    Fixed amount
-                                                                </SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.discount_type`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
-
-                                                    <div className="grid gap-2">
-                                                        <Label
-                                                            htmlFor={`item-${index}-discount-value`}
-                                                        >
-                                                            Line discount value
-                                                        </Label>
-                                                        <Input
-                                                            id={`item-${index}-discount-value`}
-                                                            type="number"
-                                                            step="0.01"
-                                                            min="0"
-                                                            name={`items[${index}][discount_value]`}
-                                                            value={
-                                                                item.discount_value
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateItem(
-                                                                    index,
-                                                                    {
-                                                                        discount_value:
-                                                                            e
-                                                                                .target
-                                                                                .value,
-                                                                    },
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                item.discount_type ===
-                                                                'none'
-                                                            }
-                                                            placeholder="Optional"
-                                                        />
-                                                        <InputError
-                                                            message={
-                                                                errors[
-                                                                    `items.${index}.discount_value`
-                                                                ]
-                                                            }
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <dl className="grid grid-cols-2 gap-4 border-t border-sidebar-border/70 pt-4 sm:grid-cols-4 dark:border-sidebar-border">
-                                                    <div>
-                                                        <dt className="text-sm text-muted-foreground">
-                                                            Total price
-                                                        </dt>
-                                                        <dd className="font-medium">
-                                                            {formatNumber(
-                                                                totals.totalPrice,
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="text-sm text-muted-foreground">
-                                                            Total cost
-                                                        </dt>
-                                                        <dd className="font-medium">
-                                                            {formatNumber(
-                                                                totals.totalCost,
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="text-sm text-muted-foreground">
-                                                            Margin
-                                                        </dt>
-                                                        <dd className="font-medium">
-                                                            {formatNumber(
-                                                                totals.margin,
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt className="text-sm text-muted-foreground">
-                                                            Margin %
-                                                        </dt>
-                                                        <dd className="font-medium">
-                                                            {totals.marginPercent.toFixed(
-                                                                2,
-                                                            )}
-                                                            %
-                                                        </dd>
-                                                    </div>
-                                                </dl>
-                                            </div>
-                                        );
-                                    })}
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={addItem}
+                                    >
+                                        <Plus />
+                                        Add line
+                                    </Button>
                                 </CardContent>
                             </Card>
 
@@ -861,7 +1211,7 @@ export default function QuotationsCreate({
                                     <dl className="space-y-2">
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">
-                                                Subtotal
+                                                Subtotal (groups + ungrouped)
                                             </dt>
                                             <dd className="font-medium">
                                                 {currencySymbol}{' '}
@@ -870,7 +1220,7 @@ export default function QuotationsCreate({
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">
-                                                Discount
+                                                Overall discount
                                             </dt>
                                             <dd className="font-medium">
                                                 {currencySymbol}{' '}
@@ -881,7 +1231,7 @@ export default function QuotationsCreate({
                                         </div>
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">
-                                                Tax
+                                                Overall tax
                                             </dt>
                                             <dd className="font-medium">
                                                 {currencySymbol}{' '}

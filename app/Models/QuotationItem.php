@@ -12,7 +12,9 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $quotation_id
+ * @property int|null $quotation_group_id
  * @property int $product_id
+ * @property string|null $description
  * @property string $quantity
  * @property string $unit
  * @property string $unit_price
@@ -28,7 +30,9 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'quotation_id',
+    'quotation_group_id',
     'product_id',
+    'description',
     'quantity',
     'unit',
     'unit_price',
@@ -53,6 +57,16 @@ class QuotationItem extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    /**
+     * Get the group this line item belongs to, if any.
+     *
+     * @return BelongsTo<QuotationGroup, $this>
+     */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(QuotationGroup::class, 'quotation_group_id');
     }
 
     /**

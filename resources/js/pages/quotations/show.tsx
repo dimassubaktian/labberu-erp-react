@@ -109,6 +109,7 @@ function statusActions(status: string): StatusAction[] {
 
 type QuotationItem = {
     id: number;
+    description: string | null;
     quantity: string;
     unit: string;
     unit_price: string;
@@ -125,6 +126,19 @@ type QuotationItem = {
         product_code: string;
         name: string;
     };
+};
+
+type QuotationGroup = {
+    id: number;
+    name: string;
+    discount_type: string | null;
+    discount_value: string | null;
+    subtotal: string;
+    discount_amount: string;
+    tax_amount: string;
+    total: string;
+    tax: { id: number; name: string; rate: string; type: string } | null;
+    items: QuotationItem[];
 };
 
 type Quotation = {
@@ -162,6 +176,7 @@ type Quotation = {
     tax: { id: number; name: string; rate: string; type: string } | null;
     approver: { id: number; name: string } | null;
     items: QuotationItem[];
+    groups: QuotationGroup[];
 };
 
 type HistoryEntry = {
@@ -389,7 +404,7 @@ export default function QuotationsShow({ quotation, history }: Props) {
 
                             <div>
                                 <dt className="text-sm text-muted-foreground">
-                                    Tax
+                                    Overall tax
                                 </dt>
                                 <dd className="font-medium">
                                     {quotation.tax ? (
@@ -408,7 +423,7 @@ export default function QuotationsShow({ quotation, history }: Props) {
 
                             <div>
                                 <dt className="text-sm text-muted-foreground">
-                                    Discount
+                                    Overall discount
                                 </dt>
                                 <dd className="font-medium">
                                     {quotation.discount_type &&
@@ -548,70 +563,227 @@ export default function QuotationsShow({ quotation, history }: Props) {
                     </Card>
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Line items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>No</TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Qty</TableHead>
-                                        <TableHead>Unit</TableHead>
-                                        <TableHead>Unit price</TableHead>
-                                        <TableHead>Unit cost</TableHead>
-                                        <TableHead>Total price</TableHead>
-                                        <TableHead>Total cost</TableHead>
-                                        <TableHead>Margin</TableHead>
-                                        <TableHead>Margin %</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {quotation.items.map((item, index) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="text-muted-foreground">
-                                                {index + 1}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {item.product.product_code}{' '}
-                                                &mdash; {item.product.name}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.quantity)}
-                                            </TableCell>
-                                            <TableCell>{item.unit}</TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.unit_price)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.unit_cost)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.total_price)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.total_cost)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.margin)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {item.margin_percent}%
-                                            </TableCell>
+                {quotation.groups.map((group) => (
+                    <Card key={group.id}>
+                        <CardHeader>
+                            <CardTitle>{group.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>No</TableHead>
+                                            <TableHead>Product</TableHead>
+                                            <TableHead>Qty</TableHead>
+                                            <TableHead>Unit</TableHead>
+                                            <TableHead>Unit price</TableHead>
+                                            <TableHead>Unit cost</TableHead>
+                                            <TableHead>Total price</TableHead>
+                                            <TableHead>Total cost</TableHead>
+                                            <TableHead>Margin</TableHead>
+                                            <TableHead>Margin %</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {group.items.map((item, index) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell className="text-muted-foreground">
+                                                    {index + 1}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    <div>
+                                                        {
+                                                            item.product
+                                                                .product_code
+                                                        }{' '}
+                                                        &mdash;{' '}
+                                                        {item.product.name}
+                                                    </div>
+                                                    {item.description && (
+                                                        <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
+                                                            {item.description}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.quantity,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {item.unit}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.unit_price,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.unit_cost,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.total_price,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.total_cost,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(item.margin)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {item.margin_percent}%
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            <dl className="space-y-2">
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">
+                                        Group subtotal
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {currencySymbol}{' '}
+                                        {formatNumber(group.subtotal)}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">
+                                        Group discount
+                                        {group.discount_type &&
+                                            group.discount_value &&
+                                            ` (${
+                                                group.discount_type ===
+                                                'percentage'
+                                                    ? `${group.discount_value}%`
+                                                    : `${currencySymbol} ${formatNumber(group.discount_value)}`
+                                            })`}
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {currencySymbol}{' '}
+                                        {formatNumber(group.discount_amount)}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">
+                                        Group tax
+                                        {group.tax && ` (${group.tax.name})`}
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {currencySymbol}{' '}
+                                        {formatNumber(group.tax_amount)}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                    <dt>Group total</dt>
+                                    <dd>
+                                        {currencySymbol}{' '}
+                                        {formatNumber(group.total)}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+                ))}
+
+                {quotation.items.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Ungrouped items</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>No</TableHead>
+                                            <TableHead>Product</TableHead>
+                                            <TableHead>Qty</TableHead>
+                                            <TableHead>Unit</TableHead>
+                                            <TableHead>Unit price</TableHead>
+                                            <TableHead>Unit cost</TableHead>
+                                            <TableHead>Total price</TableHead>
+                                            <TableHead>Total cost</TableHead>
+                                            <TableHead>Margin</TableHead>
+                                            <TableHead>Margin %</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {quotation.items.map((item, index) => (
+                                            <TableRow key={item.id}>
+                                                <TableCell className="text-muted-foreground">
+                                                    {index + 1}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    <div>
+                                                        {
+                                                            item.product
+                                                                .product_code
+                                                        }{' '}
+                                                        &mdash;{' '}
+                                                        {item.product.name}
+                                                    </div>
+                                                    {item.description && (
+                                                        <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
+                                                            {item.description}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.quantity,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {item.unit}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.unit_price,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.unit_cost,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.total_price,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(
+                                                        item.total_cost,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatNumber(item.margin)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {item.margin_percent}%
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Summary</CardTitle>
+                        <CardTitle>Overall Summary</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <dl className="space-y-2">
