@@ -34,6 +34,20 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
    surprised the user).
 6. **Nine full modules built end-to-end** (see list below), most following the identical
    CRUD pattern below; Quotations layers a status workflow and revisioning on top of it.
+7. **Emerald/gold theme rebrand**: replaced the default shadcn/ui grayscale palette in
+   `resources/css/app.css` with a client-provided emerald-green + gold palette (hex ramps
+   converted to `oklch`, since Tailwind v4 has no `tailwind.config.js` — all tokens live as
+   CSS custom properties in `app.css`). The sidebar is a persistently dark emerald surface in
+   both light and dark mode by design. Also fixed two bugs the rebrand exposed: the sidebar
+   user-menu trigger (`nav-user.tsx`) had unreadable text against the new dark sidebar (it was
+   unconditionally applying `text-sidebar-accent-foreground`, meant only for the gold hover
+   state, as its resting text color — fixed to apply only on `data-[state=open]`), and the
+   sidebar nav + shared `Table` component's scroll containers still showed the unstyled
+   browser scrollbar (added themed `.sidebar-scrollbar`/`.table-scrollbar` utility classes in
+   `app.css`, applied in `sidebar.tsx`/`table.tsx`). **`THEME_CHANGES.md`** (repo root) is the
+   reference doc for this: full token mapping table, which files were touched, how to roll
+   back to grayscale by hand, and a step-by-step process (with a reusable hex→oklch conversion
+   snippet) for swapping in a different client palette later — check it before touching colors.
 
 ## The established CRUD pattern (repeat this for future modules)
 
@@ -147,16 +161,64 @@ For a model like `JobTitle`, `Workforce`, `Currency`:
    (`project->quotations()` hasMany) listing every quotation across all revision threads for
    that project — code, version, "(current)" tag, valid-until, total, status badge, linking
    to each quotation's detail page.
-9. **Quotations** (`quotations` + `quotation_items`) — the most complex module. See its own
-   section below.
+9. **Quotations** (`quotations` + `quotation_items` + `quotation_groups`) — the most
+   complex module. See its own section below.
 
-## Quotations — status workflow, revisioning, line items
+## Quotations — status workflow, revisioning, line items, groups
 
 Belongs to a `Project` (immutable after creation — the code is derived from it), has a
 `Currency`, an optional `Tax`, discount type/value, `valid_until` (auto-defaults to 7 days
 from today on create), free-text `remarks`, and many `QuotationItem`s (product, qty, unit
-price/cost, per-item discount — totals/margins recalculated server-side on every
-store/update, never trusted from the client).
+price/cost, per-item discount, free-text `description` — totals/margins recalculated
+server-side on every store/update, never trusted from the client).
+
+**Line item descriptions**: `quotation_items.description` (nullable text). Selecting a
+product auto-fills it from that product's own `descriptions` column (same pattern as
+unit/price/cost auto-fill), but it's a plain editable textarea afterward — lets a quote
+carry custom wording per line without touching the master product record. Shown as muted
+secondary text under the product name on the detail page.
+
+**Item groups** (`quotation_groups` + `quotation_items.quotation_group_id` nullable FK):
+lets a quotation organize its line items into free-typed sections (e.g. "Labor",
+"Materials") — the group name is a plain text input, not a predefined/managed list. Each
+group has its **own** `discount_type`/`discount_value`, optional `tax_id`, and computed
+`subtotal`/`discount_amount`/`tax_amount`/`total`, calculated with the exact same
+`calculateDiscountAmount`/`calculateTaxAmount` helpers the header already used. Items may
+be grouped or left ungrouped (mixed is allowed) — ungrouped items roll straight into the
+header total with no group-level subtotal/tax of their own.
+
+**Two-layer total calculation** (confirmed explicitly with the user, don't second-guess
+this): the quotation header's *existing* discount/tax fields still apply, but now on top
+of `sum(all group totals) + sum(ungrouped item totals)` rather than directly on the raw
+item sum. So `quotation.subtotal` changed meaning — it's now the sum of (already
+tax/discount-adjusted) group totals plus ungrouped item totals, *before* the header's own
+discount/tax is applied to produce `quotation.total`. Controller logic lives in
+`QuotationController::syncGroupsAndItems()`/`calculateGroup()` — reused by both `store()`
+and `update()` (which does `$quotation->items()->delete(); $quotation->groups()->delete();`
+then rebuilds both from scratch, same wipe-and-recreate pattern the original item-only
+version used). `storeRevision()` deep-copies groups and their items into the new revision.
+
+**Store/Update request payload shape**: `items[]` for ungrouped items (top-level, same as
+before) plus a sibling `groups[]` array, each group carrying its own nested `items[]` —
+groups are *not* referenced by items via a foreign key in the payload, they're nested,
+which avoids fragile index-matching between separately-submitted arrays. A custom
+`withValidator()` rule requires at least one item somewhere (ungrouped or inside any
+group) since `items` alone can no longer be `required`.
+
+**Frontend structure** (`create.tsx`/`edit.tsx`): a shared in-file `LineItemFields`
+component (duplicated per-file, matching this project's established create/edit
+duplication convention) renders one line item's fields and is reused for both the
+ungrouped-items list and every group's item list — avoids tripling the form markup. Each
+group is its own `Card` with a free-text name input, discount type/value selects, a tax
+select, its own nested item list, and a per-group subtotal/discount/tax/total `dl`. The
+"Add line" button appears **both** at the top of each item list (in the card header) and
+again after the last item — added after the user found scrolling back to the top button
+annoying once a list got long. "Add line" and "Add group" both use the default (solid)
+`Button` variant, not outline, per explicit user request. Each line-item box gets
+`bg-muted/40` so it visually separates from its parent group/ungrouped `Card` (same
+`bg-card` color otherwise made them blend together — another explicit user complaint).
+The "Ungrouped items" card is omitted entirely from `show.tsx` when there are no ungrouped
+items, rather than rendering an empty-state message.
 
 **Code scheme**: `LAB-Q{YY}{MM}{project's NNN}-{thread# 2-digit}-{CustomerCode}`, generated
 in `Quotation::booted()`'s `creating()` hook. All revisions in a thread share the root's
@@ -243,6 +305,12 @@ on the detail page (only rendered when the thread has more than one version).
 - After creating a record, redirect to its detail page (not the index) once a detail page
   exists — this was an explicit flow change requested for Quotations and is the preferred
   default going forward.
+- Primary/repeatable form actions ("Add line", "Add group") use the default (solid) button
+  variant, not outline — outline is reserved for secondary actions like "Cancel".
+- Nested item boxes inside a card need their own background (`bg-muted/40`) rather than
+  inheriting the parent card's `bg-card` — same-color nesting was flagged as bad contrast.
+- Empty optional sections (e.g. "Ungrouped items" with zero items) should be omitted
+  entirely from detail pages rather than rendered with an empty-state placeholder message.
 
 ## What's NOT built yet (natural next steps)
 

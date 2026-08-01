@@ -679,125 +679,6 @@ export default function QuotationsCreate({
                                                 message={errors.valid_until}
                                             />
                                         </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="tax_id">
-                                                Overall tax
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="tax_id"
-                                                value={
-                                                    taxId === 'none'
-                                                        ? ''
-                                                        : taxId
-                                                }
-                                            />
-                                            <Select
-                                                value={taxId}
-                                                onValueChange={setTaxId}
-                                            >
-                                                <SelectTrigger
-                                                    id="tax_id"
-                                                    className="w-full min-w-0"
-                                                >
-                                                    <SelectValue className="truncate" />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                    <SelectItem value="none">
-                                                        No tax
-                                                    </SelectItem>
-                                                    {taxes.map((tax) => (
-                                                        <SelectItem
-                                                            key={tax.id}
-                                                            value={String(
-                                                                tax.id,
-                                                            )}
-                                                        >
-                                                            <span className="block truncate">
-                                                                {tax.name} (
-                                                                {tax.type ===
-                                                                'percentage'
-                                                                    ? `${tax.rate}%`
-                                                                    : tax.rate}
-                                                                )
-                                                            </span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.tax_id}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_type">
-                                                Overall discount type
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="discount_type"
-                                                value={
-                                                    discountType === 'none'
-                                                        ? ''
-                                                        : discountType
-                                                }
-                                            />
-                                            <Select
-                                                value={discountType}
-                                                onValueChange={setDiscountType}
-                                            >
-                                                <SelectTrigger
-                                                    id="discount_type"
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">
-                                                        No discount
-                                                    </SelectItem>
-                                                    <SelectItem value="percentage">
-                                                        Percentage
-                                                    </SelectItem>
-                                                    <SelectItem value="fixed">
-                                                        Fixed amount
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.discount_type}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_value">
-                                                Overall discount value
-                                            </Label>
-                                            <Input
-                                                id="discount_value"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                name="discount_value"
-                                                value={discountValue}
-                                                onChange={(e) =>
-                                                    setDiscountValue(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                disabled={
-                                                    discountType === 'none'
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.discount_value}
-                                            />
-                                        </div>
                                     </div>
 
                                     <div className="grid gap-2">
@@ -1200,6 +1081,132 @@ export default function QuotationsCreate({
                                         <Plus />
                                         Add line
                                     </Button>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Tax &amp; Discount</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="grid gap-2 sm:grid-cols-3">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="tax_id">
+                                                Overall tax
+                                            </Label>
+                                            <input
+                                                type="hidden"
+                                                name="tax_id"
+                                                value={
+                                                    taxId === 'none'
+                                                        ? ''
+                                                        : taxId
+                                                }
+                                            />
+                                            <Select
+                                                value={taxId}
+                                                onValueChange={setTaxId}
+                                            >
+                                                <SelectTrigger
+                                                    id="tax_id"
+                                                    className="w-full min-w-0"
+                                                >
+                                                    <SelectValue className="truncate" />
+                                                </SelectTrigger>
+                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                    <SelectItem value="none">
+                                                        No tax
+                                                    </SelectItem>
+                                                    {taxes.map((tax) => (
+                                                        <SelectItem
+                                                            key={tax.id}
+                                                            value={String(
+                                                                tax.id,
+                                                            )}
+                                                        >
+                                                            <span className="block truncate">
+                                                                {tax.name} (
+                                                                {tax.type ===
+                                                                'percentage'
+                                                                    ? `${tax.rate}%`
+                                                                    : tax.rate}
+                                                                )
+                                                            </span>
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={errors.tax_id}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="discount_type">
+                                                Overall discount type
+                                            </Label>
+                                            <input
+                                                type="hidden"
+                                                name="discount_type"
+                                                value={
+                                                    discountType === 'none'
+                                                        ? ''
+                                                        : discountType
+                                                }
+                                            />
+                                            <Select
+                                                value={discountType}
+                                                onValueChange={setDiscountType}
+                                            >
+                                                <SelectTrigger
+                                                    id="discount_type"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">
+                                                        No discount
+                                                    </SelectItem>
+                                                    <SelectItem value="percentage">
+                                                        Percentage
+                                                    </SelectItem>
+                                                    <SelectItem value="fixed">
+                                                        Fixed amount
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={errors.discount_type}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="discount_value">
+                                                Overall discount value
+                                            </Label>
+                                            <Input
+                                                id="discount_value"
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                name="discount_value"
+                                                value={discountValue}
+                                                onChange={(e) =>
+                                                    setDiscountValue(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                disabled={
+                                                    discountType === 'none'
+                                                }
+                                                placeholder="Optional"
+                                            />
+                                            <InputError
+                                                message={errors.discount_value}
+                                            />
+                                        </div>
+                                    </div>
                                 </CardContent>
                             </Card>
 
