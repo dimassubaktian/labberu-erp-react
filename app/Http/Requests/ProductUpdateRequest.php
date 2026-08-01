@@ -16,6 +16,17 @@ class ProductUpdateRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'price' => $this->price === null || $this->price === '' ? 0 : $this->price,
+            'cost' => $this->cost === null || $this->cost === '' ? 0 : $this->cost,
+        ]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -29,8 +40,8 @@ class ProductUpdateRequest extends FormRequest
             'brand' => ['required', 'string', 'in:Schneider Electric,ABB,Siemens,Legrand,Mitsubishi Electric,Omron,Fuji Electric,LS Electric,Hager,Chint,Other'],
             'unit' => ['required', 'string', 'in:Pcs,Unit,Set,Box,Roll,Meter,Kg,Liter,Pack,Other'],
             'type' => ['required', 'string', 'in:goods,service'],
-            'price' => ['nullable', 'numeric', 'min:0'],
-            'cost' => ['nullable', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'cost' => ['required', 'numeric', 'min:0'],
             'status' => ['required', 'string', 'in:active,inactive'],
         ];
     }

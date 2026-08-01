@@ -61,6 +61,30 @@ test('price and cost are optional and default to zero', function () {
     ]);
 });
 
+test('blank price and cost inputs default to zero', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('products.store'), [
+        'name' => 'MCB 1 Phase 10A',
+        'reference_number' => 'REF-00012345',
+        'descriptions' => 'Description',
+        'brand' => 'Schneider Electric',
+        'unit' => 'Pcs',
+        'type' => 'goods',
+        'price' => '',
+        'cost' => '',
+        'status' => 'active',
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('products', [
+        'name' => 'MCB 1 Phase 10A',
+        'price' => 0,
+        'cost' => 0,
+    ]);
+});
+
 test('price and cost can be set', function () {
     $user = User::factory()->create();
 

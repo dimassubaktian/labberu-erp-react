@@ -16,6 +16,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { destroy, edit, index, show } from '@/routes/projects';
+import { show as showQuotation } from '@/routes/quotations';
 
 type Project = {
     id: number;
@@ -45,11 +46,29 @@ type Project = {
     } | null;
 };
 
-type Props = {
-    project: Project;
+type Quotation = {
+    id: number;
+    uuid: string;
+    quotation_code: string;
+    version_major: number;
+    version_minor: number;
+    status: string;
+    is_current: boolean;
+    valid_until: string | null;
+    total: string;
+    currency: {
+        id: number;
+        iso_code: string;
+        symbol: string | null;
+    };
 };
 
-export default function ProjectsShow({ project }: Props) {
+type Props = {
+    project: Project;
+    quotations: Quotation[];
+};
+
+export default function ProjectsShow({ project, quotations }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Projects', href: index() },
@@ -310,6 +329,70 @@ export default function ProjectsShow({ project }: Props) {
                                 </dd>
                             </div>
                         </dl>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Quotations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {quotations.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No quotations have been created for this project
+                                yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotations.map((quotation) => (
+                                    <Link
+                                        key={quotation.id}
+                                        href={showQuotation(quotation)}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {quotation.quotation_code}
+                                                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                                                    v{quotation.version_major}.
+                                                    {quotation.version_minor}
+                                                    {quotation.is_current &&
+                                                        ' (current)'}
+                                                </span>
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Valid until{' '}
+                                                {quotation.valid_until ? (
+                                                    formatDate(
+                                                        quotation.valid_until,
+                                                    )
+                                                ) : (
+                                                    <span>&mdash;</span>
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-medium">
+                                                {quotation.currency.symbol ??
+                                                    quotation.currency
+                                                        .iso_code}{' '}
+                                                {formatNumber(quotation.total)}
+                                            </span>
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {quotation.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

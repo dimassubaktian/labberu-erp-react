@@ -1,8 +1,8 @@
 # Labberu ERP — Session Handoff
 
-This document summarizes the work done in a previous Claude Code CLI session so a new
-conversation (e.g. Claude Desktop) can pick up where it left off. This file is not meant
-to be permanent project documentation — feel free to delete it once you no longer need it.
+This document summarizes the work done in a previous session so a new conversation (now
+moving to **Claude Code CLI**) can pick up where it left off. This file is not meant to be
+permanent project documentation — feel free to delete it once you no longer need it.
 
 ## Project
 
@@ -10,7 +10,8 @@ Laravel 13 + Inertia v3 + React 19 starter kit (`laravel/react-starter-kit`), be
 into "Labberu ERP" — an internal ERP system. Stack: Fortify (auth), Inertia React, Tailwind
 v4, shadcn/ui-style components (hand-copied into `resources/js/components/ui/`, not managed
 by the shadcn CLI), Pest for tests, Pint for formatting, Larastan for static analysis,
-SQLite for the database.
+SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`search-docs`,
+`database-schema`, `database-query`, `browser-logs`, etc.) over manual equivalents.
 
 ## What's been done, roughly in order
 
@@ -31,7 +32,8 @@ SQLite for the database.
 5. **Global UI fixes**: added a `cursor: pointer` / `cursor: not-allowed` base-layer rule in
    `resources/css/app.css` (Tailwind v4 resets buttons to `cursor: default` by default, which
    surprised the user).
-6. **Three full CRUD modules built end-to-end**, each following the identical pattern below.
+6. **Nine full modules built end-to-end** (see list below), most following the identical
+   CRUD pattern below; Quotations layers a status workflow and revisioning on top of it.
 
 ## The established CRUD pattern (repeat this for future modules)
 
@@ -41,24 +43,36 @@ For a model like `JobTitle`, `Workforce`, `Currency`:
   columns, `status` (plain string `active`/`inactive`, no enum class), `timestamps()`,
   `softDeletes()`. If a column needs to be unique *and* the table is soft-deletable, use a
   **partial unique index** scoped to `where deleted_at is null` via `DB::statement(...)` in
-  the migration — see "Bugs fixed" below for why a plain `->unique()` breaks.
+  the migration — see "Bugs fixed" below for why a plain `->unique()` breaks. If a numeric
+  column has a DB `->default(...)`, do **not** also mark it `->nullable()` unless you truly
+  want NULL to be a valid stored value — see the Products price/cost bug below.
 - **Model**: `SoftDeletes` trait, `getRouteKeyName()` returns `'uuid'` (so all detail/edit/
   delete URLs use the UUID, not the sequential id), auto-generates `uuid` in a `booted()`
   `creating` hook, `#[Fillable([...])]` PHP attribute (not `protected $fillable`) — this is
-  this project's established convention, matching the `User` model.
+  this project's established convention, matching the `User` model. **Every column set via
+  `Model::create()`/`update()` must be listed here or it is silently dropped with no error**
+  — this has caused real bugs (see below), so double-check this list whenever you add a
+  column that gets mass-assigned.
 - **FormRequest** per action (`{Model}StoreRequest`, `{Model}UpdateRequest`) — `authorize()`
-  returns `true` (no per-field authorization built yet), rules use `Rule::unique(...)->
-  whereNull('deleted_at')` (and `->ignore($model->id)` on update) to match the partial index.
+  returns `true` by default, or encodes a business-rule guard (e.g. "can only edit while
+  status is draft") when one exists. **`authorize()` runs before `rules()` and before the
+  controller method** — any guard that must produce a 403 rather than a validation-error
+  redirect belongs in `authorize()`, not in the controller body. Rules use
+  `Rule::unique(...)->whereNull('deleted_at')` (and `->ignore($model->id)` on update) to
+  match the partial index.
 - **Controller**: one method per action (`index`, `create`, `store`, `show`, `edit`, `update`,
-  `destroy`), NOT a resource controller class — built up incrementally, one HTTP verb/page at
-  a time, in the order the user asked for them. `Inertia::flash('toast', ['type' => ...,
-  'message' => ...])` on every mutating action (success or error), then `to_route(...)`.
+  `destroy`, plus extra actions like `updateStatus`/`storeRevision` for Quotations), NOT a
+  resource controller class — built up incrementally, one HTTP verb/page at a time, in the
+  order the user asked for them. `Inertia::flash('toast', ['type' => ..., 'message' => ...])`
+  on every mutating action (success or error), then `to_route(...)`.
 - **Routes** in `routes/web.php` inside the existing `auth`+`verified` group. Static segments
   (like `/create`) MUST be registered before the `{model}` wildcard route or Laravel will try
   to match "create" as the route-model-bound parameter.
 - **Wayfinder**: after adding routes, run `php artisan wayfinder:generate --with-form` to
   regenerate `resources/js/actions/` and `resources/js/routes/` — frontend pages import route
   helpers from `@/routes/{model-plural}` (e.g. `import { show, edit } from '@/routes/job-titles'`).
+  Nested action routes generate nested modules, e.g. `@/routes/quotations/status` and
+  `@/routes/quotations/revisions`.
 - **Pages** in `resources/js/pages/{model-plural}/`:
   - `index.tsx` — table (shadcn-style `Table` component), pagination nav using Laravel's
     paginator shape (typed as `Paginated<T>` in `resources/js/types/pagination.ts`), "New X"
@@ -70,87 +84,178 @@ For a model like `JobTitle`, `Workforce`, `Currency`:
     Inertia's FormData-based `<Form>` needs the hidden input to pick up the value).
   - `show.tsx` — Details `Card` with a `dl`/`dt`/`dd` grid (1 col mobile, 2 cols `sm:` up),
     "Back to X" button (always `variant="destructive"`, i.e. red — a user preference stated
-    explicitly), "Edit X" button once edit exists, and a "Danger Zone" `Card` (red-tinted
-    warning box + a `Dialog`-based delete confirmation) once delete exists.
+    explicitly), "Edit X" button (full noun, not just "Edit") once edit exists, and a
+    "Danger Zone" `Card` (red-tinted warning box + a `Dialog`-based delete confirmation) once
+    delete exists. For related-record lists (e.g. Projects → Quotations, Customers →
+    Projects), use a clickable card-list (not a table) inside its own `Card`.
+  - Status badges: always use `.replaceAll('_', ' ')`, never `.replace(...)` (which only
+    replaces the first match — bit us once multi-word statuses became reachable).
+  - Confirmation modals: every destructive or state-changing workflow action (submit for
+    approval, approve, reject, cancel, void, delete) gets its own `Dialog` with a specific
+    title/description, not a generic "are you sure?". Destructive-outcome buttons (cancel,
+    reject, void, delete) use `variant="destructive"` (red) — explicit user preference.
   - Breadcrumbs: pages with **static** breadcrumbs use `PageComponent.layout = { breadcrumbs:
     [...] }`; pages needing **per-record** breadcrumbs (detail/edit pages, since they need the
     record's name) call `setLayoutProps({ breadcrumbs: [...] })` from `@inertiajs/react`
     *inside* the component body — this is an Inertia v3 feature, don't try to fake it with a
     static assignment since that has no access to props.
+  - `<input type="date">` needs exactly `YYYY-MM-DD` — if a backend datetime column is
+    serialized as a full ISO string, `.slice(0, 10)` it before using it as `defaultValue`.
 - **Tests**: `tests/Feature/{ModelPlural}/{Action}Test.php` (e.g. `tests/Feature/JobTitles/
   StoreTest.php`), using Pest. Cover: page renders with correct Inertia props, successful
   mutation + redirect + `assertDatabaseHas`, full validation rule matrix, soft-deleted-record-
-  name-reuse (see bug below), guest redirect to login. Run `php artisan test --compact`,
-  `vendor/bin/pint --dirty --format agent`, `composer types:check` (Larastan), and on the
-  frontend `npm run types:check`, `npm run lint:check`, `npm run format:check` after every
-  change — all must pass before considering a task done.
+  name-reuse (see bug below), guest redirect to login. For bug reports, prefer a regression
+  test that reproduces the **actual** request shape the browser sends (e.g. blank form
+  fields submit as empty strings, not omitted keys — a prior test that omitted keys entirely
+  passed while the real bug still reproduced).
+- **Verification suite — run after every single change, no exceptions**: `php artisan test
+  --compact --filter={Module}`, `vendor/bin/pint --dirty --format agent`,
+  `composer types:check` (Larastan), `npm run types:check` (tsc), `npm run lint:check`
+  (eslint), `npm run format:check` (prettier — auto-fix with `npx prettier --write <file>` if
+  it flags something, then re-check). All six must pass before considering a task done.
+- **Live browser verification**: for anything UI-observable, actually click through it in the
+  browser (dev server runs via `composer run dev`, `http://localhost:8080`) rather than just
+  trusting the test suite — several bugs in this project (date input population, revision
+  button visibility) were only caught this way.
+- **Interview first**: for any feature with non-obvious business rules (approval workflow,
+  revisioning, delete semantics), ask the user via multiple-choice questions with a
+  recommended default before writing code, rather than guessing.
 
 ## Modules built so far (in this order)
 
-1. **Job Titles** (`job_titles` table) — `name`, `status`. Full CRUD. Has a `workforces()`
+1. **Job Titles** (`job_titles`) — `name`, `status`. Full CRUD. Has a `workforces()`
    hasMany relation used on its detail page to list assigned employees, and a real delete
-   restriction: `JobTitleController::hasWorkforce()` blocks deletion if any workforce member
-   is assigned to it (shows an error toast instead of deleting).
-2. **Workforces** (`workforces` table) — `employee_code` (auto-generated `LAB-EMP-001` style,
-   never reused even after soft-delete, unlike other unique fields), `full_name`, `email`,
-   `phone`/`address` (nullable), `job_title_id` (FK), `gender` (male/female), `photo`
-   (nullable), `status`. Full CRUD, plus:
-   - Photo upload stored on the **private** `local` disk (`storage/app/private`), under
-     `workforce-photos/` — deliberately NOT on the public disk. Served via a dedicated
-     `GET workforces/{workforce}/photo` route/controller method that checks auth and 404s if
-     missing, so photos are only viewable by logged-in users.
-   - Photo `<img>` src includes a `?v={updated_at}` cache-busting query param (browser was
-     serving a stale cached image after replacing the photo, since the URL never changed).
-   - Edit page shows a live preview of a newly-selected file before submit (via
-     `URL.createObjectURL`, with proper `URL.revokeObjectURL` cleanup).
-   - Create/edit job-title dropdown only offers **active** job titles (plus, on edit, the
-     workforce's current job title even if it's since gone inactive, so the selection is
-     never silently blank).
-3. **Currencies** (`currencies` table) — `iso_code` (normalized to uppercase in
-   `prepareForValidation()`, exactly 3 letters), `name`, `symbol` (nullable), `status`. Full
-   CRUD, no relations, no delete restriction (nothing depends on a Currency yet).
+   restriction: blocks deletion if any workforce member is assigned to it.
+2. **Workforces** (`workforces`) — `employee_code` (auto-generated `LAB-EMP-001`, never
+   reused even after soft-delete), `full_name`, `email`, `phone`/`address` (nullable),
+   `job_title_id` (FK), `gender`, `photo` (nullable), `status`. Full CRUD, plus photo upload
+   on the **private** `local` disk served via an authenticated route, cache-busted with
+   `?v={updated_at}`, live preview via `URL.createObjectURL`.
+3. **Currencies** (`currencies`) — `iso_code` (normalized uppercase, 3 letters), `name`,
+   `symbol` (nullable), `status`. Full CRUD, no relations.
+4. **Taxes** — percentage/fixed tax rates used by Quotations.
+5. **Customers** — used by Projects (project → customer) and Quotations' code generation.
+6. **Vendors** — Purchase-side master data (no dependent modules built on it yet).
+7. **Products** (`products`) — `product_code` (auto `LAB-PRODUCT-001`), `reference_number`,
+   `descriptions`, `brand`/`unit` (fixed enum-style string lists, validated via `Rule::in`),
+   `type` (`goods`/`service`), `price`/`cost` (decimal, **optional in the UI but stored as
+   `0`, never `null`** — see bug below), `status`. Full CRUD, used as the line-item source
+   in Quotations.
+8. **Projects** (`projects`) — `project_code` (auto `LAB-{yy}{mm}{seq}-{CustomerCode}`),
+   `customer_id`, `person_in_charge_id` (Workforce), dates, status/priority, cost/value
+   fields. Full CRUD. Detail page now includes a **Quotations** card
+   (`project->quotations()` hasMany) listing every quotation across all revision threads for
+   that project — code, version, "(current)" tag, valid-until, total, status badge, linking
+   to each quotation's detail page.
+9. **Quotations** (`quotations` + `quotation_items`) — the most complex module. See its own
+   section below.
+
+## Quotations — status workflow, revisioning, line items
+
+Belongs to a `Project` (immutable after creation — the code is derived from it), has a
+`Currency`, an optional `Tax`, discount type/value, `valid_until` (auto-defaults to 7 days
+from today on create), free-text `remarks`, and many `QuotationItem`s (product, qty, unit
+price/cost, per-item discount — totals/margins recalculated server-side on every
+store/update, never trusted from the client).
+
+**Code scheme**: `LAB-Q{YY}{MM}{project's NNN}-{thread# 2-digit}-{CustomerCode}`, generated
+in `Quotation::booted()`'s `creating()` hook. All revisions in a thread share the root's
+`quotation_code` and `thread_number`.
+
+**Status workflow**: `draft` → `request_for_approval` → `approved`/`rejected`, plus
+`cancelled` (from `draft` or `request_for_approval`) and `voided` (from `approved`). Modeled
+via `Quotation::TRANSITIONS` (private const array) and `Quotation::allowedNextStatuses(
+string $status): array`, mirrored on the frontend in `show.tsx`'s `statusActions()` for
+button rendering — backend (`QuotationStatusUpdateRequest` + `Rule::in()`) is authoritative.
+Approving sets `approved_by`/`approved_at` to the acting user/now.
+
+**Revisioning**: `root_quotation_id` (self-FK, null on the root), `version_major`/
+`version_minor` (user picks "major" — customer-requested — or "minor" — internal — when
+creating a revision), `is_current` (**exactly one row per thread must be `true` at all
+times** — this invariant was violated by a real production bug, see below), `thread_number`.
+A revision can only be created from a quotation that is both **not** `draft` and **is**
+`is_current` — enforced in `QuotationRevisionRequest::authorize()` and mirrored in
+`show.tsx`'s "Create Revision" button visibility. Revision History is shown as a card-list
+on the detail page (only rendered when the thread has more than one version).
+
+**Delete**: draft-only, and blocked if the quotation has any other revisions in its thread
+(root or otherwise) — "Danger Zone" card only renders when both conditions hold.
+
+**Line items table**: has a "No" column (1-indexed row number) for quick counting.
 
 ## Bugs fixed along the way (worth knowing about)
 
 - **Soft-delete + unique constraint bug**: `workforces.email` had a plain DB-level
-  `->unique()` index. The app-level validation correctly allowed reusing a soft-deleted
-  record's email (`Rule::unique(...)->whereNull('deleted_at')`), but the raw `INSERT` still
-  hit the DB constraint and threw `UniqueConstraintViolationException`, because a plain
-  unique index doesn't know about `deleted_at`. Fixed via a new migration that drops the
-  plain index and replaces it with a **partial unique index** (`where deleted_at is null`) —
-  SQLite (this project's DB) supports this natively. **Currencies' `iso_code` was built with
-  this partial-index pattern from the start** to avoid repeating the same bug. If you add
-  more unique+soft-deletable columns to future modules, use this pattern proactively.
+  `->unique()` index. App-level validation correctly allowed reusing a soft-deleted record's
+  email, but the raw `INSERT` still hit the DB constraint. Fixed via a partial unique index
+  (`where deleted_at is null`) — SQLite supports this natively. Use this pattern proactively
+  for any future unique+soft-deletable column.
 - **Fast Refresh / HMR gotcha**: renaming a top-level `const`/`function` in a file already
-  loaded in the browser can leave Vite's Fast Refresh in a broken state (`ReferenceError:
-  x is not defined` referencing a stale module version). Fix is a hard browser refresh or
-  restarting the dev server — not a real code bug, just a dev-server artifact to remember.
+  loaded in the browser can leave Vite's Fast Refresh in a broken state. Fix is a hard
+  browser refresh or restarting the dev server — not a real code bug.
+- **`#[Fillable]` silently drops unlisted columns**: happened twice — once for `Quotation`'s
+  `root_quotation_id`/`version_major`/`version_minor`/`is_current` after adding the
+  revisioning columns without updating the attribute list, causing revision creation to
+  silently fail to set them (no error, just wrong data). Always update `#[Fillable]` in the
+  same change that adds a mass-assigned column.
+- **FormRequest `authorize()` vs. controller `abort_if()` ordering**: a controller-level
+  `abort_if($model->status !== 'draft', 403, ...)` ran *after* FormRequest validation, so an
+  invalid/empty payload against a locked record returned a validation error instead of the
+  intended 403. Fix: move status/business-rule guards into `authorize()`.
+- **Critical: multiple `is_current=true` rows in one revision thread** (user-reported, real
+  production data). Root cause: `QuotationRevisionRequest::authorize()` only checked
+  `status !== 'draft'`, so a user viewing an old, non-current snapshot (reachable via
+  Revision History) could still click "Create Revision" from it. The version-bump math was
+  computed relative to that stale row instead of the thread's true latest version, causing a
+  `(quotation_code, version_major, version_minor)` unique-constraint collision and leaving
+  two rows marked current simultaneously. Fixed by requiring `$quotation->is_current` in
+  `authorize()` and mirroring the check in the frontend button visibility. Corrupted dev data
+  was repaired manually via `php artisan tinker`. Regression test added:
+  `RevisionTest.php` → `'a non-current quotation cannot be revised'`.
+- **Products price/cost NULL constraint violation**: `products.price`/`cost` columns are
+  `decimal(...)->default(0)` but **not** `->nullable()`, while validation used `'nullable'`.
+  A blank form field submits as an empty string → validated to `null` → `Product::create()`
+  inserts an explicit `NULL`, which overrides the column default and violates the NOT NULL
+  constraint. Fixed by coercing blank/`null` price and cost to `0` in each FormRequest's
+  `prepareForValidation()`, matching how the rest of the app already treats these as
+  non-nullable money fields (`product.price` is typed as plain `string` everywhere on the
+  frontend). Lesson: a `->default(0)` DB column without `->nullable()` should never pair with
+  a `'nullable'` validation rule — either make the column nullable too, or coerce blanks to
+  the default before validation.
 
 ## Conventions / preferences the user has stated explicitly
 
 - "Back to X" buttons on detail pages: always red (`variant="destructive"`).
+- "Edit X" buttons use the full noun (e.g. "Edit Quotation"), never just "Edit".
 - No modal-based CRUD — dedicated pages only (index/create/edit/detail), except delete
-  confirmation which does use a `Dialog` (that one distinction was explicit).
+  confirmation and workflow-action confirmations, which do use a `Dialog`.
 - Delete confirmation always lives in a "Danger Zone" card at the bottom of the detail page.
+- Destructive/negative workflow outcomes (cancel, reject, void, delete) get red
+  (`variant="destructive"`) buttons.
 - Wants mobile/tablet/desktop responsiveness considered on every page (stacking headers,
   buttons full-width on mobile via `w-full sm:w-auto`, tables scroll horizontally via the
   shared `Table` component rather than squishing).
 - Cursor should be `pointer` on all clickable buttons, `not-allowed` on disabled ones —
   fixed globally, not per-component.
-- Prefers being asked when there's a genuine architectural fork (e.g. was asked about
-  `gender`/`status` enum values before building Currencies/Workforces, and about how to
-  handle a Workforce photo's storage/access-control before implementing it).
+- Prefers being asked when there's a genuine architectural fork (e.g. enum values before
+  building a module, approval/revision UX shape, delete semantics) — interview-first with
+  `AskUserQuestion`-style recommended defaults, not silent guessing.
+- After creating a record, redirect to its detail page (not the index) once a detail page
+  exists — this was an explicit flow change requested for Quotations and is the preferred
+  default going forward.
 
 ## What's NOT built yet (natural next steps)
 
-- No pages/routes for: Sales & CRM (Projects, Quotations, Deliver Orders, Customers),
-  Purchase (Purchase Orders, Goods Receipt Note, Vendors), Inventory (Products, Stock
-  Movements, Stock Adjustments), Finance (Invoice, Taxes — Currencies is done), System
-  (Users, Roles, Settings). These are still disabled placeholders in the sidebar.
+- No pages/routes for: Deliver Orders, Purchase Orders, Goods Receipt Note, Stock Movements,
+  Stock Adjustments, Invoice, Users, Roles. These are still disabled placeholders in the
+  sidebar.
 - RBAC (`spatie/laravel-permission`) is installed but nothing is actually gated by
   roles/permissions yet — no seeded roles, no policy/gate wired to any route or UI element.
 - No API layer, no tests beyond Pest feature tests (no Dusk/browser tests).
+- Quotations don't yet generate any downstream document (e.g. converting an approved
+  quotation into a Deliver Order or Invoice) — that linkage doesn't exist.
 
 ## Where to resume
 
-Ask the user which module or feature to build next, and follow the CRUD pattern above.
+Ask the user which module or feature to build next, and follow the CRUD pattern (and, for
+anything workflow/revision-like, the Quotations pattern) above.

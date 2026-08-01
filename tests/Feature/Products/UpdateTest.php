@@ -56,6 +56,37 @@ test('product can be updated', function () {
     ]);
 });
 
+test('blank price and cost inputs default to zero on update', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create([
+        'brand' => 'Schneider Electric',
+        'unit' => 'Pcs',
+        'price' => 175000.00,
+        'cost' => 95000.00,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->put(route('products.update', $product), [
+            'name' => $product->name,
+            'reference_number' => $product->reference_number,
+            'descriptions' => $product->descriptions,
+            'brand' => $product->brand,
+            'unit' => $product->unit,
+            'type' => $product->type,
+            'price' => '',
+            'cost' => '',
+            'status' => $product->status,
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('products', [
+        'id' => $product->id,
+        'price' => 0,
+        'cost' => 0,
+    ]);
+});
+
 test('product code is not changed by an update', function () {
     $user = User::factory()->create();
     $product = Product::factory()->create();

@@ -66,8 +66,14 @@ class ProjectController extends Controller
     {
         $project->load('customer', 'personInCharge');
 
+        $quotations = $project->quotations()
+            ->with('currency')
+            ->orderByDesc('created_at')
+            ->get(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'status', 'is_current', 'valid_until', 'total', 'currency_id']);
+
         return Inertia::render('projects/show', [
             'project' => $project,
+            'quotations' => $quotations,
         ]);
     }
 

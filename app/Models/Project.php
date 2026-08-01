@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -104,6 +105,16 @@ class Project extends Model
     public function personInCharge(): BelongsTo
     {
         return $this->belongsTo(Workforce::class, 'person_in_charge_id');
+    }
+
+    /**
+     * Get the quotations for this project.
+     *
+     * @return HasMany<Quotation, $this>
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
     }
 
     /**
