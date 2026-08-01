@@ -31,9 +31,22 @@ class ProjectController extends Controller
             })
             ->orderByDesc('request_date')
             ->limit(20)
-            ->get(['id', 'name', 'project_code', 'customer_id']);
+            ->get(['id', 'uuid', 'name', 'project_code', 'customer_id']);
 
         return response()->json(['data' => $projects]);
+    }
+
+    /**
+     * List the quotations belonging to the given project, for dependent pickers.
+     */
+    public function quotations(Project $project): JsonResponse
+    {
+        $quotations = $project->quotations()
+            ->orderByDesc('version_major')
+            ->orderByDesc('version_minor')
+            ->get(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'status', 'is_current']);
+
+        return response()->json(['data' => $quotations]);
     }
 
     /**
@@ -91,9 +104,15 @@ class ProjectController extends Controller
             ->orderByDesc('created_at')
             ->get(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'status', 'is_current', 'valid_until', 'total', 'currency_id']);
 
+        $purchaseOrders = $project->purchaseOrders()
+            ->with('vendor:id,name', 'currency')
+            ->orderByDesc('created_at')
+            ->get(['id', 'uuid', 'purchase_order_code', 'status', 'grand_total', 'vendor_id', 'currency_id']);
+
         return Inertia::render('projects/show', [
             'project' => $project,
             'quotations' => $quotations,
+            'purchaseOrders' => $purchaseOrders,
         ]);
     }
 

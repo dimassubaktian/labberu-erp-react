@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Project;
+use App\Models\PurchaseOrder;
 use App\Models\Quotation;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -33,6 +34,22 @@ test('project detail page includes the project\'s quotations', function () {
             ->has('quotations', 1)
             ->where('quotations.0.id', $quotation->id)
             ->where('quotations.0.quotation_code', $quotation->quotation_code),
+        );
+});
+
+test('project detail page includes the project\'s purchase orders', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $purchaseOrder = PurchaseOrder::factory()->create(['project_id' => $project->id]);
+
+    $this->actingAs($user)
+        ->get(route('projects.show', $project))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('projects/show')
+            ->has('purchaseOrders', 1)
+            ->where('purchaseOrders.0.id', $purchaseOrder->id)
+            ->where('purchaseOrders.0.purchase_order_code', $purchaseOrder->purchase_order_code),
         );
 });
 

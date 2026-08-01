@@ -128,6 +128,16 @@ class Project extends Model
     }
 
     /**
+     * Get the purchase orders raised for this project.
+     *
+     * @return HasMany<PurchaseOrder, $this>
+     */
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

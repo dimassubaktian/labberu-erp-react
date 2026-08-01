@@ -24,6 +24,7 @@ import {
     download as downloadAttachment,
     store as storeAttachment,
 } from '@/routes/projects/attachments';
+import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 import { show as showQuotation } from '@/routes/quotations';
 
 function formatFileSize(bytes: number): string {
@@ -94,12 +95,34 @@ type Quotation = {
     };
 };
 
+type PurchaseOrder = {
+    id: number;
+    uuid: string;
+    purchase_order_code: string;
+    status: string;
+    grand_total: string;
+    currency: {
+        id: number;
+        iso_code: string;
+        symbol: string | null;
+    };
+    vendor: {
+        id: number;
+        name: string;
+    };
+};
+
 type Props = {
     project: Project;
     quotations: Quotation[];
+    purchaseOrders: PurchaseOrder[];
 };
 
-export default function ProjectsShow({ project, quotations }: Props) {
+export default function ProjectsShow({
+    project,
+    quotations,
+    purchaseOrders,
+}: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Projects', href: index() },
@@ -415,6 +438,62 @@ export default function ProjectsShow({ project, quotations }: Props) {
                                                 className="capitalize"
                                             >
                                                 {quotation.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Purchase Orders</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {purchaseOrders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No purchase orders have been raised for this
+                                project yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {purchaseOrders.map((purchaseOrder) => (
+                                    <Link
+                                        key={purchaseOrder.id}
+                                        href={showPurchaseOrder(purchaseOrder)}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {
+                                                    purchaseOrder.purchase_order_code
+                                                }
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {purchaseOrder.vendor.name}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-medium">
+                                                {purchaseOrder.currency
+                                                    .symbol ??
+                                                    purchaseOrder.currency
+                                                        .iso_code}{' '}
+                                                {formatNumber(
+                                                    purchaseOrder.grand_total,
+                                                )}
+                                            </span>
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {purchaseOrder.status.replaceAll(
                                                     '_',
                                                     ' ',
                                                 )}

@@ -30,7 +30,7 @@ class ProductController extends Controller
             })
             ->orderBy('name')
             ->limit(20)
-            ->get(['id', 'name', 'product_code', 'descriptions', 'brand', 'unit', 'price', 'cost']);
+            ->get(['id', 'name', 'product_code', 'reference_number', 'descriptions', 'brand', 'unit', 'price', 'cost']);
 
         return response()->json(['data' => $products]);
     }

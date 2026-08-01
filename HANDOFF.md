@@ -81,6 +81,11 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
     table into the page props on every create/edit visit, rendered as a plain `Select` with no
     search — fine for small reference tables, not for what could become hundreds/thousands of
     rows. See its own section below for the full design.
+15. **Purchase Order (PO) module** built end-to-end — a document raised against a `Vendor`,
+    referencing a `Project`/`Quotation` pair, with dynamic cascading discount levels (not a
+    fixed 3-tier structure) and a real multi-step sign-off workflow (issuer → two parallel
+    checkers → approver), all tracked against `Workforce` records rather than `User` logins.
+    See its own section below for the full design, math, and workflow.
 
 ## The established CRUD pattern (repeat this for future modules)
 
@@ -202,6 +207,11 @@ For a model like `JobTitle`, `Workforce`, `Currency`:
     a "Bill of Materials" card on the quotation's detail page — no standalone index page or
     sidebar entry. Own `create`/`edit`/`show` pages, **no `destroy` yet** (known gap). See its
     own section below for the cost model and grouping structure.
+11. **Purchase Orders** (`purchase_orders` + `purchase_order_items` + `purchase_order_discounts`
+    + `purchase_order_code_sequences`) — has its own sidebar entry and full index/create/edit/
+    show pages (no revisioning, unlike Quotations). See its own section below for the full
+    design: dynamic cascading discounts, the issuer/checker/approver sign-off workflow, and
+    the Project→Quotation cascading picker.
 
 ## Quotations — status workflow, revisioning, line items, groups
 
@@ -396,13 +406,16 @@ Internally debounces (300ms) via `useHttp` (Inertia v3's standalone-HTTP-request
 request, `hooks/use-two-factor-auth.ts`) and fetches an initial top-20 batch when the popover
 first opens.
 
-**Backend**: each of `CustomerController`, `ProductController`, `ProjectController` gained a
-`search(Request $request): JsonResponse` action — `?q=` matched against name *or* code
-(`LIKE '%...%'`), capped at 20 results, ordered the same way the existing `index()`/`create()`
-queries were. Routes are `GET {resource}/search`, registered **before** the `{resource}`
-wildcard route (same static-before-wildcard rule as everywhere else in `routes/web.php`).
-Product's search also respects `status = active` (matching what `create()`/`edit()` used to
-filter for); Customer/Project have no status column so no extra filter.
+**Backend**: each of `CustomerController`, `ProductController`, `ProjectController` (and later
+`VendorController`, added for Purchase Orders — see below) gained a `search(Request $request):
+JsonResponse` action — `?q=` matched against name *or* code (`LIKE '%...%'`), capped at 20
+results, ordered the same way the existing `index()`/`create()` queries were. Routes are
+`GET {resource}/search`, registered **before** the `{resource}` wildcard route (same
+static-before-wildcard rule as everywhere else in `routes/web.php`). Product's search also
+respects `status = active` (matching what `create()`/`edit()` used to filter for); Customer/
+Project/Vendor have no status column so no extra filter. Vendor's search additionally selects
+`address`/`phone`/`fax` since Purchase Orders auto-fills those onto the document when a vendor
+is picked.
 
 **Controllers no longer preload full lists.** `ProjectController::create()`/`edit()`,
 `QuotationController::create()`/`edit()`, and `BomController::create()`/`edit()` had their
@@ -425,6 +438,96 @@ immediately without a search round-trip.
 `tests/Feature/Products/SearchTest.php`, `tests/Feature/Projects/SearchTest.php` — name match,
 code match, inactive/trashed exclusion, result limit, guest gets 401 (not a redirect, since
 these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
+
+## Purchase Orders — cascading discounts, issuer/checker/approver sign-off workflow
+
+A document raised against a `Vendor`, referencing a specific `Project`/`Quotation` pair (many
+POs can be raised per quotation — no zero-or-one constraint like BOM). Has its own sidebar
+entry and index/create/edit/show pages — **no revisioning** (unlike Quotations) and no
+grouping structure (unlike BOM/Quotation items) — line items are a flat list.
+
+**Header fields**: `purchase_order_code` (auto, see code scheme below), `project_id`,
+`quotation_id`, `customer_id` (denormalized off the project at creation, shown read-only,
+never independently selectable), `vendor_id`, `address`/`phone`/`fax` (snapshotted from the
+selected vendor at pick-time, then freely editable — e.g. a different contact/address for this
+specific order), `quotation_no`/`quotation_date` (free text/date — **the vendor's own
+quotation reference to us**, unrelated to the linked `quotation_id`, which is *our* internal
+quotation to the customer), `project_name` (editable text snapshot, not a live read of
+`project.name`), `date`, `delivery_date`, `currency_id`, `tax_id`, `shipping_method`,
+`shipping_terms`.
+
+**The project cannot be changed after creation** (explicit correction from the client — POs
+initially had every field editable while draft, same as Quotation/BOM items, but Project
+specifically needed to be locked). `PurchaseOrderUpdateRequest` enforces this server-side via
+`Rule::in([$purchaseOrder->project_id])` on top of the usual `exists` rule — not just a
+frontend restriction. `edit.tsx` shows Project as the same static read-only paragraph pattern
+Quotation's `edit.tsx` already used for its own (always-immutable) project field. Quotation and
+Vendor, by contrast, **remain editable** while draft.
+
+**Project → Quotation cascading picker**: since a PO's quotation must belong to its project,
+picking a Project (via the same `AsyncCombobox` pattern as Quotation/Customer/Product) fetches
+that project's quotations via a new `ProjectController::quotations(Project $project):
+JsonResponse` endpoint (`GET projects/{project}/quotations`, JSON, all revisions, no `?q=`
+search — a project's quotation count is small enough that no debounced search is needed, just a
+plain dependent `Select`) and populates a second, initially-disabled `Select`. On `edit.tsx`
+this same endpoint is called once on mount (via `useEffect`) using the already-set project's
+uuid, so the current quotation shows up in the list without needing to touch the (now
+read-only) project field first. **Gotcha hit during this build**: the fetch must use the
+project's `uuid`, not its numeric `id` — `Project`'s route key is `uuid`, so the nested route
+binds on that; `ProjectController::search()` originally didn't select `uuid` at all (only
+`id`/`name`/`project_code`/`customer_id`), which 404'd this endpoint until `uuid` was added to
+that select list.
+
+**Cascading discount levels** (`purchase_order_discounts`, dynamic count — explicitly **not**
+capped at 3 despite the client's original spec mentioning "Discount I, II, III"; the schema
+supports any number of rows): each row has `sequence` (server-assigned from array order, never
+trusted from the client), `label` (free text, e.g. "Discount I"), `discount_type`
+(percentage/fixed), `discount_value`, and computed `base_amount`/`discount_amount`. **Cascading
+means compound, not independent**: level 2 applies against the balance *left after* level 1,
+not against the original subtotal — confirmed explicitly with the client, mirrors how
+successive trade discounts actually work (e.g. 10% + 10% ≠ 20% off). Tax is applied **after**
+all discount levels, on the final net balance. Math lives in
+`PurchaseOrderController::syncItemsAndDiscounts()`, reused by both `store()` and `update()`
+(same wipe-and-recreate-on-update pattern as every other module: `items()->delete();
+discounts()->delete();` then rebuild).
+
+**Line items** (`purchase_order_items`) are deliberately flat — no groups/subgroups like
+Quotation/BOM. Fields: `product_id`, `reference_number` (autofilled from `product.
+reference_number`, then freely editable — **bug hit here**: `ProductController::search()`
+didn't select `reference_number` at all, so this field silently always came back empty
+regardless of frontend logic; fixed by adding it to the select list), `description` (autofilled
+from `product.descriptions`), `quantity`, `unit`, `unit_price` (**autofilled from
+`product.cost`, not `product.price`** — deliberate, since a PO is a buying document, not a
+selling one), `total`. No per-item discount (unlike Quotation items) — all discounting happens
+once at the header level via the cascading levels above.
+
+**Code scheme**: `LAB-PO{YY}{seq}-{VendorCode}`, generated in `PurchaseOrder::booted()`'s
+`creating()` hook via a new `PurchaseOrderCodeSequence` model — **keyed by year only** (same
+as `ProjectCodeSequence`), **not year+month**. The first implementation keyed it by year+month
+(resetting monthly) before the client clarified they wanted an annual reset like Projects;
+since the migration was still uncommitted at that point, it was edited and re-migrated in
+place rather than patched with a second migration.
+
+**Status workflow — issuer → two parallel checkers → approver**, modeled after a real paper
+form (issued by one person, checked by two, approved by one), tracked against **`Workforce`
+records, not `User` logins** (explicit client requirement — these are named staff roles on a
+physical document, not necessarily system accounts): `status` (`draft`/`issued`/`approved`/
+`cancelled`/`voided`, via the same `TRANSITIONS` const + `allowedNextStatuses()` pattern as
+Quotation), plus `issued_by_id`/`issued_at`, `checked_by_1_id`/`checked_by_1_at`,
+`checked_by_2_id`/`checked_by_2_at`, `approved_by_id`/`approved_at`, and `rejection_reason`.
+The two checker slots are **parallel, not sequential** — either can be signed off in any order,
+tracked as two independent nullable column pairs rather than a single "checked" status; the
+Approve action is only available once both are non-null. **Rejecting reverts the PO to
+`draft`** (not a terminal `rejected` status like Quotation) and clears all four sign-off
+columns plus sets `rejection_reason` — re-issuing clears `rejection_reason` back to `null`.
+Each transition is its own FormRequest (`PurchaseOrderIssueRequest`, `PurchaseOrderCheckRequest`
+— takes a `slot` param, 1 or 2, and `authorize()`s that the target slot isn't already filled —
+`PurchaseOrderApproveRequest`, `PurchaseOrderRejectRequest`, `PurchaseOrderCancelRequest`,
+`PurchaseOrderVoidRequest`) and its own controller method/route (`PATCH .../issue`, `/check`,
+`/approve`, `/reject`, `/cancel`, `/void`), each with its own confirmation `Dialog` on
+`show.tsx` — a `WorkforceSelect` picker (plain `Select`, matching the existing "Workforce is
+still a plain full-list select" convention) appears inside the relevant dialogs where a
+sign-off name needs to be recorded.
 
 ## Bugs fixed along the way (worth knowing about)
 
@@ -465,6 +568,27 @@ these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
   frontend). Lesson: a `->default(0)` DB column without `->nullable()` should never pair with
   a `'nullable'` validation rule — either make the column nullable too, or coerce blanks to
   the default before validation.
+- **Migration edit dropped `timestamps()`**: while reworking `purchase_order_code_sequences`
+  from a year+month key down to year-only, the migration was rewritten and accidentally lost
+  its `$table->timestamps()` call, which broke every test that created a `PurchaseOrder`
+  (its `booted()` hook writes to that table on every create). Since the migration was still
+  uncommitted, fixed by rolling back + re-migrating in place rather than adding a patch
+  migration — remember uncommitted migrations can be edited directly, but double-check nothing
+  got silently dropped in the rewrite.
+- **`PurchaseOrderController::store()` didn't capture the transaction's return value**: the
+  `DB::transaction(function () use ($data): PurchaseOrder { ... return $purchaseOrder; })` call
+  wasn't assigned to a variable, so `to_route('purchase-orders.show', $purchaseOrder)` after it
+  referenced an undefined variable. Caught by the "redirect to detail page after create" rule
+  requiring the created record's route-key — always assign `$x = DB::transaction(...)` when the
+  redirect needs something the closure created.
+- **Async combobox nested-route binding by numeric `id` instead of `uuid`**: the Project→
+  Quotation cascading picker (see Purchase Orders section above) called the nested
+  `projects/{project}/quotations` endpoint using the numeric `id` returned by
+  `ProjectController::search()`, but `Project`'s route key is `uuid` — 404'd until `uuid` was
+  added to the search endpoint's select list and the frontend switched to using it. General
+  lesson: any endpoint reached via route-model-binding on a UUID-keyed model needs the picker's
+  search response to actually include that UUID, not just the numeric id used for FK
+  validation.
 
 ## Conventions / preferences the user has stated explicitly
 
@@ -506,28 +630,48 @@ these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
   table is genuinely high-cardinality (hundreds/thousands of rows). Small bounded reference
   data (Job Titles, Currencies, Taxes, Workforces) stays as a plain `Select` with the full list
   passed via Inertia props; converting those would just be unnecessary network round-trips.
+  (Vendor was the one exception — client asked for the combobox treatment ahead of it actually
+  becoming high-cardinality, for Purchase Orders; that's a one-off, not a reversal of the rule.)
+- A field being "editable while draft" doesn't automatically mean *every* field on that
+  document is editable — confirm per-field. Purchase Orders were originally built with every
+  field (including Project) editable while draft, matching Quotation/BOM's general "all fields
+  editable while draft" pattern, but the client then singled out Project as needing to be
+  locked after creation, same as Quotation's project field already was. Don't assume a
+  blanket rule from one module carries over uniformly to a new one — ask if unsure.
+- Workflow steps that mirror a physical paper form's signature block (issuer, checkers,
+  approver) should be tracked against `Workforce` records, not `User` logins — these represent
+  named staff roles on a document, not necessarily people with system accounts. Purchase
+  Order's issue/check/approve actions each take a `workforce_id` via a plain `Select`, distinct
+  from Quotation's `approved_by`, which *is* tied to the logged-in `User`.
 
 ## What's NOT built yet (natural next steps)
 
-- No pages/routes for: Deliver Orders, Purchase Orders, Goods Receipt Note, Stock Movements,
-  Stock Adjustments, Invoice, Users, Roles. These are still disabled placeholders in the
-  sidebar.
+- No pages/routes for: Deliver Orders, Goods Receipt Note, Stock Movements, Stock Adjustments,
+  Invoice, Users, Roles. These are still disabled placeholders in the sidebar. (Purchase
+  Orders is now built — see its own section above.)
 - RBAC (`spatie/laravel-permission`) is installed but nothing is actually gated by
   roles/permissions yet — no seeded roles, no policy/gate wired to any route or UI element.
-  This is arguably the most important gap: approving/rejecting/voiding a quotation is
-  currently possible for anyone logged in.
+  This is arguably the most important gap: approving/rejecting/voiding a quotation *or a
+  purchase order* is currently possible for anyone logged in.
 - No API layer, no tests beyond Pest feature tests (no Dusk/browser tests).
 - Quotations don't yet generate any downstream document (e.g. converting an approved
-  quotation into a Deliver Order or Invoice) — that linkage doesn't exist.
-- No PDF/print export for quotations — no `dompdf`/`snappy` package installed, no print
-  route anywhere. Likely the single biggest missing piece for a quotation module whose whole
-  point is producing a document to hand the customer.
+  quotation into a Deliver Order or Invoice) — that linkage doesn't exist. Similarly, Purchase
+  Orders don't source their line items from an existing BOM (a user re-enters everything
+  manually even if a BOM already lists the same materials) — no linkage there either.
+- No PDF/print export for quotations *or purchase orders* — no `dompdf`/`snappy` package
+  installed, no print route anywhere. Likely the single biggest missing piece for modules whose
+  whole point is producing a document to hand to a customer or vendor.
 - `BomController` has no `destroy` — a BOM can be edited down to empty but not deleted.
 - No customer-facing acceptance step (e-signature/"customer accepted" status) — the status
   workflow only tracks internal staff approval.
-- Workforce ("person in charge" on Projects) still uses a plain full-list `Select`, not the new
-  async combobox — deliberately deferred, but worth revisiting if headcount grows into the
-  hundreds. Same `AsyncCombobox` component would apply directly.
+- Workforce ("person in charge" on Projects, and now the issuer/checker/approver pickers on
+  Purchase Orders) still uses a plain full-list `Select`, not the new async combobox —
+  deliberately deferred, but worth revisiting if headcount grows into the hundreds. Same
+  `AsyncCombobox` component would apply directly.
+- No cross-linking from `Project`'s or `Quotation`'s `show.tsx` to their Purchase Orders — a PO
+  is only reachable via the Purchase Orders index or a direct link right now, unlike Project's
+  own "Quotations" card. Worth adding a "Purchase Orders" card to one or both once there's a
+  real need to navigate that direction.
 
 ## Where to resume
 

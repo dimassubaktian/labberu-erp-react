@@ -8,6 +8,7 @@ use App\Http\Controllers\JobTitleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\VendorController;
@@ -76,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('vendors', [VendorController::class, 'index'])->name('vendors.index');
     Route::get('vendors/create', [VendorController::class, 'create'])->name('vendors.create');
     Route::post('vendors', [VendorController::class, 'store'])->name('vendors.store');
+    Route::get('vendors/search', [VendorController::class, 'search'])->name('vendors.search');
     Route::get('vendors/{vendor}', [VendorController::class, 'show'])->name('vendors.show');
     Route::get('vendors/{vendor}/edit', [VendorController::class, 'edit'])->name('vendors.edit');
     Route::put('vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
@@ -90,6 +92,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
+    Route::get('projects/{project}/quotations', [ProjectController::class, 'quotations'])->name('projects.quotations.index');
+
     Route::post('projects/{project}/attachments', [ProjectAttachmentController::class, 'store'])->name('projects.attachments.store');
     Route::get('projects/{project}/attachments/{attachment}/download', [ProjectAttachmentController::class, 'download'])->name('projects.attachments.download');
     Route::delete('projects/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'destroy'])->name('projects.attachments.destroy');
@@ -101,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('quotations/{quotation}/edit', [QuotationController::class, 'edit'])->name('quotations.edit');
     Route::put('quotations/{quotation}', [QuotationController::class, 'update'])->name('quotations.update');
     Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('quotations.status.update');
+    Route::patch('quotations/{quotation}/progress', [QuotationController::class, 'updateProgress'])->name('quotations.progress.update');
     Route::post('quotations/{quotation}/revisions', [QuotationController::class, 'storeRevision'])->name('quotations.revisions.store');
     Route::delete('quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
 
@@ -109,6 +114,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('quotations/{quotation}/bom', [BomController::class, 'show'])->name('quotations.bom.show');
     Route::get('quotations/{quotation}/bom/edit', [BomController::class, 'edit'])->name('quotations.bom.edit');
     Route::put('quotations/{quotation}/bom', [BomController::class, 'update'])->name('quotations.bom.update');
+
+    Route::get('purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+    Route::get('purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
+    Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
+    Route::get('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
+    Route::get('purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
+    Route::put('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
+    Route::delete('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'destroy'])->name('purchase-orders.destroy');
+    Route::patch('purchase-orders/{purchaseOrder}/issue', [PurchaseOrderController::class, 'issue'])->name('purchase-orders.issue');
+    Route::patch('purchase-orders/{purchaseOrder}/check', [PurchaseOrderController::class, 'check'])->name('purchase-orders.check');
+    Route::patch('purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-orders.approve');
+    Route::patch('purchase-orders/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject'])->name('purchase-orders.reject');
+    Route::patch('purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+    Route::patch('purchase-orders/{purchaseOrder}/void', [PurchaseOrderController::class, 'void'])->name('purchase-orders.void');
+    Route::patch('purchase-orders/{purchaseOrder}/progress', [PurchaseOrderController::class, 'updateProgress'])->name('purchase-orders.progress.update');
 });
 
 require __DIR__.'/settings.php';

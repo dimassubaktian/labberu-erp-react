@@ -27,6 +27,17 @@ test('products can be searched by product code', function () {
         ->assertJsonFragment(['id' => $product->id]);
 });
 
+test('product search results include the reference number', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create(['name' => 'Ballpoint Pen', 'reference_number' => 'REF-00012345']);
+
+    $response = $this->actingAs($user)
+        ->getJson(route('products.search', ['q' => 'Ballpoint']))
+        ->assertOk();
+
+    expect($response->json('data.0.reference_number'))->toBe($product->reference_number);
+});
+
 test('inactive products are not returned by search', function () {
     $user = User::factory()->create();
     Product::factory()->inactive()->create(['name' => 'Retired Widget']);

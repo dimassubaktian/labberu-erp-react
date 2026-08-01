@@ -24,6 +24,7 @@ use Illuminate\Support\Str;
  * @property int $version_minor
  * @property bool $is_current
  * @property string $status
+ * @property string|null $progress
  * @property int $currency_id
  * @property Carbon|null $valid_until
  * @property string|null $discount_type
@@ -47,6 +48,7 @@ use Illuminate\Support\Str;
     'version_minor',
     'is_current',
     'status',
+    'progress',
     'currency_id',
     'valid_until',
     'discount_type',
@@ -87,6 +89,30 @@ class Quotation extends Model
     public static function allowedNextStatuses(string $status): array
     {
         return self::TRANSITIONS[$status] ?? [];
+    }
+
+    /**
+     * Map of each post-approval progress stage to the stages it may move to next. This tracks
+     * the customer-facing fulfillment of an approved quotation, separate from its internal
+     * approval `status`.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private const array PROGRESS_TRANSITIONS = [
+        '' => ['sent'],
+        'sent' => ['accepted'],
+        'accepted' => ['converted'],
+        'converted' => [],
+    ];
+
+    /**
+     * Get the progress stages this quotation may move to from its current progress.
+     *
+     * @return array<int, string>
+     */
+    public static function allowedNextProgress(?string $progress): array
+    {
+        return self::PROGRESS_TRANSITIONS[$progress ?? ''] ?? [];
     }
 
     /**
@@ -210,6 +236,16 @@ class Quotation extends Model
     public function bom(): HasOne
     {
         return $this->hasOne(Bom::class);
+    }
+
+    /**
+     * Get the purchase orders raised against this specific quotation revision.
+     *
+     * @return HasMany<PurchaseOrder, $this>
+     */
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
     }
 
     /**

@@ -5,12 +5,35 @@ namespace App\Http\Controllers;
 use App\Http\Requests\VendorStoreRequest;
 use App\Http\Requests\VendorUpdateRequest;
 use App\Models\Vendor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class VendorController extends Controller
 {
+    /**
+     * Search vendors for async select pickers.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = (string) $request->query('q', '');
+
+        $vendors = Vendor::query()
+            ->when($query !== '', function ($builder) use ($query): void {
+                $builder->where(function ($inner) use ($query): void {
+                    $inner->where('name', 'like', "%{$query}%")
+                        ->orWhere('vendor_code', 'like', "%{$query}%");
+                });
+            })
+            ->orderBy('name')
+            ->limit(20)
+            ->get(['id', 'name', 'vendor_code', 'address', 'phone', 'fax']);
+
+        return response()->json(['data' => $vendors]);
+    }
+
     /**
      * Display a listing of the vendors.
      */

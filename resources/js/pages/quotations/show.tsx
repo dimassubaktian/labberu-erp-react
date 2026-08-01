@@ -33,12 +33,14 @@ import {
 } from '@/components/ui/table';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { show as showProject } from '@/routes/projects';
+import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 import { destroy, edit, index, show } from '@/routes/quotations';
 import {
     create as createBom,
     edit as editBom,
     show as showBom,
 } from '@/routes/quotations/bom';
+import { update as updateProgress } from '@/routes/quotations/progress';
 import { store as storeRevision } from '@/routes/quotations/revisions';
 import { update as updateStatus } from '@/routes/quotations/status';
 
@@ -112,6 +114,50 @@ function statusActions(status: string): StatusAction[] {
     }
 }
 
+type ProgressAction = {
+    progress: string;
+    label: string;
+    confirmTitle: string;
+    confirmDescription: string;
+};
+
+function progressActions(progress: string | null): ProgressAction[] {
+    switch (progress) {
+        case null:
+            return [
+                {
+                    progress: 'sent',
+                    label: 'Mark as Sent',
+                    confirmTitle: 'Mark this quotation as sent?',
+                    confirmDescription:
+                        'This records that the quotation has been sent to the customer.',
+                },
+            ];
+        case 'sent':
+            return [
+                {
+                    progress: 'accepted',
+                    label: 'Mark as Accepted',
+                    confirmTitle: 'Mark this quotation as accepted?',
+                    confirmDescription:
+                        'This records that the customer has accepted the quotation.',
+                },
+            ];
+        case 'accepted':
+            return [
+                {
+                    progress: 'converted',
+                    label: 'Mark as Converted',
+                    confirmTitle: 'Mark this quotation as converted?',
+                    confirmDescription:
+                        'This records that the quotation has been converted into further work, e.g. a purchase order.',
+                },
+            ];
+        default:
+            return [];
+    }
+}
+
 type QuotationItem = {
     id: number;
     description: string | null;
@@ -153,6 +199,7 @@ type Quotation = {
     version_major: number;
     version_minor: number;
     status: string;
+    progress: string | null;
     is_current: boolean;
     valid_until: string | null;
     discount_type: string | null;
@@ -183,6 +230,7 @@ type Quotation = {
     items: QuotationItem[];
     groups: QuotationGroup[];
     bom: Bom | null;
+    purchase_orders: PurchaseOrder[];
 };
 
 type Bom = {
@@ -194,6 +242,23 @@ type Bom = {
     total_cost: string;
     selling_percentage: string | null;
     selling_cost: string;
+};
+
+type PurchaseOrder = {
+    id: number;
+    uuid: string;
+    purchase_order_code: string;
+    status: string;
+    grand_total: string;
+    currency: {
+        id: number;
+        iso_code: string;
+        symbol: string | null;
+    };
+    vendor: {
+        id: number;
+        name: string;
+    };
 };
 
 type HistoryEntry = {
@@ -224,6 +289,10 @@ export default function QuotationsShow({ quotation, history }: Props) {
     const currencySymbol =
         quotation.currency.symbol ?? quotation.currency.iso_code;
     const actions = statusActions(quotation.status);
+    const progressActionsList =
+        quotation.status === 'approved'
+            ? progressActions(quotation.progress)
+            : [];
 
     return (
         <>
@@ -372,6 +441,25 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                     </Badge>
                                 </dd>
                             </div>
+
+                            {quotation.progress && (
+                                <div>
+                                    <dt className="text-sm text-muted-foreground">
+                                        Progress
+                                    </dt>
+                                    <dd>
+                                        <Badge
+                                            variant="secondary"
+                                            className="capitalize"
+                                        >
+                                            {quotation.progress.replaceAll(
+                                                '_',
+                                                ' ',
+                                            )}
+                                        </Badge>
+                                    </dd>
+                                </div>
+                            )}
 
                             <div>
                                 <dt className="text-sm text-muted-foreground">
@@ -560,6 +648,67 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                                                 action.variant ??
                                                                 'default'
                                                             }
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            {action.label}
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            ))}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {progressActionsList.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Progress</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-wrap gap-3">
+                            {progressActionsList.map((action) => (
+                                <Dialog key={action.progress}>
+                                    <DialogTrigger asChild>
+                                        <Button>{action.label}</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>
+                                            {action.confirmTitle}
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            {action.confirmDescription}
+                                        </DialogDescription>
+
+                                        <Form
+                                            {...updateProgress.form(quotation)}
+                                            options={{
+                                                preserveScroll: true,
+                                            }}
+                                        >
+                                            {({ processing }) => (
+                                                <>
+                                                    <input
+                                                        type="hidden"
+                                                        name="progress"
+                                                        value={action.progress}
+                                                    />
+                                                    <DialogFooter className="gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button variant="secondary">
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+
+                                                        <Button
+                                                            type="submit"
                                                             disabled={
                                                                 processing
                                                             }
@@ -932,6 +1081,66 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                 No bill of materials has been created for this
                                 quotation yet.
                             </p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Purchase Orders</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {quotation.purchase_orders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No purchase orders have been raised against this
+                                quotation yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotation.purchase_orders.map(
+                                    (purchaseOrder) => (
+                                        <Link
+                                            key={purchaseOrder.id}
+                                            href={showPurchaseOrder(
+                                                purchaseOrder,
+                                            )}
+                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            <div className="space-y-0.5">
+                                                <p className="font-medium">
+                                                    {
+                                                        purchaseOrder.purchase_order_code
+                                                    }
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {purchaseOrder.vendor.name}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-medium">
+                                                    {purchaseOrder.currency
+                                                        .symbol ??
+                                                        purchaseOrder.currency
+                                                            .iso_code}{' '}
+                                                    {formatNumber(
+                                                        purchaseOrder.grand_total,
+                                                    )}
+                                                </span>
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="capitalize"
+                                                >
+                                                    {purchaseOrder.status.replaceAll(
+                                                        '_',
+                                                        ' ',
+                                                    )}
+                                                </Badge>
+                                            </div>
+                                        </Link>
+                                    ),
+                                )}
+                            </div>
                         )}
                     </CardContent>
                 </Card>

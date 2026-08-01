@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\QuotationProgressUpdateRequest;
 use App\Http\Requests\QuotationRevisionRequest;
 use App\Http\Requests\QuotationStatusUpdateRequest;
 use App\Http\Requests\QuotationStoreRequest;
@@ -98,6 +99,7 @@ class QuotationController extends Controller
             'groups.items.product',
             'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
             'bom',
+            'purchaseOrders' => fn ($query) => $query->with(['vendor:id,name', 'currency'])->orderByDesc('created_at'),
         ]);
 
         $rootId = $quotation->root_quotation_id ?? $quotation->id;
@@ -209,6 +211,18 @@ class QuotationController extends Controller
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation status updated.')]);
+
+        return to_route('quotations.show', $quotation);
+    }
+
+    /**
+     * Advance the specified quotation to its next post-approval progress stage.
+     */
+    public function updateProgress(QuotationProgressUpdateRequest $request, Quotation $quotation): RedirectResponse
+    {
+        $quotation->update(['progress' => $request->validated('progress')]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation progress updated.')]);
 
         return to_route('quotations.show', $quotation);
     }
