@@ -32,8 +32,9 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 5. **Global UI fixes**: added a `cursor: pointer` / `cursor: not-allowed` base-layer rule in
    `resources/css/app.css` (Tailwind v4 resets buttons to `cursor: default` by default, which
    surprised the user).
-6. **Nine full modules built end-to-end** (see list below), most following the identical
-   CRUD pattern below; Quotations layers a status workflow and revisioning on top of it.
+6. **Ten full modules built end-to-end** (see list below), most following the identical
+   CRUD pattern below; Quotations layers a status workflow and revisioning on top of it, and
+   BOM (module 10) layers a nested grouping structure on top of that same pattern.
 7. **Emerald/gold theme rebrand**: replaced the default shadcn/ui grayscale palette in
    `resources/css/app.css` with a client-provided emerald-green + gold palette (hex ramps
    converted to `oklch`, since Tailwind v4 has no `tailwind.config.js` — all tokens live as
@@ -48,6 +49,22 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
    reference doc for this: full token mapping table, which files were touched, how to roll
    back to grayscale by hand, and a step-by-step process (with a reusable hex→oklch conversion
    snippet) for swapping in a different client palette later — check it before touching colors.
+8. **Removed self-registration** — since this is an internal ERP with superadmin-provisioned
+   accounts, public signup was a liability, not a feature. Disabled `Features::registration()`
+   in `config/fortify.php`, deleted `resources/js/pages/auth/register.tsx`, removed the "Sign
+   up" link from `login.tsx`, regenerated Wayfinder. `RegistrationTest.php` self-skips via
+   `skipUnlessFortifyHas()` rather than being deleted.
+9. **Quotation "Details" card reorganized**: moved Overall tax, Overall discount type, and
+   Overall discount value out of the Details card into their own "Tax & Discount" card placed
+   directly above the Summary card, on both `create.tsx` and `edit.tsx` — user felt tax/
+   discount belonged closer to the totals they affect.
+10. **Bill of Materials (BOM) module** built — a new document type tied 1:1 to a specific
+    `Quotation` revision (zero-or-one, optional), covering the actual materials needed to
+    build what's being quoted, with its own internal costing separate from the customer-
+    facing quotation price. See its own section below for the full design.
+11. **Project Attachments** — file upload capability added to `Project` (deliberately *not*
+    `Quotation`), for supporting documents (customer POs, drawings, etc.) that apply to the
+    whole engagement rather than one specific quotation revision. See its own section below.
 
 ## The established CRUD pattern (repeat this for future modules)
 
@@ -160,9 +177,15 @@ For a model like `JobTitle`, `Workforce`, `Currency`:
    fields. Full CRUD. Detail page now includes a **Quotations** card
    (`project->quotations()` hasMany) listing every quotation across all revision threads for
    that project — code, version, "(current)" tag, valid-until, total, status badge, linking
-   to each quotation's detail page.
+   to each quotation's detail page. Also has an **Attachments** card (`project_attachments`)
+   for supporting documents — see "Project Attachments" section below.
 9. **Quotations** (`quotations` + `quotation_items` + `quotation_groups`) — the most
    complex module. See its own section below.
+10. **Bill of Materials (BOM)** (`boms` + `bom_groups` + `bom_subgroups` + `bom_items`) — a
+    zero-or-one child of a `Quotation` (specific revision, not the thread), reachable only via
+    a "Bill of Materials" card on the quotation's detail page — no standalone index page or
+    sidebar entry. Own `create`/`edit`/`show` pages, **no `destroy` yet** (known gap). See its
+    own section below for the cost model and grouping structure.
 
 ## Quotations — status workflow, revisioning, line items, groups
 
@@ -245,6 +268,92 @@ on the detail page (only rendered when the thread has more than one version).
 
 **Line items table**: has a "No" column (1-indexed row number) for quick counting.
 
+## Bill of Materials (BOM) — cost tiers, groups, phase subgroups
+
+Entry point is a "Bill of Materials" card on the quotation's `show.tsx` — "Create BOM" only
+shown when `quotation.status === 'draft'` and no BOM exists yet; once created, shows a cost
+summary + "View"/"Edit Bill of Materials" links (edit only while draft). No separate sidebar
+nav entry — BOM is always reached through its parent quotation.
+
+**Four-tier cost chain**, computed server-side on every store/update, never trusted from the
+client (`BomController::syncGroupsAndItems()`):
+- `main_cost` — sum of every `bom_item.total_cost` across ungrouped items, top-level phase
+  subgroups, and every hardware group (direct items + that group's own subgroups).
+- `overhead_cost` — `main_cost × overhead_percentage / 100` (additive: overhead is added on
+  top of main cost to produce `total_cost`).
+- `total_cost` — `main_cost + overhead_cost`.
+- `selling_cost` — `total_cost × selling_percentage / 100`. **This is a direct multiplier, not
+  an additive markup** — a user enters `110` to mean "sell at 110% of Total Cost" (a 10%
+  markup), not `10`. This was an explicit correction from the client's original ask; don't
+  "fix" it back to `total_cost + total_cost × pct / 100`.
+
+**Line item discount** (`BomController::applyDiscount()`) is *also* a direct multiplier for
+percentage type: `total_cost = line_total × discount_value / 100`, so `90` means "keep 90% of
+cost" (a 10% discount). This is **different from `Quotation`'s own item discount**, which
+stays subtractive (`line_total - line_total × value / 100`) — the two were deliberately given
+different semantics per explicit client correction; do not unify them. Fixed-amount discount
+on BOM items is a flat subtraction capped at zero, same as everywhere else.
+
+**Grouping — two levels, both optional and combinable**: `BomGroup` represents a piece of
+hardware being built (e.g. "Control Panel"), with its own stored `subtotal`. `BomSubgroup`
+represents a phase (e.g. "Q1", "Q2" — free text, not a managed list) and can be nested either
+under a `BomGroup` (`bom_group_id` set — "this hardware's Q1 materials") or directly under the
+`Bom` itself (`bom_group_id` null — "materials for Q1, not tied to specific hardware"). A
+`BomItem` can therefore be: fully ungrouped, directly in a group, directly in a top-level
+subgroup, or inside a subgroup nested under a group. **Rule**: if `bom_item.bom_subgroup_id`
+is set, `bom_group_id` stays null on that item — its group (if any) is inferred via
+`subgroup.bom_group_id`, not duplicated onto the item. `BomGroup::items()` and
+`Bom::subgroups()`/`BomGroup::subgroups()` rely on this being consistent.
+
+**Store/update payload shape** mirrors Quotation's groups pattern one level deeper: top-level
+`items[]` (ungrouped) + top-level `subgroups[]` (phase-only) + `groups[]` where each group has
+its own `items[]` (direct) and `subgroups[]` (nested phases). A group is valid if it has
+materials *either* directly or inside any of its subgroups (`BomStoreRequest::groupHasItems()`)
+— a group with neither is rejected. `syncGroupsAndItems()`/`createItems()`/`createSubgroup()`
+build this bottom-up, same wipe-and-recreate pattern `update()` already used for items/groups.
+
+**Revision handling**: BOM — including its groups, subgroups, and items — is deep-copied into
+a new quotation revision when one exists on the source quotation
+(`QuotationController::storeRevision()` → `copyBomSubgroup()`), same "own copy per revision"
+treatment as quotation items/groups. This is deliberately different from Project Attachments
+(below), which are *not* copied — BOM represents priced/planned content that needs an accurate
+historical snapshot per revision; attachments are reference material that doesn't.
+
+**No delete yet** — `BomController` has `create`/`store`/`show`/`edit`/`update` only, no
+`destroy`. A user who creates a BOM by mistake can edit it down to empty but can't remove the
+record. Known gap, not yet requested to be built.
+
+## Project Attachments — supporting documents, not tied to quotation revisions
+
+Deliberately attached to `Project`, not `Quotation`. Two reasons this shape was chosen over
+attaching to a quotation (discussed and decided explicitly, don't re-litigate without cause):
+1. A project's supporting documents (customer PO, site survey, drawings) are usually about the
+   whole engagement, not one specific quotation negotiation — and a project already aggregates
+   every quotation thread via its "Quotations" card, so it's the natural hub.
+2. Attaching at the project level sidesteps the revision-scoping question entirely (a `Project`
+   has no revisions), unlike BOM/items/groups where "does this get copied per revision" had to
+   be decided.
+
+**Not deep-copied anywhere** — unlike BOM, attachments are reference material, not priced
+content, so there's no snapshot-per-revision concern to begin with.
+
+**Schema** (`project_attachments`): `uuid` (route-key binding), `project_id`, `name` (**user-
+provided label at upload time**, required — this is what's shown in the UI and used as the
+download filename), `original_name` (the actual uploaded file's original name, kept only to
+derive the download extension — intentionally **not shown** in the attachments list per
+explicit user request), `path`/`mime_type`/`size`, `uploaded_by`.
+
+**Storage**: private `local` disk under `project-attachments/`, same pattern as Workforce
+photo upload — `ProjectAttachmentController::download()` streams via `Storage::download()`
+using `{name}.{extension}` as the served filename, and 404s if the attachment's `project_id`
+doesn't match the route's `{project}` (cross-project access guard).
+
+**UI**: "Attachments" card on `projects/show.tsx` — inline upload form (name + file,
+`multipart/form-data`, resets on success), list of existing attachments (name, size, uploader,
+upload date — no original filename shown), Download + Delete (behind a confirmation dialog,
+`variant="destructive"`) per row. No status/draft restriction on upload, unlike BOM — can be
+added to a project at any time.
+
 ## Bugs fixed along the way (worth knowing about)
 
 - **Soft-delete + unique constraint bug**: `workforces.email` had a plain DB-level
@@ -311,6 +420,16 @@ on the detail page (only rendered when the thread has more than one version).
   inheriting the parent card's `bg-card` — same-color nesting was flagged as bad contrast.
 - Empty optional sections (e.g. "Ungrouped items" with zero items) should be omitted
   entirely from detail pages rather than rendered with an empty-state placeholder message.
+- Percentage-based fields aren't always subtractive/additive by default — **check which
+  semantics were actually requested per field** rather than assuming. `Quotation`'s own
+  discount/tax fields are subtractive/additive (`base - base×pct/100`). `Bom`'s
+  `selling_percentage` and its line-item percentage discount are **direct multipliers**
+  (`base × pct/100`) — both were explicit corrections from the client's original ask. These
+  two conventions coexist deliberately in the same codebase; don't "fix" one to match the
+  other.
+- Reference/supporting documents (e.g. Project Attachments) should **not** be deep-copied
+  across quotation revisions the way pricing content (items/groups/BOM) is — only content
+  that represents what was actually priced/planned needs a frozen snapshot per revision.
 
 ## What's NOT built yet (natural next steps)
 
@@ -319,11 +438,20 @@ on the detail page (only rendered when the thread has more than one version).
   sidebar.
 - RBAC (`spatie/laravel-permission`) is installed but nothing is actually gated by
   roles/permissions yet — no seeded roles, no policy/gate wired to any route or UI element.
+  This is arguably the most important gap: approving/rejecting/voiding a quotation is
+  currently possible for anyone logged in.
 - No API layer, no tests beyond Pest feature tests (no Dusk/browser tests).
 - Quotations don't yet generate any downstream document (e.g. converting an approved
   quotation into a Deliver Order or Invoice) — that linkage doesn't exist.
+- No PDF/print export for quotations — no `dompdf`/`snappy` package installed, no print
+  route anywhere. Likely the single biggest missing piece for a quotation module whose whole
+  point is producing a document to hand the customer.
+- `BomController` has no `destroy` — a BOM can be edited down to empty but not deleted.
+- No customer-facing acceptance step (e-signature/"customer accepted" status) — the status
+  workflow only tracks internal staff approval.
 
 ## Where to resume
 
 Ask the user which module or feature to build next, and follow the CRUD pattern (and, for
-anything workflow/revision-like, the Quotations pattern) above.
+anything workflow/revision-like, the Quotations pattern, or for nested groupings, the BOM
+pattern) above.

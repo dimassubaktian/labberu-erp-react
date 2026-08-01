@@ -118,6 +118,16 @@ class Project extends Model
     }
 
     /**
+     * Get the supporting document attachments for this project.
+     *
+     * @return HasMany<ProjectAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ProjectAttachment::class)->latest();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

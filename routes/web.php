@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\BomController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\JobTitleController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\TaxController;
@@ -85,6 +87,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
+    Route::post('projects/{project}/attachments', [ProjectAttachmentController::class, 'store'])->name('projects.attachments.store');
+    Route::get('projects/{project}/attachments/{attachment}/download', [ProjectAttachmentController::class, 'download'])->name('projects.attachments.download');
+    Route::delete('projects/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'destroy'])->name('projects.attachments.destroy');
+
     Route::get('quotations', [QuotationController::class, 'index'])->name('quotations.index');
     Route::get('quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
     Route::post('quotations', [QuotationController::class, 'store'])->name('quotations.store');
@@ -94,6 +100,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('quotations/{quotation}/status', [QuotationController::class, 'updateStatus'])->name('quotations.status.update');
     Route::post('quotations/{quotation}/revisions', [QuotationController::class, 'storeRevision'])->name('quotations.revisions.store');
     Route::delete('quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
+
+    Route::get('quotations/{quotation}/bom/create', [BomController::class, 'create'])->name('quotations.bom.create');
+    Route::post('quotations/{quotation}/bom', [BomController::class, 'store'])->name('quotations.bom.store');
+    Route::get('quotations/{quotation}/bom', [BomController::class, 'show'])->name('quotations.bom.show');
+    Route::get('quotations/{quotation}/bom/edit', [BomController::class, 'edit'])->name('quotations.bom.edit');
+    Route::put('quotations/{quotation}/bom', [BomController::class, 'update'])->name('quotations.bom.update');
 });
 
 require __DIR__.'/settings.php';

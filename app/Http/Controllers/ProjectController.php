@@ -64,7 +64,7 @@ class ProjectController extends Controller
      */
     public function show(Project $project): Response
     {
-        $project->load('customer', 'personInCharge');
+        $project->load('customer', 'personInCharge', 'attachments.uploader');
 
         $quotations = $project->quotations()
             ->with('currency')

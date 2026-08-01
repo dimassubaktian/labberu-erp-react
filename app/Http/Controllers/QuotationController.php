@@ -6,6 +6,9 @@ use App\Http\Requests\QuotationRevisionRequest;
 use App\Http\Requests\QuotationStatusUpdateRequest;
 use App\Http\Requests\QuotationStoreRequest;
 use App\Http\Requests\QuotationUpdateRequest;
+use App\Models\Bom;
+use App\Models\BomItem;
+use App\Models\BomSubgroup;
 use App\Models\Currency;
 use App\Models\Product;
 use App\Models\Project;
@@ -108,6 +111,7 @@ class QuotationController extends Controller
             'groups.tax',
             'groups.items.product',
             'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
+            'bom',
         ]);
 
         $rootId = $quotation->root_quotation_id ?? $quotation->id;
@@ -236,7 +240,14 @@ class QuotationController extends Controller
     {
         $isMajor = $request->validated('version_type') === 'major';
 
-        $quotation->load(['groups.items', 'items' => fn ($query) => $query->whereNull('quotation_group_id')]);
+        $quotation->load([
+            'groups.items',
+            'items' => fn ($query) => $query->whereNull('quotation_group_id'),
+            'bom.groups.items',
+            'bom.groups.subgroups.items',
+            'bom.subgroups.items',
+            'bom.items' => fn ($query) => $query->whereNull('bom_group_id')->whereNull('bom_subgroup_id'),
+        ]);
 
         $revision = DB::transaction(function () use ($quotation, $isMajor): Quotation {
             $quotation->update(['is_current' => false]);
@@ -280,6 +291,42 @@ class QuotationController extends Controller
 
             foreach ($quotation->items as $item) {
                 $revision->items()->create($this->copyItemAttributes($item));
+            }
+
+            if ($quotation->bom) {
+                $newBom = $revision->bom()->create([
+                    'remarks' => $quotation->bom->remarks,
+                    'main_cost' => $quotation->bom->main_cost,
+                    'overhead_percentage' => $quotation->bom->overhead_percentage,
+                    'overhead_cost' => $quotation->bom->overhead_cost,
+                    'total_cost' => $quotation->bom->total_cost,
+                    'selling_percentage' => $quotation->bom->selling_percentage,
+                    'selling_cost' => $quotation->bom->selling_cost,
+                ]);
+
+                foreach ($quotation->bom->groups as $bomGroup) {
+                    $newBomGroup = $newBom->groups()->create([
+                        'name' => $bomGroup->name,
+                        'sort_order' => $bomGroup->sort_order,
+                        'subtotal' => $bomGroup->subtotal,
+                    ]);
+
+                    foreach ($bomGroup->items as $bomItem) {
+                        $newBom->items()->create($this->copyBomItemAttributes($bomItem) + ['bom_group_id' => $newBomGroup->id]);
+                    }
+
+                    foreach ($bomGroup->subgroups as $bomSubgroup) {
+                        $this->copyBomSubgroup($newBom, $bomSubgroup, $newBomGroup->id);
+                    }
+                }
+
+                foreach ($quotation->bom->subgroups as $bomSubgroup) {
+                    $this->copyBomSubgroup($newBom, $bomSubgroup, null);
+                }
+
+                foreach ($quotation->bom->items as $bomItem) {
+                    $newBom->items()->create($this->copyBomItemAttributes($bomItem));
+                }
             }
 
             return $revision;
@@ -402,6 +449,45 @@ class QuotationController extends Controller
             'margin' => $item->margin,
             'margin_percent' => $item->margin_percent,
         ];
+    }
+
+    /**
+     * Copy a BOM line item's persisted attributes for duplication onto a new BOM.
+     *
+     * @return array<string, mixed>
+     */
+    private function copyBomItemAttributes(BomItem $item): array
+    {
+        return [
+            'product_id' => $item->product_id,
+            'description' => $item->description,
+            'brand' => $item->brand,
+            'quantity' => $item->quantity,
+            'unit' => $item->unit,
+            'unit_cost' => $item->unit_cost,
+            'discount_type' => $item->discount_type,
+            'discount_value' => $item->discount_value,
+            'total_cost' => $item->total_cost,
+        ];
+    }
+
+    /**
+     * Copy a BOM phase subgroup and its items onto a new BOM, optionally nested under the
+     * given hardware group.
+     */
+    private function copyBomSubgroup(Bom $newBom, BomSubgroup $subgroup, ?int $newGroupId): void
+    {
+        $newSubgroup = BomSubgroup::create([
+            'bom_id' => $newBom->id,
+            'bom_group_id' => $newGroupId,
+            'name' => $subgroup->name,
+            'sort_order' => $subgroup->sort_order,
+            'subtotal' => $subgroup->subtotal,
+        ]);
+
+        foreach ($subgroup->items as $item) {
+            $newBom->items()->create($this->copyBomItemAttributes($item) + ['bom_subgroup_id' => $newSubgroup->id]);
+        }
     }
 
     /**

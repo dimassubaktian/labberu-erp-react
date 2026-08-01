@@ -50,7 +50,7 @@ export default function ProductsIndex({ products }: Props) {
                     </Button>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                <div className="overflow-hidden rounded-xl border border-border/50">
                     <Table>
                         <TableHeader>
                             <TableRow>

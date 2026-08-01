@@ -34,6 +34,11 @@ import {
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { show as showProject } from '@/routes/projects';
 import { destroy, edit, index, show } from '@/routes/quotations';
+import {
+    create as createBom,
+    edit as editBom,
+    show as showBom,
+} from '@/routes/quotations/bom';
 import { store as storeRevision } from '@/routes/quotations/revisions';
 import { update as updateStatus } from '@/routes/quotations/status';
 
@@ -177,6 +182,18 @@ type Quotation = {
     approver: { id: number; name: string } | null;
     items: QuotationItem[];
     groups: QuotationGroup[];
+    bom: Bom | null;
+};
+
+type Bom = {
+    id: number;
+    uuid: string;
+    main_cost: string;
+    overhead_percentage: string | null;
+    overhead_cost: string;
+    total_cost: string;
+    selling_percentage: string | null;
+    selling_cost: string;
 };
 
 type HistoryEntry = {
@@ -569,7 +586,7 @@ export default function QuotationsShow({ quotation, history }: Props) {
                             <CardTitle>{group.name}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                            <div className="overflow-hidden rounded-xl border border-border/50">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -701,7 +718,7 @@ export default function QuotationsShow({ quotation, history }: Props) {
                             <CardTitle>Ungrouped items</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                            <div className="overflow-hidden rounded-xl border border-border/50">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -820,6 +837,102 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                 </dd>
                             </div>
                         </dl>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle>Bill of Materials</CardTitle>
+                        {quotation.status === 'draft' && !quotation.bom && (
+                            <Button size="sm" asChild>
+                                <Link href={createBom(quotation)}>
+                                    Create BOM
+                                </Link>
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {quotation.bom ? (
+                            <div className="space-y-4">
+                                <dl className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Main cost
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.main_cost,
+                                            )}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Overhead cost
+                                            {quotation.bom
+                                                .overhead_percentage &&
+                                                ` (${quotation.bom.overhead_percentage}%)`}
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.overhead_cost,
+                                            )}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                        <dt>Total cost</dt>
+                                        <dd>
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.total_cost,
+                                            )}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Selling cost
+                                            {quotation.bom.selling_percentage &&
+                                                ` (${quotation.bom.selling_percentage}%)`}
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.selling_cost,
+                                            )}
+                                        </dd>
+                                    </div>
+                                </dl>
+
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto"
+                                        asChild
+                                    >
+                                        <Link href={showBom(quotation)}>
+                                            View Bill of Materials
+                                        </Link>
+                                    </Button>
+
+                                    {quotation.status === 'draft' && (
+                                        <Button
+                                            className="w-full sm:w-auto"
+                                            asChild
+                                        >
+                                            <Link href={editBom(quotation)}>
+                                                Edit Bill of Materials
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                No bill of materials has been created for this
+                                quotation yet.
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -199,6 +200,16 @@ class Quotation extends Model
     public function groups(): HasMany
     {
         return $this->hasMany(QuotationGroup::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Get the bill of materials for this quotation.
+     *
+     * @return HasOne<Bom, $this>
+     */
+    public function bom(): HasOne
+    {
+        return $this->hasOne(Bom::class);
     }
 
     /**

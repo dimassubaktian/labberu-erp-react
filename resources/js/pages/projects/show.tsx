@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Pencil, Trash2, Upload } from 'lucide-react';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,10 +14,29 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { destroy, edit, index, show } from '@/routes/projects';
+import {
+    destroy as destroyAttachment,
+    download as downloadAttachment,
+    store as storeAttachment,
+} from '@/routes/projects/attachments';
 import { show as showQuotation } from '@/routes/quotations';
+
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 type Project = {
     id: number;
@@ -44,6 +64,17 @@ type Project = {
         id: number;
         full_name: string;
     } | null;
+    attachments: Attachment[];
+};
+
+type Attachment = {
+    id: number;
+    uuid: string;
+    name: string;
+    original_name: string;
+    size: number;
+    created_at: string;
+    uploader: { id: number; name: string };
 };
 
 type Quotation = {
@@ -390,6 +421,172 @@ export default function ProjectsShow({ project, quotations }: Props) {
                                             </Badge>
                                         </div>
                                     </Link>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Attachments</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <Form
+                            {...storeAttachment.form(project)}
+                            encType="multipart/form-data"
+                            options={{ preserveScroll: true }}
+                            resetOnSuccess
+                        >
+                            {({ processing, errors }) => (
+                                <div className="flex flex-col gap-4 rounded-lg border border-sidebar-border/70 p-4 sm:flex-row sm:items-end dark:border-sidebar-border">
+                                    <div className="grid flex-1 gap-2">
+                                        <Label htmlFor="attachment-name">
+                                            Document name
+                                        </Label>
+                                        <Input
+                                            id="attachment-name"
+                                            name="name"
+                                            placeholder="e.g. Customer PO"
+                                        />
+                                        <InputError message={errors.name} />
+                                    </div>
+
+                                    <div className="grid flex-1 gap-2">
+                                        <Label htmlFor="attachment-file">
+                                            File
+                                        </Label>
+                                        <Input
+                                            id="attachment-file"
+                                            type="file"
+                                            name="file"
+                                        />
+                                        <InputError message={errors.file} />
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="w-full sm:w-auto"
+                                    >
+                                        {processing ? <Spinner /> : <Upload />}
+                                        Upload
+                                    </Button>
+                                </div>
+                            )}
+                        </Form>
+
+                        {project.attachments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No supporting documents have been uploaded for
+                                this project yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {project.attachments.map((attachment) => (
+                                    <div
+                                        key={attachment.id}
+                                        className="flex flex-col gap-3 rounded-lg border border-sidebar-border/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-sidebar-border"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {attachment.name}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatFileSize(
+                                                    attachment.size,
+                                                )}{' '}
+                                                &middot; Uploaded by{' '}
+                                                {attachment.uploader.name} on{' '}
+                                                {formatDate(
+                                                    attachment.created_at,
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
+                                                <a
+                                                    href={downloadAttachment.url(
+                                                        {
+                                                            project,
+                                                            attachment,
+                                                        },
+                                                    )}
+                                                >
+                                                    <Download />
+                                                    Download
+                                                </a>
+                                            </Button>
+
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                    >
+                                                        <Trash2 />
+                                                        Delete
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogTitle>
+                                                        Delete &quot;
+                                                        {attachment.name}
+                                                        &quot;?
+                                                    </DialogTitle>
+                                                    <DialogDescription>
+                                                        This action cannot be
+                                                        undone. This file will
+                                                        be permanently deleted.
+                                                    </DialogDescription>
+
+                                                    <Form
+                                                        {...destroyAttachment.form(
+                                                            {
+                                                                project,
+                                                                attachment,
+                                                            },
+                                                        )}
+                                                        options={{
+                                                            preserveScroll: true,
+                                                        }}
+                                                    >
+                                                        {({ processing }) => (
+                                                            <DialogFooter className="gap-2">
+                                                                <DialogClose
+                                                                    asChild
+                                                                >
+                                                                    <Button variant="secondary">
+                                                                        Cancel
+                                                                    </Button>
+                                                                </DialogClose>
+
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    disabled={
+                                                                        processing
+                                                                    }
+                                                                    asChild
+                                                                >
+                                                                    <button type="submit">
+                                                                        {processing && (
+                                                                            <Spinner />
+                                                                        )}
+                                                                        Delete
+                                                                    </button>
+                                                                </Button>
+                                                            </DialogFooter>
+                                                        )}
+                                                    </Form>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         )}
