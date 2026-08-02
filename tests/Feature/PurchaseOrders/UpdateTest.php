@@ -32,6 +32,28 @@ test('draft purchase order can be updated with totals recalculated', function ()
     expect($purchaseOrder->items()->count())->toBe(1);
 });
 
+test('the attention field can be updated', function () {
+    $user = User::factory()->create();
+    $purchaseOrder = PurchaseOrder::factory()->create(['status' => 'draft']);
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)->put(route('purchase-orders.update', $purchaseOrder), [
+        'project_id' => $purchaseOrder->project_id,
+        'quotation_id' => $purchaseOrder->quotation_id,
+        'customer_id' => $purchaseOrder->customer_id,
+        'vendor_id' => $purchaseOrder->vendor_id,
+        'attention' => 'John Smith',
+        'project_name' => $purchaseOrder->project_name,
+        'date' => now()->toDateString(),
+        'currency_id' => $purchaseOrder->currency_id,
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    expect($purchaseOrder->refresh()->attention)->toBe('John Smith');
+});
+
 test('the project cannot be changed once a purchase order is created', function () {
     $user = User::factory()->create();
     $purchaseOrder = PurchaseOrder::factory()->create(['status' => 'draft']);

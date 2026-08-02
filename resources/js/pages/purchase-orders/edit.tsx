@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
+import { ImportBomItemsDialog } from '@/components/import-bom-items-dialog';
+import type { ImportedBomItem } from '@/components/import-bom-items-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,6 +78,7 @@ type ProductOption = {
 
 type LineItem = {
     product_id: string;
+    bom_item_id: string;
     reference_number: string;
     description: string;
     quantity: string;
@@ -93,6 +96,7 @@ type DiscountLevel = {
 type PurchaseOrderItemProp = {
     id: number;
     product_id: number;
+    bom_item_id: number | null;
     reference_number: string | null;
     description: string | null;
     quantity: string;
@@ -115,6 +119,7 @@ type PurchaseOrder = {
     purchase_order_code: string;
     status: string;
     address: string | null;
+    attention: string | null;
     phone: string | null;
     fax: string | null;
     quotation_id: number;
@@ -143,6 +148,7 @@ type Props = {
 function emptyItem(): LineItem {
     return {
         product_id: '',
+        bom_item_id: '',
         reference_number: '',
         description: '',
         quantity: '1',
@@ -158,6 +164,7 @@ function emptyDiscount(): DiscountLevel {
 function toLineItem(item: PurchaseOrderItemProp): LineItem {
     return {
         product_id: String(item.product_id),
+        bom_item_id: item.bom_item_id ? String(item.bom_item_id) : '',
         reference_number: item.reference_number ?? '',
         description: item.description ?? '',
         quantity: item.quantity,
@@ -229,6 +236,7 @@ function LineItemFields({
     ): void {
         onChange({
             product_id: productId,
+            bom_item_id: '',
             reference_number: product?.reference_number ?? '',
             description: product?.descriptions ?? '',
             unit: product?.unit ?? '',
@@ -245,6 +253,11 @@ function LineItemFields({
                         type="hidden"
                         name={`${namePrefix}[product_id]`}
                         value={item.product_id}
+                    />
+                    <input
+                        type="hidden"
+                        name={`${namePrefix}[bom_item_id]`}
+                        value={item.bom_item_id}
                     />
                     <AsyncCombobox<ProductOption>
                         id={`item-${index}-product`}
@@ -507,6 +520,7 @@ export default function PurchaseOrdersEdit({
     const [quotationId, setQuotationId] = useState(
         String(purchaseOrder.quotation_id),
     );
+    const [quotationUuid, setQuotationUuid] = useState('');
     const [quotationOptions, setQuotationOptions] = useState<QuotationOption[]>(
         [],
     );
@@ -533,8 +547,12 @@ export default function PurchaseOrdersEdit({
         submit(projectQuotations(purchaseOrder.project.uuid))
             .then((response) => {
                 if (!cancelled) {
-                    setQuotationOptions(
-                        (response as { data: QuotationOption[] }).data,
+                    const options = (response as { data: QuotationOption[] })
+                        .data;
+                    setQuotationOptions(options);
+                    setQuotationUuid(
+                        options.find((q) => String(q.id) === quotationId)
+                            ?.uuid ?? '',
                     );
                 }
             })
@@ -549,6 +567,13 @@ export default function PurchaseOrdersEdit({
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    function handleQuotationChange(value: string): void {
+        setQuotationId(value);
+        setQuotationUuid(
+            quotationOptions.find((q) => String(q.id) === value)?.uuid ?? '',
+        );
+    }
 
     function handleVendorChange(id: string, option?: VendorOption): void {
         setVendorId(id);
@@ -571,6 +596,10 @@ export default function PurchaseOrdersEdit({
 
     function removeItem(index: number): void {
         setItems((current) => current.filter((_, i) => i !== index));
+    }
+
+    function handleImportBomItems(imported: ImportedBomItem[]): void {
+        setItems((current) => [...current, ...imported]);
     }
 
     function updateDiscount(
@@ -672,7 +701,9 @@ export default function PurchaseOrdersEdit({
                                             />
                                             <Select
                                                 value={quotationId}
-                                                onValueChange={setQuotationId}
+                                                onValueChange={
+                                                    handleQuotationChange
+                                                }
                                                 disabled={!projectId}
                                             >
                                                 <SelectTrigger
@@ -849,7 +880,7 @@ export default function PurchaseOrdersEdit({
                                         </div>
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-3">
+                                    <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="grid gap-2">
                                             <Label htmlFor="address">
                                                 Vendor address
@@ -868,6 +899,26 @@ export default function PurchaseOrdersEdit({
                                             />
                                         </div>
 
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="attention">
+                                                Attention
+                                            </Label>
+                                            <Input
+                                                id="attention"
+                                                name="attention"
+                                                defaultValue={
+                                                    purchaseOrder.attention ??
+                                                    ''
+                                                }
+                                                placeholder="Optional"
+                                            />
+                                            <InputError
+                                                message={errors.attention}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="grid gap-2">
                                             <Label htmlFor="phone">Phone</Label>
                                             <Input
@@ -1018,16 +1069,23 @@ export default function PurchaseOrdersEdit({
                             </Card>
 
                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
+                                <CardHeader className="flex flex-row items-center justify-between gap-2">
                                     <CardTitle>Line Items</CardTitle>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={addItem}
-                                    >
-                                        <Plus />
-                                        Add line
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <ImportBomItemsDialog
+                                            quotationId={quotationUuid}
+                                            disabled={!quotationUuid}
+                                            onImport={handleImportBomItems}
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={addItem}
+                                        >
+                                            <Plus />
+                                            Add line
+                                        </Button>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <InputError message={errors.items} />

@@ -11,16 +11,84 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomSubgroup;
 use App\Models\Currency;
+use App\Models\DeliveryOrderItem;
+use App\Models\InvoiceItem;
+use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Tax;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class QuotationController extends Controller
 {
+    /**
+     * Search quotations for async select pickers, restricted to approved quotations (only
+     * approved quotations can have goods delivered or invoiced against them).
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = (string) $request->query('q', '');
+
+        $quotations = Quotation::query()
+            ->where('status', 'approved')
+            ->when($query !== '', fn ($builder) => $builder->where('quotation_code', 'like', "%{$query}%"))
+            ->with(['project.customer:id,name', 'currency:id,iso_code,name,symbol'])
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'project_id', 'currency_id']);
+
+        return response()->json(['data' => $quotations]);
+    }
+
+    /**
+     * List this quotation's line items (grouped and ungrouped alike, since delivery/invoicing
+     * don't care about the pricing-group structure) with quantity ordered, quantity already
+     * delivered across its confirmed delivery orders, quantity already invoiced across its
+     * invoices, and what remains to deliver/invoice — used by the Delivery Order and Invoice
+     * create/edit forms.
+     */
+    public function items(Quotation $quotation): JsonResponse
+    {
+        $items = $quotation->items()->with('product:id,product_code,name')->get();
+
+        $delivered = DeliveryOrderItem::query()
+            ->whereIn('quotation_item_id', $items->pluck('id'))
+            ->whereHas('deliveryOrder', fn ($query) => $query->where('status', 'confirmed'))
+            ->selectRaw('quotation_item_id, sum(quantity_delivered) as delivered')
+            ->groupBy('quotation_item_id')
+            ->pluck('delivered', 'quotation_item_id');
+
+        $invoiced = InvoiceItem::query()
+            ->whereIn('quotation_item_id', $items->pluck('id'))
+            ->selectRaw('quotation_item_id, sum(quantity_invoiced) as invoiced')
+            ->groupBy('quotation_item_id')
+            ->pluck('invoiced', 'quotation_item_id');
+
+        $data = $items->map(function (QuotationItem $item) use ($delivered, $invoiced): array {
+            $deliveredQuantity = (float) ($delivered[$item->id] ?? 0);
+            $invoicedQuantity = (float) ($invoiced[$item->id] ?? 0);
+
+            return [
+                'id' => $item->id,
+                'product' => $item->product,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'unit_price' => $item->unit_price,
+                'delivered' => $deliveredQuantity,
+                'remaining' => max(0, (float) $item->quantity - $deliveredQuantity),
+                'invoiced' => $invoicedQuantity,
+                'remaining_to_invoice' => max(0, (float) $item->quantity - $invoicedQuantity),
+            ];
+        });
+
+        return response()->json(['data' => $data]);
+    }
+
     /**
      * Display a listing of the quotations.
      */
@@ -100,6 +168,8 @@ class QuotationController extends Controller
             'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
             'bom',
             'purchaseOrders' => fn ($query) => $query->with(['vendor:id,name', 'currency'])->orderByDesc('created_at'),
+            'deliveryOrders' => fn ($query) => $query->orderByDesc('created_at'),
+            'invoices' => fn ($query) => $query->orderByDesc('created_at'),
         ]);
 
         $rootId = $quotation->root_quotation_id ?? $quotation->id;
@@ -195,6 +265,79 @@ class QuotationController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation deleted.')]);
 
         return to_route('quotations.index');
+    }
+
+    /**
+     * List this quotation's BOM line items flattened across groups/subgroups, with each item's
+     * quantity already committed to other (non-cancelled/voided) purchase orders and what
+     * remains to source — used by the "Import from BOM" picker on the Purchase Order form.
+     */
+    public function bomItems(Quotation $quotation): JsonResponse
+    {
+        $bom = $quotation->bom()
+            ->with([
+                'groups.items.product:id,product_code,name,reference_number',
+                'groups.subgroups.items.product:id,product_code,name,reference_number',
+                'subgroups.items.product:id,product_code,name,reference_number',
+                'items' => fn ($query) => $query->whereNull('bom_group_id')->whereNull('bom_subgroup_id')->with('product:id,product_code,name,reference_number'),
+            ])
+            ->first();
+
+        if (! $bom) {
+            return response()->json(['data' => []]);
+        }
+
+        $rows = [];
+
+        foreach ($bom->groups as $group) {
+            foreach ($group->items as $item) {
+                $rows[] = ['item' => $item, 'group_name' => $group->name, 'subgroup_name' => null];
+            }
+
+            foreach ($group->subgroups as $subgroup) {
+                foreach ($subgroup->items as $item) {
+                    $rows[] = ['item' => $item, 'group_name' => $group->name, 'subgroup_name' => $subgroup->name];
+                }
+            }
+        }
+
+        foreach ($bom->subgroups as $subgroup) {
+            foreach ($subgroup->items as $item) {
+                $rows[] = ['item' => $item, 'group_name' => null, 'subgroup_name' => $subgroup->name];
+            }
+        }
+
+        foreach ($bom->items as $item) {
+            $rows[] = ['item' => $item, 'group_name' => null, 'subgroup_name' => null];
+        }
+
+        $imported = PurchaseOrderItem::query()
+            ->whereIn('bom_item_id', array_map(fn (array $row) => $row['item']->id, $rows))
+            ->whereHas('purchaseOrder', fn ($query) => $query->whereNotIn('status', ['cancelled', 'voided']))
+            ->selectRaw('bom_item_id, sum(quantity) as imported')
+            ->groupBy('bom_item_id')
+            ->pluck('imported', 'bom_item_id');
+
+        $data = array_map(function (array $row) use ($imported): array {
+            $item = $row['item'];
+            $importedQuantity = (float) ($imported[$item->id] ?? 0);
+
+            return [
+                'id' => $item->id,
+                'group_name' => $row['group_name'],
+                'subgroup_name' => $row['subgroup_name'],
+                'product' => $item->product,
+                'description' => $item->description,
+                'brand' => $item->brand,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'unit_cost' => $item->unit_cost,
+                'imported' => $importedQuantity,
+                'remaining' => max(0, (float) $item->quantity - $importedQuantity),
+            ];
+        }, $rows);
+
+        return response()->json(['data' => $data]);
     }
 
     /**

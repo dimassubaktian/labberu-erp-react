@@ -36,6 +36,9 @@ import { dashboard } from '@/routes';
 import { edit as companySettingsEdit } from '@/routes/company-settings';
 import { index as currenciesIndex } from '@/routes/currencies';
 import { index as customersIndex } from '@/routes/customers';
+import { index as deliveryOrdersIndex } from '@/routes/delivery-orders';
+import { index as goodsReceiptNotesIndex } from '@/routes/goods-receipt-notes';
+import { index as invoicesIndex } from '@/routes/invoices';
 import { index as jobTitlesIndex } from '@/routes/job-titles';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
@@ -66,7 +69,11 @@ const mainNavGroups: NavGroup[] = [
                 icon: FolderKanban,
             },
             { title: 'Quotations', href: quotationsIndex(), icon: FileText },
-            { title: 'Deliver Orders', href: '#', icon: Truck, disabled: true },
+            {
+                title: 'Deliver Orders',
+                href: deliveryOrdersIndex(),
+                icon: Truck,
+            },
             { title: 'Customers', href: customersIndex(), icon: Contact },
         ],
     },
@@ -80,9 +87,8 @@ const mainNavGroups: NavGroup[] = [
             },
             {
                 title: 'Goods Receipt Note',
-                href: '#',
+                href: goodsReceiptNotesIndex(),
                 icon: PackageCheck,
-                disabled: true,
             },
             { title: 'Vendors', href: vendorsIndex(), icon: Building2 },
         ],
@@ -108,7 +114,7 @@ const mainNavGroups: NavGroup[] = [
     {
         label: 'Finance',
         items: [
-            { title: 'Invoice', href: '#', icon: Receipt, disabled: true },
+            { title: 'Invoice', href: invoicesIndex(), icon: Receipt },
             { title: 'Taxes', href: taxesIndex(), icon: Percent },
             {
                 title: 'Currencies',

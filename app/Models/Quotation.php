@@ -102,7 +102,9 @@ class Quotation extends Model
         '' => ['sent'],
         'sent' => ['accepted'],
         'accepted' => ['converted'],
-        'converted' => [],
+        'converted' => ['partially_delivered', 'fully_delivered'],
+        'partially_delivered' => ['fully_delivered'],
+        'fully_delivered' => [],
     ];
 
     /**
@@ -246,6 +248,26 @@ class Quotation extends Model
     public function purchaseOrders(): HasMany
     {
         return $this->hasMany(PurchaseOrder::class);
+    }
+
+    /**
+     * Get the delivery orders raised against this specific quotation revision.
+     *
+     * @return HasMany<DeliveryOrder, $this>
+     */
+    public function deliveryOrders(): HasMany
+    {
+        return $this->hasMany(DeliveryOrder::class);
+    }
+
+    /**
+     * Get the invoices raised against this specific quotation revision.
+     *
+     * @return HasMany<Invoice, $this>
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     /**

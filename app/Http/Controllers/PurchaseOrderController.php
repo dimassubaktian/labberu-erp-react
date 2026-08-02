@@ -12,16 +12,71 @@ use App\Http\Requests\PurchaseOrderStoreRequest;
 use App\Http\Requests\PurchaseOrderUpdateRequest;
 use App\Http\Requests\PurchaseOrderVoidRequest;
 use App\Models\Currency;
+use App\Models\GoodsReceiptNoteItem;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Models\Tax;
 use App\Models\Workforce;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PurchaseOrderController extends Controller
 {
+    /**
+     * Search purchase orders for async select pickers, restricted to approved orders (only
+     * approved purchase orders can have goods received against them).
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query = (string) $request->query('q', '');
+
+        $purchaseOrders = PurchaseOrder::query()
+            ->where('status', 'approved')
+            ->when($query !== '', fn ($builder) => $builder->where('purchase_order_code', 'like', "%{$query}%"))
+            ->with('vendor:id,name')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get(['id', 'uuid', 'purchase_order_code', 'vendor_id']);
+
+        return response()->json(['data' => $purchaseOrders]);
+    }
+
+    /**
+     * List this purchase order's line items with quantity ordered, quantity already accepted
+     * across its confirmed goods receipt notes, and what remains to receive — used by the
+     * Goods Receipt Note create/edit form.
+     */
+    public function items(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $items = $purchaseOrder->items()->with('product:id,product_code,name')->get();
+
+        $received = GoodsReceiptNoteItem::query()
+            ->whereIn('purchase_order_item_id', $items->pluck('id'))
+            ->whereHas('goodsReceiptNote', fn ($query) => $query->where('status', 'confirmed'))
+            ->selectRaw('purchase_order_item_id, sum(quantity_accepted) as received')
+            ->groupBy('purchase_order_item_id')
+            ->pluck('received', 'purchase_order_item_id');
+
+        $data = $items->map(function (PurchaseOrderItem $item) use ($received): array {
+            $receivedQuantity = (float) ($received[$item->id] ?? 0);
+
+            return [
+                'id' => $item->id,
+                'product' => $item->product,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'received' => $receivedQuantity,
+                'remaining' => max(0, (float) $item->quantity - $receivedQuantity),
+            ];
+        });
+
+        return response()->json(['data' => $data]);
+    }
+
     /**
      * Display a listing of the purchase orders.
      */
@@ -70,6 +125,7 @@ class PurchaseOrderController extends Controller
                 'customer_id' => $data['customer_id'],
                 'vendor_id' => $data['vendor_id'],
                 'address' => $data['address'] ?? null,
+                'attention' => $data['attention'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'fax' => $data['fax'] ?? null,
                 'quotation_no' => $data['quotation_no'] ?? null,
@@ -108,6 +164,7 @@ class PurchaseOrderController extends Controller
             'tax',
             'items.product',
             'discounts',
+            'goodsReceiptNotes' => fn ($query) => $query->orderByDesc('created_at'),
             'issuedBy',
             'checkedByFirst',
             'checkedBySecond',
@@ -176,6 +233,7 @@ class PurchaseOrderController extends Controller
                 'customer_id' => $data['customer_id'],
                 'vendor_id' => $data['vendor_id'],
                 'address' => $data['address'] ?? null,
+                'attention' => $data['attention'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'fax' => $data['fax'] ?? null,
                 'quotation_no' => $data['quotation_no'] ?? null,
@@ -398,6 +456,7 @@ class PurchaseOrderController extends Controller
 
         return [
             'product_id' => $item['product_id'],
+            'bom_item_id' => $item['bom_item_id'] ?? null,
             'reference_number' => $item['reference_number'] ?? null,
             'description' => $item['description'] ?? null,
             'quantity' => $quantity,

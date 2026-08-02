@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
  * @property int $customer_id
  * @property int $vendor_id
  * @property string|null $address
+ * @property string|null $attention
  * @property string|null $phone
  * @property string|null $fax
  * @property string|null $quotation_no
@@ -58,6 +59,7 @@ use Illuminate\Support\Str;
     'customer_id',
     'vendor_id',
     'address',
+    'attention',
     'phone',
     'fax',
     'quotation_no',
@@ -289,6 +291,16 @@ class PurchaseOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    /**
+     * Get the goods receipt notes raised against this purchase order.
+     *
+     * @return HasMany<GoodsReceiptNote, $this>
+     */
+    public function goodsReceiptNotes(): HasMany
+    {
+        return $this->hasMany(GoodsReceiptNote::class);
     }
 
     /**

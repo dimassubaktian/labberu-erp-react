@@ -59,6 +59,51 @@ test('purchase order can be created with totals calculated', function () {
     expect((float) $item->total)->toBe(200_000.0);
 });
 
+test('the attention field is saved', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)->post(route('purchase-orders.store'), purchaseOrderPayload([
+        'attention' => 'Jane Doe',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
+        ],
+    ]))->assertSessionHasNoErrors();
+
+    expect(PurchaseOrder::sole()->attention)->toBe('Jane Doe');
+});
+
+test('a line item imported from a bom remembers its source bom item', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create();
+    $bom = $quotation->bom()->create([]);
+    $product = Product::factory()->create();
+    $bomItem = $bom->items()->create([
+        'product_id' => $product->id,
+        'brand' => 'ABB',
+        'quantity' => 5,
+        'unit' => 'Pcs',
+        'unit_cost' => 10_000,
+        'total_cost' => 50_000,
+    ]);
+
+    $this->actingAs($user)->post(route('purchase-orders.store'), purchaseOrderPayload([
+        'quotation_id' => $quotation->id,
+        'items' => [
+            [
+                'product_id' => $product->id,
+                'bom_item_id' => $bomItem->id,
+                'quantity' => 5,
+                'unit' => 'Pcs',
+                'unit_price' => 10_000,
+            ],
+        ],
+    ]))->assertSessionHasNoErrors();
+
+    $item = PurchaseOrder::sole()->items()->sole();
+    expect($item->bom_item_id)->toBe($bomItem->id);
+});
+
 test('cascading discount levels are applied in sequence against the running balance', function () {
     $user = User::factory()->create();
     $product = Product::factory()->create();

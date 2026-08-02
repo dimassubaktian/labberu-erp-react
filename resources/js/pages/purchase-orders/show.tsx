@@ -33,6 +33,10 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
+import {
+    create as createGoodsReceiptNote,
+    show as showGoodsReceiptNote,
+} from '@/routes/goods-receipt-notes';
 import { show as showProject } from '@/routes/projects';
 import {
     approve,
@@ -142,6 +146,14 @@ type PurchaseOrderDiscount = {
     discount_amount: string;
 };
 
+type GoodsReceiptNoteOption = {
+    id: number;
+    uuid: string;
+    grn_code: string;
+    status: string;
+    received_date: string;
+};
+
 type PurchaseOrder = {
     id: number;
     uuid: string;
@@ -149,6 +161,7 @@ type PurchaseOrder = {
     status: string;
     progress: string | null;
     address: string | null;
+    attention: string | null;
     phone: string | null;
     fax: string | null;
     quotation_no: string | null;
@@ -189,6 +202,7 @@ type PurchaseOrder = {
     tax: { id: number; name: string; rate: string; type: string } | null;
     items: PurchaseOrderItem[];
     discounts: PurchaseOrderDiscount[];
+    goods_receipt_notes: GoodsReceiptNoteOption[];
     issued_by: WorkforceOption | null;
     checked_by_first: WorkforceOption | null;
     checked_by_second: WorkforceOption | null;
@@ -415,6 +429,19 @@ export default function PurchaseOrdersShow({
                                 </dt>
                                 <dd className="font-medium">
                                     {purchaseOrder.address ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Attn
+                                </dt>
+                                <dd className="font-medium">
+                                    {purchaseOrder.attention ?? (
                                         <span className="text-muted-foreground">
                                             &mdash;
                                         </span>
@@ -702,6 +729,68 @@ export default function PurchaseOrdersShow({
                                 </dd>
                             </div>
                         </dl>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2">
+                        <CardTitle>Goods Receipt Notes</CardTitle>
+                        {purchaseOrder.status === 'approved' && (
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={createGoodsReceiptNote({
+                                        query: {
+                                            purchase_order: purchaseOrder.uuid,
+                                        },
+                                    })}
+                                >
+                                    Create GRN
+                                </Link>
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {purchaseOrder.goods_receipt_notes.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No goods receipt notes have been raised against
+                                this purchase order yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {purchaseOrder.goods_receipt_notes.map(
+                                    (goodsReceiptNote) => (
+                                        <Link
+                                            key={goodsReceiptNote.id}
+                                            href={showGoodsReceiptNote(
+                                                goodsReceiptNote,
+                                            )}
+                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            <div className="space-y-0.5">
+                                                <p className="font-medium">
+                                                    {goodsReceiptNote.grn_code}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {formatDate(
+                                                        goodsReceiptNote.received_date,
+                                                    )}
+                                                </p>
+                                            </div>
+
+                                            <Badge
+                                                variant="secondary"
+                                                className="w-fit capitalize"
+                                            >
+                                                {goodsReceiptNote.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </Link>
+                                    ),
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

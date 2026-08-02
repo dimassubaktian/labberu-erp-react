@@ -86,6 +86,49 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
     fixed 3-tier structure) and a real multi-step sign-off workflow (issuer → two parallel
     checkers → approver), all tracked against `Workforce` records rather than `User` logins.
     See its own section below for the full design, math, and workflow.
+16. **PO edit-while-approved, resetting to draft** — POs were originally draft-only-editable
+    like every other module. Client asked for `approved` POs to also be editable; editing one
+    now reverts it to `draft` and clears every sign-off column (issuer/checkers/approver +
+    timestamps), requiring the whole issue → check → approve workflow to be redone. An amber
+    warning banner on `purchase-orders/edit.tsx` tells the user this before they save.
+17. **Post-approval `progress` field on Quotation and PO** — added a second axis of state,
+    separate from the internal approval `status`, tracking real-world fulfillment once a
+    document is `approved`: Quotation goes `sent → accepted → converted`, PO goes
+    `sent → partially_received/fully_received → closed`. See its own section below for the
+    full design (why it's a separate field, the transition rules, and what does/doesn't reset
+    it).
+18. **Project/Quotation → Purchase Orders cross-linking** — added `Project::purchaseOrders()`
+    and `Quotation::purchaseOrders()` relations plus a "Purchase Orders" card (same clickable
+    card-list pattern as Project's existing "Quotations" card) on `projects/show.tsx` and
+    `quotations/show.tsx`. Previously a PO was only reachable via the PO index or a direct
+    link — this was flagged as a mechanical gap during a flow audit and closed the same
+    session.
+19. **BOM → Purchase Order line-item sourcing ("Import from BOM")** — an "Import from BOM"
+    button on `purchase-orders/create.tsx`/`edit.tsx`'s Line Items card opens a `Dialog`
+    listing every item across a quotation's BOM (groups, subgroups, ungrouped — flattened
+    server-side by a new `QuotationController::bomItems()` endpoint) with checkboxes, a "BOM
+    qty"/"Remaining" column computed live from the BOM item's quantity minus what's already
+    been imported into other non-cancelled/voided POs, and a per-row editable quantity
+    defaulting to that remaining amount — lets one hardware build's materials be split across
+    multiple vendor POs. `purchase_order_items` gained a nullable `bom_item_id`
+    (`nullOnDelete`) to trace which BOM item a line was sourced from, feeding the "already
+    imported" math; re-selecting a product on an imported line clears the link. Interviewed
+    via `AskUserQuestion` — traceability (not a no-tracking import) was the explicit choice,
+    since items get split across vendors and the client wanted visibility into what's left.
+20. **PO `attention` field** — a plain free-text field (not vendor-sourced, no autofill) added
+    next to Vendor address on `purchase-orders/create.tsx`/`edit.tsx`, shown as **"Attn"**
+    (not "Attention") on the detail page per explicit request.
+21. **BOM delete** — `BomController::destroy()` added (previously the only module without
+    one), `draft`-quotation-only, same Danger Zone pattern as everywhere else; soft-deletes
+    the `Bom` without cascading to its `bom_items`/`groups`/`subgroups` rows (same
+    "orphaned-but-unreachable" precedent as Quotation's own soft-delete — nothing queries
+    those rows once their parent is excluded by the soft-delete scope).
+22. **Goods Receipt Note (GRN) module** built — receiving against a Purchase Order. See its
+    own section below.
+23. **Delivery Order (DO) module** built — the sales-side mirror of GRN, against a Quotation.
+    See its own section below.
+24. **Invoice module** built — the first genuinely financial module (payment tracking, not
+    fulfillment quantities), against a Quotation. See its own section below.
 
 ## The established CRUD pattern (repeat this for future modules)
 
@@ -205,13 +248,33 @@ For a model like `JobTitle`, `Workforce`, `Currency`:
 10. **Bill of Materials (BOM)** (`boms` + `bom_groups` + `bom_subgroups` + `bom_items`) — a
     zero-or-one child of a `Quotation` (specific revision, not the thread), reachable only via
     a "Bill of Materials" card on the quotation's detail page — no standalone index page or
-    sidebar entry. Own `create`/`edit`/`show` pages, **no `destroy` yet** (known gap). See its
-    own section below for the cost model and grouping structure.
+    sidebar entry. Own `create`/`edit`/`show`/`destroy` pages. See its own section below for
+    the cost model and grouping structure.
 11. **Purchase Orders** (`purchase_orders` + `purchase_order_items` + `purchase_order_discounts`
     + `purchase_order_code_sequences`) — has its own sidebar entry and full index/create/edit/
     show pages (no revisioning, unlike Quotations). See its own section below for the full
     design: dynamic cascading discounts, the issuer/checker/approver sign-off workflow, and
-    the Project→Quotation cascading picker.
+    the Project→Quotation cascading picker. Editable while `draft` **or** `approved` (editing
+    an approved PO resets it to `draft`, see item 16 above) — a later addition, not part of the
+    original build.
+12. **Goods Receipt Notes** (`goods_receipt_notes` + `goods_receipt_note_items` +
+    `goods_receipt_note_code_sequences`) — own sidebar entry (Purchase group) and full
+    index/create/edit/show pages. Raised against a specific **approved** Purchase Order, many
+    GRNs per PO for split/partial shipments. Simple `draft`→`confirmed` workflow (no
+    issuer/checker/approver chain like PO). Confirming derives and writes
+    `PurchaseOrder.progress`. See its own section below for the full design and the
+    per-item-not-aggregate progress math.
+13. **Delivery Orders** (`delivery_orders` + `delivery_order_items` +
+    `delivery_order_code_sequences`) — own sidebar entry (Sales & CRM group), sales-side
+    mirror of GRN, raised against a specific **approved** Quotation. Confirming derives
+    `Quotation.progress`, which gained new `partially_delivered`/`fully_delivered` stages
+    after `converted`. See its own section below.
+14. **Invoices** (`invoices` + `invoice_items` + `invoice_payments` +
+    `invoice_code_sequences`) — own sidebar entry (Finance group), raised against a specific
+    **approved** Quotation, many invoices per quotation (deposit/progress/final billing). The
+    first genuinely financial module — tracks individual payments via a new `InvoicePayment`
+    sub-resource rather than a single status field, deriving `payment_status` from the
+    running total. See its own section below.
 
 ## Quotations — status workflow, revisioning, line items, groups
 
@@ -345,9 +408,11 @@ treatment as quotation items/groups. This is deliberately different from Project
 (below), which are *not* copied — BOM represents priced/planned content that needs an accurate
 historical snapshot per revision; attachments are reference material that doesn't.
 
-**No delete yet** — `BomController` has `create`/`store`/`show`/`edit`/`update` only, no
-`destroy`. A user who creates a BOM by mistake can edit it down to empty but can't remove the
-record. Known gap, not yet requested to be built.
+**Delete**: `BomController::destroy()`, `draft`-quotation-only, same Danger Zone pattern as
+everywhere else. Soft-deletes the `Bom` without cascading to its `bom_items`/`groups`/
+`subgroups` rows — same "orphaned-but-unreachable" precedent as Quotation's own soft-delete,
+since nothing queries those child rows once their parent is excluded by the soft-delete
+scope.
 
 ## Project Attachments — supporting documents, not tied to quotation revisions
 
@@ -529,6 +594,207 @@ Each transition is its own FormRequest (`PurchaseOrderIssueRequest`, `PurchaseOr
 still a plain full-list select" convention) appears inside the relevant dialogs where a
 sign-off name needs to be recorded.
 
+**Editing an `approved` PO** (`PurchaseOrderController::edit()`/`update()`,
+`PurchaseOrderUpdateRequest::authorize()`) is allowed in addition to `draft` — a later client
+request, not part of the original build. If the PO was `approved` when the edit is submitted,
+`update()` resets `status` back to `draft` and nulls every sign-off column (`issued_by_id/at`,
+`checked_by_1/2_id/at`, `approved_by_id/at`) **and** `progress` (see below) in the same write,
+so the whole workflow — issue, both checks, approve — has to be redone. `edit.tsx` shows an
+amber warning banner when `purchaseOrder.status === 'approved'` telling the user this will
+happen before they save. Delete was deliberately **not** extended the same way — it's still
+`draft`-only.
+
+## Progress tracking — Quotation and Purchase Order
+
+A `progress` column (nullable string) was added to both `quotations` and `purchase_orders`,
+deliberately **separate from `status`**. `status` is the internal approval workflow (who
+signed off, is this the source of truth); once a Quotation/PO reaches `approved`, `status`
+is effectively terminal (only `voided` follows) and stops changing — but the real-world
+document keeps moving (sent to the customer/vendor, accepted, goods received, etc.), and
+there was nowhere to record that. This was scoped deliberately narrow: only per-document
+progress was built now; a **rollup view across the whole Project** (Quotation approved → PO
+issued → goods received → invoiced) was discussed and explicitly deferred, since it would be
+a *derived* view over Deliver Order/Goods Receipt/Invoice records that don't exist yet —
+storing a manually-synced rollup field invites the same class of bug as the `is_current`
+incident below.
+
+**Stages** (`Quotation::PROGRESS_TRANSITIONS`/`PurchaseOrder::PROGRESS_TRANSITIONS`, mirroring
+the existing `TRANSITIONS`/`allowedNextStatuses()` pattern via a parallel
+`allowedNextProgress(?string $progress): array`):
+- Quotation: `sent → accepted → converted`.
+- PO: `sent → partially_received/fully_received → closed` (partially_received can be skipped
+  and gone straight to fully_received).
+
+**Gating rule**: progress can only be advanced while `status === 'approved'` — enforced in
+`QuotationProgressUpdateRequest`/`PurchaseOrderProgressUpdateRequest` by returning an empty
+`Rule::in([])` (i.e. always-invalid) allowed-list whenever status isn't approved, same
+"`authorize()` returns `true`, `rules()` does the real gating via `Rule::in($allowed)`" style
+Quotation's own `QuotationStatusUpdateRequest` already used — **not** a hard 403 in
+`authorize()`. Each model exposes one generic `PATCH .../progress` endpoint
+(`{model}.progress.update`) rather than PO's per-action-endpoint style, since progress is a
+single linear sequence with no distinct per-step business rules to justify separate
+FormRequests.
+**Manual only** — advancing progress is always a deliberate user action via its own
+confirmation `Dialog` (mirrors the existing status-workflow action buttons); nothing
+auto-advances it (e.g. approving a PO does *not* auto-set progress to `sent`) — an explicit
+choice to keep the two lifecycles decoupled.
+
+**Reset behavior — deliberately asymmetric**: editing an `approved` PO back to `draft`
+(see above) **does** clear `progress` back to `null`, since the underlying document content
+changed and the old progress is stale. Voiding or cancelling a Quotation/PO does **not**
+clear `progress` — it's treated as historical fact ("it got this far before being
+voided/cancelled"), not live state that must reflect the current status. Don't "fix" this
+into clearing progress on every terminal transition; it was a deliberate call, not an
+oversight.
+
+**Frontend**: a "Progress" `Badge` in each Details card (only rendered once `progress` is
+non-null) plus a "Progress" `Card` with one button per next-allowed stage
+(`progressActions(progress)` in both `quotations/show.tsx` and `purchase-orders/show.tsx`,
+same shape as the existing `statusActions(status)` helper), each behind its own confirmation
+`Dialog`.
+
+## Goods Receipt Note (GRN) — receiving, per-item progress derivation
+
+A document raised against a specific, **approved** Purchase Order, recording what physically
+arrived. Own sidebar entry (Purchase group) with full index/create/edit/show pages, plus
+cross-linked from `purchase-orders/show.tsx` via a "Goods Receipt Notes" card + "Create GRN"
+shortcut (gated on `purchaseOrder.status === 'approved'`).
+
+**Multiple GRNs per PO** — a PO can receive in several shipments; "received so far" per PO
+line is always summed live across a PO's *confirmed* GRNs
+(`GoodsReceiptNoteItem::whereHas('goodsReceiptNote', status=confirmed)`), never a synced
+field, matching the BOM→PO remaining-quantity pattern established earlier.
+
+**Schema**: `goods_receipt_notes` (`grn_code` scheme `LAB-GRN{yy}{seq}-{VendorCode}`,
+`purchase_order_id` immutable, `status` `draft`/`confirmed` only — a deliberately minimal
+two-state workflow, no issuer/checker/approver chain like PO since a GRN isn't a
+multi-signature physical form, `received_by_id`/`received_at` set on confirm) +
+`goods_receipt_note_items` (`product_id`/`quantity_ordered`/`unit` snapshotted from the
+source PO item at creation time, `purchase_order_item_id` nullable `nullOnDelete` since
+`PurchaseOrderController::update()` wipes and recreates PO items on every edit,
+`quantity_accepted`/`quantity_rejected` — explicitly a **split**, not a single "quantity
+received" — with an optional `rejection_reason`, since goods can arrive damaged; this was an
+explicit interview answer, don't collapse it back to one field).
+
+**Confirming a GRN recomputes and writes `PurchaseOrder.progress`** directly
+(`GoodsReceiptNoteController::updatePurchaseOrderProgress()`), bypassing
+`PurchaseOrderProgressUpdateRequest`/`allowedNextProgress()` entirely — that gate exists to
+protect *manual* button-driven transitions from skipping/reversing steps; a system-derived
+recomputation-from-scratch is allowed to jump straight to the correct stage. The comparison
+is **per PO line item, not an aggregate total**: summing `quantity_accepted` across all items
+and comparing to the summed order total would let one over-received line mask another line
+that never arrived (e.g. line A ordered 5, over-received to 10; line B ordered 5, never
+shipped — an aggregate 10/10 would wrongly read "fully received"). Every item must
+individually be ≥ its ordered quantity for `fully_received`; any item with `> 0` accepted but
+not all complete is `partially_received`; nothing accepted leaves progress untouched. Guarded
+both at GRN creation and at confirm time by `purchaseOrder.status === 'approved'` (the PO
+could have been edited back to `draft` in between, since PO edit-while-approved already
+resets it).
+
+**New shared endpoints this module needed** (later reused by DO and Invoice too):
+`PurchaseOrderController::search()` (`?q=` against `purchase_order_code`, filtered to
+`status = 'approved'`) and `PurchaseOrderController::items()` (that PO's items + received/
+remaining per line). The create/edit form is driven by these rather than free product
+search, since a GRN line is inherently "what happened against this PO's existing lines," not
+an arbitrary new line — a **different form shape** from every other line-item form in the app
+(Quotation/BOM/PO all let you freely add/remove arbitrary rows): the item table is fixed to
+the PO's own items, only a per-row "Accepted"/"Rejected"/"Rejection reason" set of inputs is
+editable, and only rows where `accepted + rejected > 0` get submitted (a filtered array
+computed at render time; hidden inputs generated only for those rows, the visible table still
+maps over every PO item so partially-filled-out state isn't lost while typing). This same
+fixed-row-table shape was then reused for DO and Invoice.
+
+**Known trade-off, not solved**: editing a PO after a GRN (draft or confirmed) already exists
+against it immediately nulls every existing GRN item's `purchase_order_item_id` (PO items are
+hard-deleted and recreated on update, unlike BOM/Quotation items which are soft-deleted).
+The GRN itself stays fully correct (everything it displays is snapshotted), but "received so
+far" math for a *new* GRN against that same PO won't see those older receipts against the new
+item rows. Same class of trade-off already accepted for BOM↔PO linkage via `bom_item_id`.
+
+## Delivery Order (DO) — sales-side mirror of GRN
+
+Directly mirrors GRN's shape, on the Quotation side: raised against a specific **approved**
+Quotation (many DOs per quotation, for split shipments), `draft`/`confirmed` two-state
+workflow, `delivered_by_id`/`delivered_at` on confirm (Workforce, not User — matches GRN's
+`received_by`, not Quotation's own User-based `approved_by`, since this is a delivery-note
+signature block, not a digital approval). `delivery_order_items`: single `quantity_delivered`
+field, **no accepted/rejected split** — that was explicitly GRN-only (goods arriving damaged
+is a receiving concern; nothing analogous was asked for delivery), so don't copy GRN's shape
+wholesale onto DO just because it looks symmetric.
+
+**`Quotation::PROGRESS_TRANSITIONS` extended** with `partially_delivered`/`fully_delivered`
+after `converted` (previously terminal) — confirming a DO derives and writes
+`Quotation.progress` the same per-item-not-aggregate way GRN does for PO, via
+`DeliveryOrderController::updateQuotationProgress()`, also bypassing the manual gate. These
+two new stages are also reachable as **manual buttons** in `quotations/show.tsx`'s
+`progressActions()`, same as how PO kept `partially_received`/`fully_received` manually
+clickable even after GRN could derive them.
+
+**`QuotationController::search()`/`::items()`** (new, mirroring the PO ones GRN needed) power
+the DO create/edit form — same fixed-row-table shape, driven by the quotation's own items
+(grouped and ungrouped alike; delivery doesn't care about the pricing-group structure, so the
+endpoint doesn't filter on `quotation_group_id`).
+
+**Cross-linked** from `quotations/show.tsx` via a "Delivery Orders" card + "Create DO"
+shortcut (gated on `quotation.status === 'approved'`), own sidebar entry (Sales & CRM group).
+
+## Invoice — the first financial module, individual payment tracking
+
+Raised against a specific **approved** Quotation (many invoices per quotation — deposit/
+progress/final billing schedules). Unlike every prior module, Invoice tracks *money*, not
+fulfillment quantities, and was interviewed separately for that reason (`AskUserQuestion`,
+four questions): parent document (Quotation, confirmed), cardinality (multiple per quotation,
+confirmed), payment tracking shape, and whether it should extend `Quotation.progress`
+further.
+
+**Payment tracking — individual payments, not a status field**: the one place the client
+picked *against* the recommended simpler default. `invoice_payments` (`amount`,
+`payment_date`, `method` free text, `remarks`, `recorded_by` — a **User**, `auth()->id()`, not
+a Workforce picker, since recording a payment is a digital bookkeeping entry by whoever's
+logged in, not a signature on a physical paper form) lets multiple partial payments
+accumulate against one invoice. `InvoicePaymentController::store()`/`destroy()` each
+recompute `Invoice.payment_status` (`null`/`partially_paid`/`paid`) from
+`sum(payments.amount)` vs `invoice.total` — **self-contained**, unlike GRN→PO/DO→Quotation's
+cross-model derivation, since the same `Invoice` model owns both its payments and the derived
+field. No overpayment cap (same "show context, don't block" choice as every
+remaining-quantity feature elsewhere). Deleting a payment can move `payment_status` back down
+(e.g. `paid` → `partially_paid`) — intentional, a correction mechanism, not a bug.
+
+**`Quotation.progress` deliberately NOT extended further for invoicing/payment** — confirmed
+explicitly. Progress already has a natural fulfillment endpoint at `fully_delivered`; payment
+collection is a different axis (financial, not fulfillment) and stacking a third
+auto-derived concern onto the same field would conflate two lifecycles that only shared a
+home so far because GRN/DO's stages were purpose-built extensions of receiving/delivering.
+
+**Schema/design defaults not covered by the interview** (flagged for visibility rather than
+asked, since they follow clear precedent): `invoice_items` are **read-only pricing
+snapshots** (`unit_price` copied from the quotation item at creation, never user-edited —
+only "Invoice qty" is editable, same shape as every other module's fixed-row form); **no
+per-item discount**, only header-level `discount_type`/`discount_value`/`tax_id` (mirrors
+PO's simpler header-only pattern, not Quotation's per-item-plus-header one); **two-state
+`status` only** (`draft`→`issued`, no void/cancel — nothing in the ask called for invoice
+rejection); **no separate `currency_id`** on Invoice — always displays via
+`invoice->quotation->currency`, avoiding a duplicated column that could drift from its
+parent.
+
+**Money math** (`InvoiceController::syncItems()`) reuses the exact
+`calculateDiscountAmount`/`calculateTaxAmount` shape already proven in
+`QuotationController`/`PurchaseOrderController` — copied, not shared, matching this
+codebase's established per-controller duplication convention.
+
+**`QuotationController::items()`/`::search()` extended again** (third consumer, after DO) —
+additively: `unit_price`, `invoiced` (sum of `quantity_invoiced` across **all** invoice items
+regardless of status, since unlike GRN/DO there's no draft-vs-confirmed distinction for
+invoice items — a draft invoice still reserves its claimed quantity so two drafts can't
+double-claim the same units), `remaining_to_invoice`, and (on `search()`) `currency` (needed
+to display amounts in the right currency on the create form; DO never needed this). Confirmed
+additive — existing DO tests asserting `data.0.delivered`/`data.0.remaining` kept passing
+unchanged; this "extend a shared endpoint additively rather than duplicate it" approach is
+now the established pattern for any future module that needs quotation-item context.
+
+**Cross-linked** from `quotations/show.tsx` via an "Invoices" card + "Create Invoice"
+shortcut, own sidebar entry (Finance group).
+
 ## Bugs fixed along the way (worth knowing about)
 
 - **Soft-delete + unique constraint bug**: `workforces.email` had a plain DB-level
@@ -588,7 +854,25 @@ sign-off name needs to be recorded.
   added to the search endpoint's select list and the frontend switched to using it. General
   lesson: any endpoint reached via route-model-binding on a UUID-keyed model needs the picker's
   search response to actually include that UUID, not just the numeric id used for FK
-  validation.
+  validation. **Recurred** when wiring the GRN item picker: the PO create/edit form's
+  `quotationId` state is the numeric id (used for form submission), but the new
+  `purchase-orders/{purchaseOrder}/items` endpoint needed the PO's uuid — fixed the same way,
+  by tracking both id and uuid in separate state.
+- **`AsyncCombobox` not showing the selected product after a programmatic (non-click) value
+  change**: `AsyncCombobox` initializes its internal `selectedOption` display state once, from
+  an `initialOption` prop, at mount — it does not derive the displayed label from the `value`
+  prop alone. Manually picking from the dropdown always worked (the component's own
+  `handleSelect` sets `selectedOption` internally), but items added *programmatically* — the
+  "Import from BOM" modal setting `product_id` directly onto a newly-appended line item —
+  bypassed that path, so the trigger showed the placeholder instead of the product name even
+  though the hidden `product_id` input was correctly populated. Fixed by having the import
+  modal also pass back full product data as `initialProduct`, threaded onto each newly
+  appended `LineItem` and rendered via `initialOption` — since each newly-appended row is a
+  fresh component mount (a new array index), this correctly seeds the display without needing
+  `AsyncCombobox` itself to become reactive to prop changes after mount. Turned up a second,
+  pre-existing gap in the same fix: `purchase-orders/create.tsx` was missing the
+  `initialOption` wiring entirely even for its own normal manual-pick path (only `edit.tsx`
+  had it) — fixed at the same time.
 
 ## Conventions / preferences the user has stated explicitly
 
@@ -643,38 +927,97 @@ sign-off name needs to be recorded.
   named staff roles on a document, not necessarily people with system accounts. Purchase
   Order's issue/check/approve actions each take a `workforce_id` via a plain `Select`, distinct
   from Quotation's `approved_by`, which *is* tied to the logged-in `User`.
+- "Editable while draft" isn't a fixed ceiling either — Purchase Order later grew "editable
+  while `approved`, resets to `draft` on save" on top of that, while Quotation/BOM stayed
+  `draft`-only. Don't assume every module's edit-lock behavior stays frozen at its original
+  scope; ask before extending or copying it to a new module.
+- A document's internal approval `status` and its real-world fulfillment `progress` are
+  different axes and shouldn't be conflated into one field — see "Progress tracking" section
+  above. `status` stops changing once terminal (`approved`); `progress` is a second, separate,
+  manually-advanced field for what happens after. When asked for something like "what state is
+  this document really in," check whether the ask is about the approval workflow or about
+  fulfillment before reaching for `status`.
+- **`progress` can also be *derived*, not just manually clicked** — once GRN and DO existed,
+  confirming them recomputes `PurchaseOrder.progress`/`Quotation.progress` directly, bypassing
+  the manual transition gate (`allowedNextProgress()`), since that gate exists to protect
+  *manual* button-driven transitions from skipping/reversing steps, not a system-derived
+  recomputation-from-scratch. When a derivation like this is added, always recompute **per
+  line item, not as an aggregate total** — an aggregate sum can be masked by one
+  over-received/over-delivered line hiding another line that never arrived at all. Both GRN→PO
+  and DO→Quotation have a regression test specifically for this case; don't "simplify" the
+  math back to a single sum.
+- A "so far / remaining" quantity feature (BOM→PO import, GRN→PO progress, DO→Quotation
+  progress, Invoice→Quotation invoiced-so-far) should be **computed live from existing rows,
+  never a synced field** — and when a second module starts needing the same parent-item
+  context an earlier module already exposed via an endpoint, **extend that endpoint
+  additively** (new response fields) rather than duplicating it. `PurchaseOrderController::
+  items()`/`::search()` and `QuotationController::items()`/`::search()` have each been
+  extended twice this way (GRN, then Invoice) without breaking the earlier consumer's tests.
+- Don't assume a sibling module needs the same field shape just because it looks symmetric.
+  GRN's `quantity_accepted`/`quantity_rejected` split was an explicit interview answer for
+  *receiving* (goods can arrive damaged); DO deliberately got a single `quantity_delivered`
+  field instead, since nothing analogous was asked for delivery. Check per-module rather than
+  copying the most recent module's shape by default.
+- Not every new axis of state should live on `Quotation.progress`, even once it's already
+  hosting two derived stages (delivery). Invoice's `status`/`payment_status` were explicitly
+  kept off `Quotation.progress` — confirmed with the client — since payment collection is a
+  financial lifecycle, not a fulfillment one, and stacking a third unrelated concern onto the
+  same field starts to erode what it means.
+- When a new module clearly tracks money rather than fulfillment quantities (Invoice was the
+  first), that's worth flagging as a different *kind* of decision during the interview, not
+  just another set of workflow questions — the client picked against the recommended simpler
+  default specifically because real bookkeeping needed installment/partial payment history,
+  something none of the quantity-tracking modules needed.
 
 ## What's NOT built yet (natural next steps)
 
-- No pages/routes for: Deliver Orders, Goods Receipt Note, Stock Movements, Stock Adjustments,
-  Invoice, Users, Roles. These are still disabled placeholders in the sidebar. (Purchase
-  Orders is now built — see its own section above.)
+- No pages/routes for: Stock Movements, Stock Adjustments, Users, Roles. These are still
+  disabled placeholders in the sidebar. (Purchase Orders, Goods Receipt Notes, Delivery
+  Orders, and Invoices are now all built — see their own sections above.)
 - RBAC (`spatie/laravel-permission`) is installed but nothing is actually gated by
   roles/permissions yet — no seeded roles, no policy/gate wired to any route or UI element.
-  This is arguably the most important gap: approving/rejecting/voiding a quotation *or a
-  purchase order* is currently possible for anyone logged in.
-- No API layer, no tests beyond Pest feature tests (no Dusk/browser tests).
-- Quotations don't yet generate any downstream document (e.g. converting an approved
-  quotation into a Deliver Order or Invoice) — that linkage doesn't exist. Similarly, Purchase
-  Orders don't source their line items from an existing BOM (a user re-enters everything
-  manually even if a BOM already lists the same materials) — no linkage there either.
-- No PDF/print export for quotations *or purchase orders* — no `dompdf`/`snappy` package
-  installed, no print route anywhere. Likely the single biggest missing piece for modules whose
-  whole point is producing a document to hand to a customer or vendor.
-- `BomController` has no `destroy` — a BOM can be edited down to empty but not deleted.
-- No customer-facing acceptance step (e-signature/"customer accepted" status) — the status
-  workflow only tracks internal staff approval.
-- Workforce ("person in charge" on Projects, and now the issuer/checker/approver pickers on
-  Purchase Orders) still uses a plain full-list `Select`, not the new async combobox —
-  deliberately deferred, but worth revisiting if headcount grows into the hundreds. Same
-  `AsyncCombobox` component would apply directly.
-- No cross-linking from `Project`'s or `Quotation`'s `show.tsx` to their Purchase Orders — a PO
-  is only reachable via the Purchase Orders index or a direct link right now, unlike Project's
-  own "Quotations" card. Worth adding a "Purchase Orders" card to one or both once there's a
-  real need to navigate that direction.
+  This is arguably the most important gap, and it's gotten bigger with every module built
+  since it was first flagged: approving/rejecting/voiding a quotation, purchase order, or
+  invoice, confirming a GRN/DO, or recording/removing a payment is currently possible for
+  anyone logged in.
+- No API layer, no tests beyond Pest feature tests (no Dusk/browser tests). Relatedly, none of
+  the modules built in this session (GRN, DO, Invoice) have been clicked through in an actual
+  browser — this environment has no browser automation tool available, so verification for
+  those three has been HTTP/test-level only (routes resolve, middleware behaves, no new
+  errors logged), not a substitute for actually using the UI.
+- No PDF/print export for **any** document (Quotation, PO, GRN, DO, or Invoice) — no
+  `dompdf`/`snappy` package installed, no print route anywhere. Likely the single biggest
+  missing piece for a set of modules whose whole point is producing a document to hand to a
+  customer or vendor — this gap has only grown as more document types were added.
+- `Project`'s own `status` (`planning`/`in_progress`/`completed`/`cancelled`) still doesn't
+  reflect any of its child documents' state — a Project can say `completed` while its only
+  quotation is still `draft`. Originally deferred because there wasn't much to roll up from
+  until Deliver Order/Goods Receipt/Invoice existed — **that's no longer true**, all three now
+  exist, so a real derived rollup (see "Progress tracking" section for why a manually-synced
+  field was rejected in favor of always-computed) is more feasible now than when this was
+  first written. Still not requested, so still not built.
+- No customer-facing acceptance step (e-signature/self-service "customer accepted" status) —
+  **partially addressed** by Quotation's `progress = 'accepted'` stage (see "Progress
+  tracking" section above), but that's still an internal staff member manually recording that
+  the customer accepted it, not something the customer does themselves. Likewise there's no
+  customer-facing payment portal for Invoice — payments are recorded manually by staff.
+- Workforce ("person in charge" on Projects, the issuer/checker/approver pickers on Purchase
+  Orders, and the received-by/delivered-by pickers on GRN/DO) still uses a plain full-list
+  `Select`, not the async combobox — deliberately deferred, but worth revisiting if headcount
+  grows into the hundreds. Same `AsyncCombobox` component would apply directly.
+- No linkage from an Invoice or Delivery Order back into any kind of inventory/stock
+  deduction — there's no Stock Movements module yet for a DO's shipped quantities (or a GRN's
+  received quantities) to actually adjust. Everything built so far is purely
+  document/quantity tracking, not real inventory levels.
 
 ## Where to resume
 
-Ask the user which module or feature to build next, and follow the CRUD pattern (and, for
-anything workflow/revision-like, the Quotations pattern, or for nested groupings, the BOM
-pattern) above.
+The full document chain is now built: Project → Quotation → BOM/PO/GRN/DO/Invoice, each with
+the interlocking `status`/`progress` derivation described above. Ask the user which module or
+feature to build next. For a new document-style module raised against an existing parent
+(the GRN/DO/Invoice shape), follow the GRN section above as the closest template — it's the
+most reused pattern in the app at this point (DO and Invoice both mirrored it directly). For
+anything workflow/revision-like, follow the Quotations pattern; for nested groupings, the BOM
+pattern; otherwise the base CRUD pattern above. Given the gaps listed just above, RBAC
+enforcement and PDF/print export are probably the two highest-leverage next picks — everything
+else is a new module, but those two cut across every module already built.

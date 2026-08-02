@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
+import { ImportBomItemsDialog } from '@/components/import-bom-items-dialog';
+import type { ImportedBomItem } from '@/components/import-bom-items-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,11 +79,13 @@ type ProductOption = {
 
 type LineItem = {
     product_id: string;
+    bom_item_id: string;
     reference_number: string;
     description: string;
     quantity: string;
     unit: string;
     unit_price: string;
+    initialProduct?: ProductOption;
 };
 
 type DiscountLevel = {
@@ -102,6 +106,7 @@ function todayDate(): string {
 function emptyItem(): LineItem {
     return {
         product_id: '',
+        bom_item_id: '',
         reference_number: '',
         description: '',
         quantity: '1',
@@ -168,6 +173,7 @@ function LineItemFields({
     ): void {
         onChange({
             product_id: productId,
+            bom_item_id: '',
             reference_number: product?.reference_number ?? '',
             description: product?.descriptions ?? '',
             unit: product?.unit ?? '',
@@ -185,6 +191,11 @@ function LineItemFields({
                         name={`${namePrefix}[product_id]`}
                         value={item.product_id}
                     />
+                    <input
+                        type="hidden"
+                        name={`${namePrefix}[bom_item_id]`}
+                        value={item.bom_item_id}
+                    />
                     <AsyncCombobox<ProductOption>
                         id={`item-${index}-product`}
                         value={item.product_id}
@@ -194,6 +205,7 @@ function LineItemFields({
                         getOptionLabel={(product) =>
                             `${product.product_code} — ${product.name}`
                         }
+                        initialOption={item.initialProduct}
                         placeholder="Select a product"
                     />
                     <InputError message={errors[`${errorPrefix}.product_id`]} />
@@ -427,6 +439,7 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
     const [customerId, setCustomerId] = useState('');
     const [customerName, setCustomerName] = useState('');
     const [quotationId, setQuotationId] = useState('');
+    const [quotationUuid, setQuotationUuid] = useState('');
     const [quotationOptions, setQuotationOptions] = useState<QuotationOption[]>(
         [],
     );
@@ -448,6 +461,7 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
         setCustomerId(option ? String(option.customer.id) : '');
         setCustomerName(option?.customer.name ?? '');
         setQuotationId('');
+        setQuotationUuid('');
         setQuotationOptions([]);
 
         if (!id || !option) {
@@ -462,6 +476,13 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
         } catch {
             setQuotationOptions([]);
         }
+    }
+
+    function handleQuotationChange(value: string): void {
+        setQuotationId(value);
+        setQuotationUuid(
+            quotationOptions.find((q) => String(q.id) === value)?.uuid ?? '',
+        );
     }
 
     function handleVendorChange(id: string, option?: VendorOption): void {
@@ -485,6 +506,10 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
 
     function removeItem(index: number): void {
         setItems((current) => current.filter((_, i) => i !== index));
+    }
+
+    function handleImportBomItems(imported: ImportedBomItem[]): void {
+        setItems((current) => [...current, ...imported]);
     }
 
     function updateDiscount(
@@ -581,7 +606,9 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
                                             />
                                             <Select
                                                 value={quotationId}
-                                                onValueChange={setQuotationId}
+                                                onValueChange={
+                                                    handleQuotationChange
+                                                }
                                                 disabled={!projectId}
                                             >
                                                 <SelectTrigger
@@ -755,7 +782,7 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
                                         </div>
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-3">
+                                    <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="grid gap-2">
                                             <Label htmlFor="address">
                                                 Vendor address
@@ -774,6 +801,22 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
                                             />
                                         </div>
 
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="attention">
+                                                Attention
+                                            </Label>
+                                            <Input
+                                                id="attention"
+                                                name="attention"
+                                                placeholder="Optional"
+                                            />
+                                            <InputError
+                                                message={errors.attention}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="grid gap-2">
                                             <Label htmlFor="phone">Phone</Label>
                                             <Input
@@ -897,16 +940,23 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
                             </Card>
 
                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
+                                <CardHeader className="flex flex-row items-center justify-between gap-2">
                                     <CardTitle>Line Items</CardTitle>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={addItem}
-                                    >
-                                        <Plus />
-                                        Add line
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <ImportBomItemsDialog
+                                            quotationId={quotationUuid}
+                                            disabled={!quotationUuid}
+                                            onImport={handleImportBomItems}
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={addItem}
+                                        >
+                                            <Plus />
+                                            Add line
+                                        </Button>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <InputError message={errors.items} />

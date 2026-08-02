@@ -121,6 +121,21 @@ class BomController extends Controller
     }
 
     /**
+     * Delete the quotation's BOM.
+     */
+    public function destroy(Quotation $quotation): RedirectResponse
+    {
+        abort_if($quotation->status !== 'draft', 403, 'Only draft quotations can have their BOM deleted.');
+
+        $bom = $quotation->bom()->firstOrFail();
+        $bom->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Bill of materials deleted.')]);
+
+        return to_route('quotations.show', $quotation);
+    }
+
+    /**
      * Create the BOM's ungrouped items, top-level phase subgroups, and hardware groups (each
      * with their own direct items and nested phase subgroups), then compute and persist the
      * BOM's main, overhead, total, and selling costs from the sum of it all.

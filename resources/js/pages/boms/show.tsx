@@ -1,8 +1,18 @@
-import { Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
     TableBody,
@@ -13,7 +23,11 @@ import {
 } from '@/components/ui/table';
 import { formatNumber } from '@/lib/utils';
 import { index, show as showQuotation } from '@/routes/quotations';
-import { edit as editBom, show as showBom } from '@/routes/quotations/bom';
+import {
+    destroy as destroyBom,
+    edit as editBom,
+    show as showBom,
+} from '@/routes/quotations/bom';
 
 type BomItem = {
     id: number;
@@ -300,6 +314,83 @@ export default function BomsShow({ quotation, bom }: Props) {
                         )}
                     </CardContent>
                 </Card>
+
+                {quotation.status === 'draft' && (
+                    <Card className="border-destructive/50">
+                        <CardHeader>
+                            <CardTitle className="text-destructive">
+                                Danger Zone
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                    <p className="font-medium">
+                                        Delete this Bill of Materials
+                                    </p>
+                                    <p className="text-sm">
+                                        Once deleted, this Bill of Materials
+                                        cannot be restored. Any purchase order
+                                        lines already imported from it will be
+                                        kept, but will no longer be linked back
+                                        to it.
+                                    </p>
+                                </div>
+
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant="destructive"
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <Trash2 />
+                                            Delete Bill of Materials
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>
+                                            Delete this Bill of Materials?
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            This action cannot be undone. This
+                                            Bill of Materials will be
+                                            permanently deleted.
+                                        </DialogDescription>
+
+                                        <Form
+                                            {...destroyBom.form(quotation)}
+                                            options={{ preserveScroll: true }}
+                                        >
+                                            {({ processing }) => (
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Cancel
+                                                        </Button>
+                                                    </DialogClose>
+
+                                                    <Button
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                        asChild
+                                                    >
+                                                        <button type="submit">
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            Delete Bill of
+                                                            Materials
+                                                        </button>
+                                                    </Button>
+                                                </DialogFooter>
+                                            )}
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </>
     );

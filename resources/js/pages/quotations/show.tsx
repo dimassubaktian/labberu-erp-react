@@ -32,6 +32,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
+import {
+    create as createDeliveryOrder,
+    show as showDeliveryOrder,
+} from '@/routes/delivery-orders';
+import {
+    create as createInvoice,
+    show as showInvoice,
+} from '@/routes/invoices';
 import { show as showProject } from '@/routes/projects';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 import { destroy, edit, index, show } from '@/routes/quotations';
@@ -153,6 +161,33 @@ function progressActions(progress: string | null): ProgressAction[] {
                         'This records that the quotation has been converted into further work, e.g. a purchase order.',
                 },
             ];
+        case 'converted':
+            return [
+                {
+                    progress: 'partially_delivered',
+                    label: 'Mark as Partially Delivered',
+                    confirmTitle: 'Mark this quotation as partially delivered?',
+                    confirmDescription:
+                        'This records that some, but not all, of the goods have been delivered.',
+                },
+                {
+                    progress: 'fully_delivered',
+                    label: 'Mark as Fully Delivered',
+                    confirmTitle: 'Mark this quotation as fully delivered?',
+                    confirmDescription:
+                        'This records that all goods on the quotation have been delivered.',
+                },
+            ];
+        case 'partially_delivered':
+            return [
+                {
+                    progress: 'fully_delivered',
+                    label: 'Mark as Fully Delivered',
+                    confirmTitle: 'Mark this quotation as fully delivered?',
+                    confirmDescription:
+                        'This records that all goods on the quotation have been delivered.',
+                },
+            ];
         default:
             return [];
     }
@@ -231,6 +266,8 @@ type Quotation = {
     groups: QuotationGroup[];
     bom: Bom | null;
     purchase_orders: PurchaseOrder[];
+    delivery_orders: DeliveryOrder[];
+    invoices: Invoice[];
 };
 
 type Bom = {
@@ -259,6 +296,23 @@ type PurchaseOrder = {
         id: number;
         name: string;
     };
+};
+
+type DeliveryOrder = {
+    id: number;
+    uuid: string;
+    do_code: string;
+    status: string;
+    delivery_date: string;
+};
+
+type Invoice = {
+    id: number;
+    uuid: string;
+    invoice_code: string;
+    status: string;
+    payment_status: string | null;
+    invoice_date: string;
 };
 
 type HistoryEntry = {
@@ -1140,6 +1194,135 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                         </Link>
                                     ),
                                 )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2">
+                        <CardTitle>Delivery Orders</CardTitle>
+                        {quotation.status === 'approved' && (
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={createDeliveryOrder({
+                                        query: { quotation: quotation.uuid },
+                                    })}
+                                >
+                                    Create DO
+                                </Link>
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {quotation.delivery_orders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No delivery orders have been raised against this
+                                quotation yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotation.delivery_orders.map(
+                                    (deliveryOrder) => (
+                                        <Link
+                                            key={deliveryOrder.id}
+                                            href={showDeliveryOrder(
+                                                deliveryOrder,
+                                            )}
+                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            <div className="space-y-0.5">
+                                                <p className="font-medium">
+                                                    {deliveryOrder.do_code}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {formatDate(
+                                                        deliveryOrder.delivery_date,
+                                                    )}
+                                                </p>
+                                            </div>
+
+                                            <Badge
+                                                variant="secondary"
+                                                className="w-fit capitalize"
+                                            >
+                                                {deliveryOrder.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </Link>
+                                    ),
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2">
+                        <CardTitle>Invoices</CardTitle>
+                        {quotation.status === 'approved' && (
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={createInvoice({
+                                        query: { quotation: quotation.uuid },
+                                    })}
+                                >
+                                    Create Invoice
+                                </Link>
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent>
+                        {quotation.invoices.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No invoices have been raised against this
+                                quotation yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotation.invoices.map((invoice) => (
+                                    <Link
+                                        key={invoice.id}
+                                        href={showInvoice(invoice)}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {invoice.invoice_code}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(
+                                                    invoice.invoice_date,
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {invoice.payment_status && (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="w-fit capitalize"
+                                                >
+                                                    {invoice.payment_status.replaceAll(
+                                                        '_',
+                                                        ' ',
+                                                    )}
+                                                </Badge>
+                                            )}
+                                            <Badge
+                                                variant="secondary"
+                                                className="w-fit capitalize"
+                                            >
+                                                {invoice.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         )}
                     </CardContent>

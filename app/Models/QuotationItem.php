@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -77,6 +78,26 @@ class QuotationItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the delivery order line items recorded against this line item.
+     *
+     * @return HasMany<DeliveryOrderItem, $this>
+     */
+    public function deliveryOrderItems(): HasMany
+    {
+        return $this->hasMany(DeliveryOrderItem::class);
+    }
+
+    /**
+     * Get the invoice line items recorded against this line item.
+     *
+     * @return HasMany<InvoiceItem, $this>
+     */
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class);
     }
 
     /**

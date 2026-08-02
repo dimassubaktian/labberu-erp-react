@@ -4,6 +4,10 @@ use App\Http\Controllers\BomController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DeliveryOrderController;
+use App\Http\Controllers\GoodsReceiptNoteController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\InvoicePaymentController;
 use App\Http\Controllers\JobTitleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProjectAttachmentController;
@@ -100,6 +104,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('quotations', [QuotationController::class, 'index'])->name('quotations.index');
     Route::get('quotations/create', [QuotationController::class, 'create'])->name('quotations.create');
+    Route::get('quotations/search', [QuotationController::class, 'search'])->name('quotations.search');
     Route::post('quotations', [QuotationController::class, 'store'])->name('quotations.store');
     Route::get('quotations/{quotation}', [QuotationController::class, 'show'])->name('quotations.show');
     Route::get('quotations/{quotation}/edit', [QuotationController::class, 'edit'])->name('quotations.edit');
@@ -108,15 +113,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('quotations/{quotation}/progress', [QuotationController::class, 'updateProgress'])->name('quotations.progress.update');
     Route::post('quotations/{quotation}/revisions', [QuotationController::class, 'storeRevision'])->name('quotations.revisions.store');
     Route::delete('quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy');
+    Route::get('quotations/{quotation}/bom-items', [QuotationController::class, 'bomItems'])->name('quotations.bom-items.index');
+    Route::get('quotations/{quotation}/items', [QuotationController::class, 'items'])->name('quotations.items.index');
+
+    Route::get('delivery-orders', [DeliveryOrderController::class, 'index'])->name('delivery-orders.index');
+    Route::get('delivery-orders/create', [DeliveryOrderController::class, 'create'])->name('delivery-orders.create');
+    Route::post('delivery-orders', [DeliveryOrderController::class, 'store'])->name('delivery-orders.store');
+    Route::get('delivery-orders/{deliveryOrder}', [DeliveryOrderController::class, 'show'])->name('delivery-orders.show');
+    Route::get('delivery-orders/{deliveryOrder}/edit', [DeliveryOrderController::class, 'edit'])->name('delivery-orders.edit');
+    Route::put('delivery-orders/{deliveryOrder}', [DeliveryOrderController::class, 'update'])->name('delivery-orders.update');
+    Route::delete('delivery-orders/{deliveryOrder}', [DeliveryOrderController::class, 'destroy'])->name('delivery-orders.destroy');
+    Route::patch('delivery-orders/{deliveryOrder}/confirm', [DeliveryOrderController::class, 'confirm'])->name('delivery-orders.confirm');
+
+    Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
+    Route::post('invoices', [InvoiceController::class, 'store'])->name('invoices.store');
+    Route::get('invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
+    Route::put('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
+    Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::patch('invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('invoices.issue');
+    Route::post('invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store');
+    Route::delete('invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');
 
     Route::get('quotations/{quotation}/bom/create', [BomController::class, 'create'])->name('quotations.bom.create');
     Route::post('quotations/{quotation}/bom', [BomController::class, 'store'])->name('quotations.bom.store');
     Route::get('quotations/{quotation}/bom', [BomController::class, 'show'])->name('quotations.bom.show');
     Route::get('quotations/{quotation}/bom/edit', [BomController::class, 'edit'])->name('quotations.bom.edit');
     Route::put('quotations/{quotation}/bom', [BomController::class, 'update'])->name('quotations.bom.update');
+    Route::delete('quotations/{quotation}/bom', [BomController::class, 'destroy'])->name('quotations.bom.destroy');
 
     Route::get('purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
     Route::get('purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
+    Route::get('purchase-orders/search', [PurchaseOrderController::class, 'search'])->name('purchase-orders.search');
     Route::post('purchase-orders', [PurchaseOrderController::class, 'store'])->name('purchase-orders.store');
     Route::get('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
     Route::get('purchase-orders/{purchaseOrder}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
@@ -129,6 +158,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
     Route::patch('purchase-orders/{purchaseOrder}/void', [PurchaseOrderController::class, 'void'])->name('purchase-orders.void');
     Route::patch('purchase-orders/{purchaseOrder}/progress', [PurchaseOrderController::class, 'updateProgress'])->name('purchase-orders.progress.update');
+    Route::get('purchase-orders/{purchaseOrder}/items', [PurchaseOrderController::class, 'items'])->name('purchase-orders.items.index');
+
+    Route::get('goods-receipt-notes', [GoodsReceiptNoteController::class, 'index'])->name('goods-receipt-notes.index');
+    Route::get('goods-receipt-notes/create', [GoodsReceiptNoteController::class, 'create'])->name('goods-receipt-notes.create');
+    Route::post('goods-receipt-notes', [GoodsReceiptNoteController::class, 'store'])->name('goods-receipt-notes.store');
+    Route::get('goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'show'])->name('goods-receipt-notes.show');
+    Route::get('goods-receipt-notes/{goodsReceiptNote}/edit', [GoodsReceiptNoteController::class, 'edit'])->name('goods-receipt-notes.edit');
+    Route::put('goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'update'])->name('goods-receipt-notes.update');
+    Route::delete('goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'destroy'])->name('goods-receipt-notes.destroy');
+    Route::patch('goods-receipt-notes/{goodsReceiptNote}/confirm', [GoodsReceiptNoteController::class, 'confirm'])->name('goods-receipt-notes.confirm');
 });
 
 require __DIR__.'/settings.php';
