@@ -199,3 +199,12 @@ Roughly in order:
     of that tab block (section heading, per-tab counts, BOM-vs-others layout consistency,
     empty states) should also be reworked; the user scoped it down to just the active-tab
     color, so the tab content/layout itself is unchanged.
+33. **Small UI polish batch**: `quotations/show.tsx`'s linked-documents `TabsList` (BOM /
+    Purchase Orders / Delivery Orders / Invoices) changed from wrapping to a horizontal-scroll
+    strip (`flex-nowrap overflow-x-auto`) when the tab titles don't fit — a page-scoped
+    `className` override, not a change to the shared `Tabs` component (unlike item 32, which
+    did edit the shared component when `Tabs` had only one call site). `invoices/show.tsx`'s
+    Record Payment dialog got `sm:items-start` on the Method/Remarks two-column grid so the
+    shorter Method `Input` field no longer stretches to match the taller Remarks `Textarea`.
+    Also added a **"Session Start"** section to the repo's `CLAUDE.md` instructing future
+    sessions to `Read` `HANDOFF.md` first.

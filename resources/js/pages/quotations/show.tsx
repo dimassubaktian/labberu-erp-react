@@ -1066,7 +1066,7 @@ export default function QuotationsShow({ quotation, history }: Props) {
                 <Card>
                     <CardContent>
                         <Tabs defaultValue="bom">
-                            <TabsList>
+                            <TabsList className="w-full flex-nowrap justify-start overflow-x-auto">
                                 <TabsTrigger value="bom">
                                     Bill of Materials
                                 </TabsTrigger>

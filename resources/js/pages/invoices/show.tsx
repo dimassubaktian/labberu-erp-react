@@ -559,7 +559,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                             </div>
                                         </div>
 
-                                        <div className="grid gap-2 sm:grid-cols-2">
+                                        <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
                                             <div className="grid gap-2">
                                                 <Label htmlFor="method">
                                                     Method
