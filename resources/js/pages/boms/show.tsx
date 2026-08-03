@@ -152,7 +152,30 @@ function MaterialsTable({ items }: { items: BomItem[] }) {
     );
 }
 
-function SubgroupCard({ subgroup }: { subgroup: BomSubgroup }) {
+function SubgroupCard({
+    subgroup,
+    nested = false,
+}: {
+    subgroup: BomSubgroup;
+    nested?: boolean;
+}) {
+    if (nested) {
+        return (
+            <div className="space-y-4">
+                <h4 className="leading-none font-semibold">
+                    {subgroup.name}
+                </h4>
+
+                <MaterialsTable items={subgroup.items} />
+
+                <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                    <dt>Phase subtotal</dt>
+                    <dd>{formatNumber(subgroup.subtotal)}</dd>
+                </dl>
+            </div>
+        );
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -230,6 +253,7 @@ export default function BomsShow({ quotation, bom }: Props) {
                                 <SubgroupCard
                                     key={subgroup.id}
                                     subgroup={subgroup}
+                                    nested
                                 />
                             ))}
 
