@@ -9,6 +9,7 @@ use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
+use App\Models\StockMovement;
 use App\Models\Workforce;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -169,6 +170,7 @@ class DeliveryOrderController extends Controller
                 'delivered_at' => now(),
             ]);
 
+            $this->createStockMovements($deliveryOrder);
             $this->updateQuotationProgress($deliveryOrder->quotation);
         });
 
@@ -199,6 +201,29 @@ class DeliveryOrderController extends Controller
                 'quantity_ordered' => $quotationItem->quantity,
                 'unit' => $quotationItem->unit,
                 'quantity_delivered' => $item['quantity_delivered'],
+            ]);
+        }
+    }
+
+    /**
+     * Create an "out" stock movement for each delivered, physical-goods line item on this
+     * delivery order. Service products have no physical stock to track.
+     */
+    private function createStockMovements(DeliveryOrder $deliveryOrder): void
+    {
+        $deliveryOrder->load('items.product');
+
+        foreach ($deliveryOrder->items as $item) {
+            if ($item->product->type !== 'goods' || (float) $item->quantity_delivered <= 0) {
+                continue;
+            }
+
+            StockMovement::create([
+                'product_id' => $item->product_id,
+                'type' => 'out',
+                'quantity' => $item->quantity_delivered,
+                'movement_date' => $deliveryOrder->delivery_date,
+                'delivery_order_item_id' => $item->id,
             ]);
         }
     }

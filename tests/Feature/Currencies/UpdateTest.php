@@ -74,6 +74,40 @@ test('iso code must be unique against other currencies', function () {
         ->assertSessionHasErrors('iso_code');
 });
 
+test('marking a currency as base currency unsets the previous base currency', function () {
+    $user = User::factory()->create();
+    $existingBase = Currency::factory()->baseCurrency()->create(['iso_code' => 'USD']);
+    $currency = Currency::factory()->create(['iso_code' => 'EUR']);
+
+    $this->actingAs($user)
+        ->put(route('currencies.update', $currency), [
+            'iso_code' => $currency->iso_code,
+            'name' => $currency->name,
+            'status' => 'active',
+            'base_currency' => true,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('currencies', ['id' => $currency->id, 'base_currency' => true]);
+    $this->assertDatabaseHas('currencies', ['id' => $existingBase->id, 'base_currency' => false]);
+});
+
+test('a currency can be unmarked as base currency', function () {
+    $user = User::factory()->create();
+    $currency = Currency::factory()->baseCurrency()->create();
+
+    $this->actingAs($user)
+        ->put(route('currencies.update', $currency), [
+            'iso_code' => $currency->iso_code,
+            'name' => $currency->name,
+            'status' => 'active',
+            'base_currency' => false,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('currencies', ['id' => $currency->id, 'base_currency' => false]);
+});
+
 test('guests cannot edit or update currencies', function () {
     $currency = Currency::factory()->create();
 

@@ -101,7 +101,7 @@ class PurchaseOrderController extends Controller
         $currencies = Currency::query()
             ->where('status', 'active')
             ->orderBy('iso_code')
-            ->get(['id', 'iso_code', 'name', 'symbol']);
+            ->get(['id', 'iso_code', 'name', 'symbol', 'base_currency']);
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 

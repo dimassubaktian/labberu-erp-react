@@ -14,6 +14,8 @@ use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\QuotationController;
+use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WorkforceController;
@@ -68,6 +70,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    Route::get('stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index');
+
+    Route::get('stock-adjustments', [StockAdjustmentController::class, 'index'])->name('stock-adjustments.index');
+    Route::get('stock-adjustments/create', [StockAdjustmentController::class, 'create'])->name('stock-adjustments.create');
+    Route::post('stock-adjustments', [StockAdjustmentController::class, 'store'])->name('stock-adjustments.store');
 
     Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');

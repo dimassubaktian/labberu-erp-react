@@ -24,6 +24,7 @@ type Currency = {
     name: string;
     symbol: string | null;
     status: string;
+    base_currency: boolean;
     created_at: string;
     updated_at: string;
 };
@@ -122,6 +123,26 @@ export default function CurrenciesShow({ currency }: Props) {
                                     >
                                         {currency.status}
                                     </Badge>
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Base currency
+                                </dt>
+                                <dd>
+                                    {currency.base_currency ? (
+                                        <Badge
+                                            variant="default"
+                                            className="mt-1"
+                                        >
+                                            Base
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
                                 </dd>
                             </div>
 

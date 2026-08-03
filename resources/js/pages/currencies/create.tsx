@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,6 +18,7 @@ import { create, index, store } from '@/routes/currencies';
 
 export default function CurrenciesCreate() {
     const [status, setStatus] = useState('active');
+    const [baseCurrency, setBaseCurrency] = useState(false);
 
     return (
         <>
@@ -95,6 +97,25 @@ export default function CurrenciesCreate() {
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.status} />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="hidden"
+                                    name="base_currency"
+                                    value={baseCurrency ? '1' : '0'}
+                                />
+                                <Checkbox
+                                    id="base_currency"
+                                    checked={baseCurrency}
+                                    onCheckedChange={(checked) =>
+                                        setBaseCurrency(checked === true)
+                                    }
+                                />
+                                <Label htmlFor="base_currency">
+                                    Set as base currency
+                                </Label>
+                                <InputError message={errors.base_currency} />
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

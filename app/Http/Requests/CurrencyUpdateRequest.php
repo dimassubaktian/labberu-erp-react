@@ -24,6 +24,7 @@ class CurrencyUpdateRequest extends FormRequest
     {
         $this->merge([
             'iso_code' => strtoupper((string) $this->input('iso_code')),
+            'base_currency' => $this->boolean('base_currency'),
         ]);
     }
 
@@ -42,6 +43,7 @@ class CurrencyUpdateRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'symbol' => ['nullable', 'string', 'max:10'],
             'status' => ['required', 'string', 'in:active,inactive'],
+            'base_currency' => ['required', 'boolean'],
         ];
     }
 }

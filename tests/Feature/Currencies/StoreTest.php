@@ -117,6 +117,55 @@ test('iso code of a soft-deleted currency can be reused', function () {
     ]);
 });
 
+test('currency can be created as the base currency', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('currencies.store'), [
+            'iso_code' => 'usd',
+            'name' => 'US Dollar',
+            'status' => 'active',
+            'base_currency' => true,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('currencies', [
+        'iso_code' => 'USD',
+        'base_currency' => true,
+    ]);
+});
+
+test('creating a new base currency unsets the previous base currency', function () {
+    $user = User::factory()->create();
+    $existingBase = Currency::factory()->baseCurrency()->create(['iso_code' => 'USD']);
+
+    $this->actingAs($user)
+        ->post(route('currencies.store'), [
+            'iso_code' => 'eur',
+            'name' => 'Euro',
+            'status' => 'active',
+            'base_currency' => true,
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('currencies', ['iso_code' => 'EUR', 'base_currency' => true]);
+    $this->assertDatabaseHas('currencies', ['id' => $existingBase->id, 'base_currency' => false]);
+});
+
+test('base currency defaults to false when omitted', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('currencies.store'), [
+            'iso_code' => 'usd',
+            'name' => 'US Dollar',
+            'status' => 'active',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('currencies', ['iso_code' => 'USD', 'base_currency' => false]);
+});
+
 test('guests cannot create currencies', function () {
     $this->get(route('currencies.create'))
         ->assertRedirect(route('login'));

@@ -29,7 +29,7 @@ class ProjectUpdateRequest extends FormRequest
             'request_date' => ['required', 'date'],
             'person_in_charge_id' => ['nullable', Rule::exists('workforces', 'id')->whereNull('deleted_at')],
             'description' => ['nullable', 'string', 'max:2000'],
-            'status' => ['required', 'string', 'in:planning,in_progress,completed,cancelled'],
+            'status' => ['required', 'string', 'in:new,planning,in_progress,completed,cancelled'],
             'priority' => ['required', 'string', 'in:low,medium,high,urgent'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],

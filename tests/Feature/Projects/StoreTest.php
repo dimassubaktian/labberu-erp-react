@@ -49,6 +49,23 @@ test('project can be created', function () {
     ]);
 });
 
+test('a project can be created with the new status', function () {
+    $user = User::factory()->create();
+    $customer = Customer::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->post(route('projects.store'), [
+            'name' => 'Panel Retrofit',
+            'customer_id' => $customer->id,
+            'request_date' => '2026-07-01',
+            'status' => 'new',
+            'priority' => 'medium',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+    $this->assertDatabaseHas('projects', ['name' => 'Panel Retrofit', 'status' => 'new']);
+});
+
 test('project code is generated using the year, month, and customer code', function () {
     $user = User::factory()->create();
     $customer = Customer::factory()->create(['name' => 'Zeta Corp']);

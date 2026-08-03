@@ -36,7 +36,7 @@ type Props = {
 export default function ProjectsCreate({ workforces }: Props) {
     const [customerId, setCustomerId] = useState('');
     const [personInChargeId, setPersonInChargeId] = useState('');
-    const [status, setStatus] = useState('planning');
+    const [status, setStatus] = useState('new');
     const [priority, setPriority] = useState('medium');
 
     return (
@@ -168,6 +168,9 @@ export default function ProjectsCreate({ workforces }: Props) {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="new">
+                                                New
+                                            </SelectItem>
                                             <SelectItem value="planning">
                                                 Planning
                                             </SelectItem>

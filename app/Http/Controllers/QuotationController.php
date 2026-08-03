@@ -13,6 +13,7 @@ use App\Models\BomSubgroup;
 use App\Models\Currency;
 use App\Models\DeliveryOrderItem;
 use App\Models\InvoiceItem;
+use App\Models\Project;
 use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
@@ -109,16 +110,26 @@ class QuotationController extends Controller
     /**
      * Show the form for creating a new quotation.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $initialProject = null;
+
+        if ($request->query('project')) {
+            $initialProject = Project::query()
+                ->where('uuid', $request->query('project'))
+                ->with('customer:id,name')
+                ->first(['id', 'uuid', 'name', 'project_code', 'customer_id']);
+        }
+
         $currencies = Currency::query()
             ->where('status', 'active')
             ->orderBy('iso_code')
-            ->get(['id', 'iso_code', 'name', 'symbol']);
+            ->get(['id', 'iso_code', 'name', 'symbol', 'base_currency']);
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
         return Inertia::render('quotations/create', [
+            'initialProject' => $initialProject,
             'currencies' => $currencies,
             'taxes' => $taxes,
         ]);

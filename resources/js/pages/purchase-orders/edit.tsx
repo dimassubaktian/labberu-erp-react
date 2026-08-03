@@ -266,7 +266,9 @@ function LineItemFields({
                         searchUrl={searchProducts().url}
                         getOptionId={(product) => String(product.id)}
                         getOptionLabel={(product) =>
-                            `${product.product_code} — ${product.name}`
+                            product.reference_number
+                                ? `${product.product_code} — ${product.name} (${product.reference_number})`
+                                : `${product.product_code} — ${product.name}`
                         }
                         initialOption={item.initialProduct}
                         placeholder="Select a product"

@@ -6,6 +6,7 @@ use App\Http\Requests\CurrencyStoreRequest;
 use App\Http\Requests\CurrencyUpdateRequest;
 use App\Models\Currency;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,7 +40,15 @@ class CurrencyController extends Controller
      */
     public function store(CurrencyStoreRequest $request): RedirectResponse
     {
-        Currency::create($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data): void {
+            if ($data['base_currency']) {
+                Currency::query()->where('base_currency', true)->update(['base_currency' => false]);
+            }
+
+            Currency::create($data);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Currency created.')]);
 
@@ -71,7 +80,15 @@ class CurrencyController extends Controller
      */
     public function update(CurrencyUpdateRequest $request, Currency $currency): RedirectResponse
     {
-        $currency->update($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $currency): void {
+            if ($data['base_currency']) {
+                Currency::query()->where('id', '!=', $currency->id)->where('base_currency', true)->update(['base_currency' => false]);
+            }
+
+            $currency->update($data);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Currency updated.')]);
 

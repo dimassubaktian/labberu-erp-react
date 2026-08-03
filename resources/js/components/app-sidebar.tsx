@@ -44,6 +44,8 @@ import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
 import { index as purchaseOrdersIndex } from '@/routes/purchase-orders';
 import { index as quotationsIndex } from '@/routes/quotations';
+import { index as stockAdjustmentsIndex } from '@/routes/stock-adjustments';
+import { index as stockMovementsIndex } from '@/routes/stock-movements';
 import { index as taxesIndex } from '@/routes/taxes';
 import { index as vendorsIndex } from '@/routes/vendors';
 import { index as workforcesIndex } from '@/routes/workforces';
@@ -99,15 +101,13 @@ const mainNavGroups: NavGroup[] = [
             { title: 'Products', href: productsIndex(), icon: Package },
             {
                 title: 'Stock Movements',
-                href: '#',
+                href: stockMovementsIndex(),
                 icon: ArrowLeftRight,
-                disabled: true,
             },
             {
                 title: 'Stock Adjustments',
-                href: '#',
+                href: stockAdjustmentsIndex(),
                 icon: ClipboardEdit,
-                disabled: true,
             },
         ],
     },

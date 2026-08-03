@@ -17,11 +17,12 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property string|null $symbol
  * @property string $status
+ * @property bool $base_currency
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
-#[Fillable(['iso_code', 'name', 'symbol', 'status'])]
+#[Fillable(['iso_code', 'name', 'symbol', 'status', 'base_currency'])]
 class Currency extends Model
 {
     /** @use HasFactory<CurrencyFactory> */
@@ -53,6 +54,7 @@ class Currency extends Model
     protected function casts(): array
     {
         return [
+            'base_currency' => 'boolean',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',

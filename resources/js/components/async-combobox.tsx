@@ -59,6 +59,13 @@ export function AsyncCombobox<T>({
     >({ q: '' });
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
     const hasSearchedRef = React.useRef(false);
+    const [prevInitialOption, setPrevInitialOption] =
+        React.useState(initialOption);
+
+    if (initialOption !== prevInitialOption) {
+        setPrevInitialOption(initialOption);
+        setSelectedOption(initialOption);
+    }
 
     function search(query: string): void {
         setData('q', query);

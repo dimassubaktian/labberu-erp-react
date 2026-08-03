@@ -6,6 +6,15 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -16,6 +25,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatNumber } from '@/lib/utils';
 import { search as searchProducts } from '@/routes/products';
@@ -32,6 +49,7 @@ type ProductOption = {
     id: number;
     name: string;
     product_code: string;
+    reference_number: string;
     descriptions: string;
     brand: string;
     unit: string;
@@ -40,6 +58,7 @@ type ProductOption = {
 
 type LineItem = {
     product_id: string;
+    product: ProductOption | null;
     description: string;
     brand: string;
     quantity: string;
@@ -52,11 +71,15 @@ type LineItem = {
 type SubgroupState = {
     name: string;
     items: LineItem[];
+    draft: LineItem;
+    editingItemIndex: number | null;
 };
 
 type GroupState = {
     name: string;
     items: LineItem[];
+    draft: LineItem;
+    editingItemIndex: number | null;
     subgroups: SubgroupState[];
 };
 
@@ -67,6 +90,7 @@ type Props = {
 function emptyItem(): LineItem {
     return {
         product_id: '',
+        product: null,
         description: '',
         brand: '',
         quantity: '1',
@@ -80,16 +104,40 @@ function emptyItem(): LineItem {
 function emptySubgroup(): SubgroupState {
     return {
         name: '',
-        items: [emptyItem()],
+        items: [],
+        draft: emptyItem(),
+        editingItemIndex: null,
     };
 }
 
 function emptyGroup(): GroupState {
     return {
         name: '',
-        items: [emptyItem()],
+        items: [],
+        draft: emptyItem(),
+        editingItemIndex: null,
         subgroups: [],
     };
+}
+
+function productLabel(product: ProductOption | null | undefined): string {
+    if (!product) {
+        return '—';
+    }
+
+    return product.reference_number
+        ? `${product.product_code} — ${product.name} (${product.reference_number})`
+        : `${product.product_code} — ${product.name}`;
+}
+
+function discountLabel(item: LineItem): string {
+    if (item.discount_type === 'none' || item.discount_value === '') {
+        return '—';
+    }
+
+    return item.discount_type === 'percentage'
+        ? `${item.discount_value}%`
+        : formatNumber(Number(item.discount_value));
 }
 
 function applyDiscount(
@@ -121,34 +169,40 @@ function calculateItemsSubtotal(items: LineItem[]): number {
     return items.reduce((sum, item) => sum + calculateItemTotalCost(item), 0);
 }
 
-type LineItemFieldsProps = {
-    namePrefix: string;
-    errorPrefix: string;
-    item: LineItem;
-    initialProduct?: ProductOption | null;
+type LineItemFormProps = {
+    idPrefix: string;
+    draft: LineItem;
     errors: Partial<Record<string, string>>;
-    onChange: (changes: Partial<LineItem>) => void;
-    onRemove?: () => void;
+    errorPrefix?: string;
+    isEditing: boolean;
+    onDraftChange: (changes: Partial<LineItem>) => void;
+    onSubmit: () => void;
+    onCancel: () => void;
 };
 
-function LineItemFields({
-    namePrefix,
-    errorPrefix,
-    item,
-    initialProduct = null,
+function LineItemForm({
+    idPrefix,
+    draft,
     errors,
-    onChange,
-    onRemove,
-}: LineItemFieldsProps) {
-    const totalCost = calculateItemTotalCost(item);
-    const fieldId = namePrefix.replace(/[[\].]/g, '-');
+    errorPrefix,
+    isEditing,
+    onDraftChange,
+    onSubmit,
+    onCancel,
+}: LineItemFormProps) {
+    const totalCost = calculateItemTotalCost(draft);
+
+    function fieldError(field: string): string | undefined {
+        return errorPrefix ? errors[`${errorPrefix}.${field}`] : undefined;
+    }
 
     function handleProductChange(
         productId: string,
         product?: ProductOption,
     ): void {
-        onChange({
+        onDraftChange({
             product_id: productId,
+            product: product ?? null,
             description: product?.descriptions ?? '',
             brand: product?.brand ?? '',
             unit: product?.unit ?? '',
@@ -158,131 +212,104 @@ function LineItemFields({
 
     return (
         <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
-            <div className="flex items-start justify-between gap-2">
-                <div className="grid flex-1 gap-2">
-                    <Label htmlFor={`${fieldId}-product`}>Product</Label>
-                    <input
-                        type="hidden"
-                        name={`${namePrefix}[product_id]`}
-                        value={item.product_id}
-                    />
-                    <AsyncCombobox<ProductOption>
-                        id={`${fieldId}-product`}
-                        value={item.product_id}
-                        onValueChange={handleProductChange}
-                        searchUrl={searchProducts().url}
-                        getOptionId={(product) => String(product.id)}
-                        getOptionLabel={(product) =>
-                            `${product.product_code} — ${product.name}`
-                        }
-                        initialOption={initialProduct}
-                        placeholder="Select a product"
-                    />
-                    <InputError message={errors[`${errorPrefix}.product_id`]} />
-                </div>
-
-                {onRemove && (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="mt-6"
-                        onClick={onRemove}
-                    >
-                        <Trash2 className="text-destructive" />
-                    </Button>
-                )}
+            <div className="grid gap-2">
+                <Label htmlFor={`${idPrefix}-product`}>Product</Label>
+                <AsyncCombobox<ProductOption>
+                    id={`${idPrefix}-product`}
+                    value={draft.product_id}
+                    onValueChange={handleProductChange}
+                    searchUrl={searchProducts().url}
+                    getOptionId={(product) => String(product.id)}
+                    getOptionLabel={productLabel}
+                    initialOption={draft.product}
+                    placeholder="Select a product"
+                />
+                <InputError message={fieldError('product_id')} />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={`${fieldId}-description`}>Description</Label>
+                <Label htmlFor={`${idPrefix}-description`}>Description</Label>
                 <Textarea
-                    id={`${fieldId}-description`}
-                    name={`${namePrefix}[description]`}
-                    value={item.description}
-                    onChange={(e) => onChange({ description: e.target.value })}
+                    id={`${idPrefix}-description`}
+                    value={draft.description}
+                    onChange={(e) =>
+                        onDraftChange({ description: e.target.value })
+                    }
                     placeholder="Optional"
                     rows={2}
                 />
-                <InputError message={errors[`${errorPrefix}.description`]} />
+                <InputError message={fieldError('description')} />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-4">
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldId}-brand`}>Brand</Label>
+                    <Label htmlFor={`${idPrefix}-brand`}>Brand</Label>
                     <Input
-                        id={`${fieldId}-brand`}
-                        name={`${namePrefix}[brand]`}
-                        value={item.brand}
-                        onChange={(e) => onChange({ brand: e.target.value })}
+                        id={`${idPrefix}-brand`}
+                        value={draft.brand}
+                        onChange={(e) =>
+                            onDraftChange({ brand: e.target.value })
+                        }
                     />
-                    <InputError message={errors[`${errorPrefix}.brand`]} />
+                    <InputError message={fieldError('brand')} />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldId}-quantity`}>Quantity</Label>
+                    <Label htmlFor={`${idPrefix}-quantity`}>Quantity</Label>
                     <Input
-                        id={`${fieldId}-quantity`}
+                        id={`${idPrefix}-quantity`}
                         type="number"
                         step="0.01"
                         min="0.01"
-                        name={`${namePrefix}[quantity]`}
-                        value={item.quantity}
-                        onChange={(e) => onChange({ quantity: e.target.value })}
+                        value={draft.quantity}
+                        onChange={(e) =>
+                            onDraftChange({ quantity: e.target.value })
+                        }
                     />
-                    <InputError message={errors[`${errorPrefix}.quantity`]} />
+                    <InputError message={fieldError('quantity')} />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldId}-unit`}>Unit</Label>
+                    <Label htmlFor={`${idPrefix}-unit`}>Unit</Label>
                     <Input
-                        id={`${fieldId}-unit`}
-                        name={`${namePrefix}[unit]`}
-                        value={item.unit}
-                        onChange={(e) => onChange({ unit: e.target.value })}
+                        id={`${idPrefix}-unit`}
+                        value={draft.unit}
+                        onChange={(e) =>
+                            onDraftChange({ unit: e.target.value })
+                        }
                     />
-                    <InputError message={errors[`${errorPrefix}.unit`]} />
+                    <InputError message={fieldError('unit')} />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldId}-unit-cost`}>Unit cost</Label>
+                    <Label htmlFor={`${idPrefix}-unit-cost`}>Unit cost</Label>
                     <Input
-                        id={`${fieldId}-unit-cost`}
+                        id={`${idPrefix}-unit-cost`}
                         type="number"
                         step="0.01"
                         min="0"
-                        name={`${namePrefix}[unit_cost]`}
-                        value={item.unit_cost}
+                        value={draft.unit_cost}
                         onChange={(e) =>
-                            onChange({ unit_cost: e.target.value })
+                            onDraftChange({ unit_cost: e.target.value })
                         }
                     />
-                    <InputError message={errors[`${errorPrefix}.unit_cost`]} />
+                    <InputError message={fieldError('unit_cost')} />
                 </div>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldId}-discount-type`}>
+                    <Label htmlFor={`${idPrefix}-discount-type`}>
                         Discount type
                     </Label>
-                    <input
-                        type="hidden"
-                        name={`${namePrefix}[discount_type]`}
-                        value={
-                            item.discount_type === 'none'
-                                ? ''
-                                : item.discount_type
-                        }
-                    />
                     <Select
-                        value={item.discount_type}
+                        value={draft.discount_type}
                         onValueChange={(value) =>
-                            onChange({ discount_type: value })
+                            onDraftChange({ discount_type: value })
                         }
                     >
                         <SelectTrigger
-                            id={`${fieldId}-discount-type`}
+                            id={`${idPrefix}-discount-type`}
                             className="w-full"
                         >
                             <SelectValue />
@@ -295,31 +322,26 @@ function LineItemFields({
                             <SelectItem value="fixed">Fixed amount</SelectItem>
                         </SelectContent>
                     </Select>
-                    <InputError
-                        message={errors[`${errorPrefix}.discount_type`]}
-                    />
+                    <InputError message={fieldError('discount_type')} />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`${fieldId}-discount-value`}>
+                    <Label htmlFor={`${idPrefix}-discount-value`}>
                         Discount value
                     </Label>
                     <Input
-                        id={`${fieldId}-discount-value`}
+                        id={`${idPrefix}-discount-value`}
                         type="number"
                         step="0.01"
                         min="0"
-                        name={`${namePrefix}[discount_value]`}
-                        value={item.discount_value}
+                        value={draft.discount_value}
                         onChange={(e) =>
-                            onChange({ discount_value: e.target.value })
+                            onDraftChange({ discount_value: e.target.value })
                         }
-                        disabled={item.discount_type === 'none'}
+                        disabled={draft.discount_type === 'none'}
                         placeholder="Optional"
                     />
-                    <InputError
-                        message={errors[`${errorPrefix}.discount_value`]}
-                    />
+                    <InputError message={fieldError('discount_value')} />
                 </div>
             </div>
 
@@ -327,6 +349,259 @@ function LineItemFields({
                 <dt className="text-sm text-muted-foreground">Total cost</dt>
                 <dd className="font-medium">{formatNumber(totalCost)}</dd>
             </dl>
+
+            <div className="flex justify-end gap-2">
+                {isEditing && (
+                    <Button type="button" variant="outline" onClick={onCancel}>
+                        Cancel edit
+                    </Button>
+                )}
+                <Button
+                    type="button"
+                    disabled={!draft.product_id}
+                    onClick={onSubmit}
+                >
+                    {!isEditing && <Plus />}
+                    {isEditing ? 'Update line' : 'Add line'}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+type LineItemRowProps = {
+    namePrefix: string;
+    errorPrefix: string;
+    item: LineItem;
+    errors: Partial<Record<string, string>>;
+    isEditing: boolean;
+    onEdit: () => void;
+    onRemove: () => void;
+};
+
+function LineItemRow({
+    namePrefix,
+    errorPrefix,
+    item,
+    errors,
+    isEditing,
+    onEdit,
+    onRemove,
+}: LineItemRowProps) {
+    const totalCost = calculateItemTotalCost(item);
+    const fieldNames = [
+        'product_id',
+        'description',
+        'brand',
+        'quantity',
+        'unit',
+        'unit_cost',
+        'discount_type',
+        'discount_value',
+    ] as const;
+    const rowError = fieldNames
+        .map((field) => errors[`${errorPrefix}.${field}`])
+        .find(Boolean);
+
+    return (
+        <TableRow
+            data-state={isEditing ? 'selected' : undefined}
+            className="cursor-pointer"
+            onClick={onEdit}
+        >
+            <TableCell className="whitespace-normal">
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[product_id]`}
+                    value={item.product_id}
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[description]`}
+                    value={item.description}
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[brand]`}
+                    value={item.brand}
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[quantity]`}
+                    value={item.quantity}
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[unit]`}
+                    value={item.unit}
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[unit_cost]`}
+                    value={item.unit_cost}
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[discount_type]`}
+                    value={
+                        item.discount_type === 'none' ? '' : item.discount_type
+                    }
+                />
+                <input
+                    type="hidden"
+                    name={`${namePrefix}[discount_value]`}
+                    value={item.discount_value}
+                />
+                <div className="font-medium">{productLabel(item.product)}</div>
+                {rowError && (
+                    <p className="text-xs text-destructive">{rowError}</p>
+                )}
+            </TableCell>
+            <TableCell>
+                {item.quantity}
+                {item.unit ? ` ${item.unit}` : ''}
+            </TableCell>
+            <TableCell>{formatNumber(Number(item.unit_cost))}</TableCell>
+            <TableCell>{discountLabel(item)}</TableCell>
+            <TableCell className="text-right font-medium">
+                {formatNumber(totalCost)}
+            </TableCell>
+            <TableCell>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Trash2 className="text-destructive" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent onClick={(e) => e.stopPropagation()}>
+                        <DialogTitle>Remove line item?</DialogTitle>
+                        <DialogDescription>
+                            This will remove &quot;
+                            {productLabel(item.product)}&quot; from the bill of
+                            materials. This cannot be undone.
+                        </DialogDescription>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    onClick={onRemove}
+                                >
+                                    Remove
+                                </Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </TableCell>
+        </TableRow>
+    );
+}
+
+type LineItemsSectionProps = {
+    idPrefix: string;
+    namePrefix: string;
+    errorPrefix: string;
+    items: LineItem[];
+    draft: LineItem;
+    editingItemIndex: number | null;
+    errors: Partial<Record<string, string>>;
+    emptyMessage: string;
+    onDraftChange: (changes: Partial<LineItem>) => void;
+    onSubmitItem: () => void;
+    onCancelItemEdit: () => void;
+    onEditItem: (itemIndex: number) => void;
+    onRemoveItem: (itemIndex: number) => void;
+};
+
+function LineItemsSection({
+    idPrefix,
+    namePrefix,
+    errorPrefix,
+    items,
+    draft,
+    editingItemIndex,
+    errors,
+    emptyMessage,
+    onDraftChange,
+    onSubmitItem,
+    onCancelItemEdit,
+    onEditItem,
+    onRemoveItem,
+}: LineItemsSectionProps) {
+    return (
+        <div className="space-y-4">
+            <InputError message={errors[errorPrefix]} />
+
+            <LineItemForm
+                idPrefix={idPrefix}
+                draft={draft}
+                errors={errors}
+                errorPrefix={
+                    editingItemIndex !== null
+                        ? `${errorPrefix}.${editingItemIndex}`
+                        : undefined
+                }
+                isEditing={editingItemIndex !== null}
+                onDraftChange={onDraftChange}
+                onSubmit={onSubmitItem}
+                onCancel={onCancelItemEdit}
+            />
+
+            {items.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    {emptyMessage}
+                </p>
+            )}
+
+            {items.length > 0 && (
+                <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Product</TableHead>
+                                <TableHead className="w-24">Qty</TableHead>
+                                <TableHead className="w-28">
+                                    Unit cost
+                                </TableHead>
+                                <TableHead className="w-24">
+                                    Discount
+                                </TableHead>
+                                <TableHead className="w-28 text-right">
+                                    Total cost
+                                </TableHead>
+                                <TableHead className="w-16" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map((item, itemIndex) => (
+                                <LineItemRow
+                                    key={itemIndex}
+                                    namePrefix={`${namePrefix}[${itemIndex}]`}
+                                    errorPrefix={`${errorPrefix}.${itemIndex}`}
+                                    item={item}
+                                    errors={errors}
+                                    isEditing={
+                                        editingItemIndex === itemIndex
+                                    }
+                                    onEdit={() => onEditItem(itemIndex)}
+                                    onRemove={() => onRemoveItem(itemIndex)}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
         </div>
     );
 }
@@ -337,9 +612,11 @@ type SubgroupFieldsProps = {
     subgroup: SubgroupState;
     errors: Partial<Record<string, string>>;
     onNameChange: (name: string) => void;
-    onAddItem: () => void;
+    onDraftChange: (changes: Partial<LineItem>) => void;
+    onSubmitItem: () => void;
+    onCancelItemEdit: () => void;
+    onEditItem: (itemIndex: number) => void;
     onRemoveItem: (itemIndex: number) => void;
-    onUpdateItem: (itemIndex: number, changes: Partial<LineItem>) => void;
     onRemove: () => void;
 };
 
@@ -349,9 +626,11 @@ function SubgroupFields({
     subgroup,
     errors,
     onNameChange,
-    onAddItem,
+    onDraftChange,
+    onSubmitItem,
+    onCancelItemEdit,
+    onEditItem,
     onRemoveItem,
-    onUpdateItem,
     onRemove,
 }: SubgroupFieldsProps) {
     const subtotal = calculateItemsSubtotal(subgroup.items);
@@ -382,35 +661,23 @@ function SubgroupFields({
                 </Button>
             </div>
             <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <Label>Materials</Label>
-                    <Button type="button" size="sm" onClick={onAddItem}>
-                        <Plus />
-                        Add line
-                    </Button>
-                </div>
-                <InputError message={errors[`${errorPrefix}.items`]} />
+                <Label>Materials</Label>
 
-                {subgroup.items.map((item, itemIndex) => (
-                    <LineItemFields
-                        key={itemIndex}
-                        namePrefix={`${namePrefix}[items][${itemIndex}]`}
-                        errorPrefix={`${errorPrefix}.items.${itemIndex}`}
-                        item={item}
-                        errors={errors}
-                        onChange={(changes) => onUpdateItem(itemIndex, changes)}
-                        onRemove={
-                            subgroup.items.length > 1
-                                ? () => onRemoveItem(itemIndex)
-                                : undefined
-                        }
-                    />
-                ))}
-
-                <Button type="button" size="sm" onClick={onAddItem}>
-                    <Plus />
-                    Add line
-                </Button>
+                <LineItemsSection
+                    idPrefix={`${fieldId}-item`}
+                    namePrefix={`${namePrefix}[items]`}
+                    errorPrefix={`${errorPrefix}.items`}
+                    items={subgroup.items}
+                    draft={subgroup.draft}
+                    editingItemIndex={subgroup.editingItemIndex}
+                    errors={errors}
+                    emptyMessage="No materials in this phase yet. Add one above."
+                    onDraftChange={onDraftChange}
+                    onSubmitItem={onSubmitItem}
+                    onCancelItemEdit={onCancelItemEdit}
+                    onEditItem={onEditItem}
+                    onRemoveItem={onRemoveItem}
+                />
 
                 <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
                     <dt>Phase subtotal</dt>
@@ -430,26 +697,54 @@ export default function BomsCreate({ quotation }: Props) {
         ],
     });
 
-    const [items, setItems] = useState<LineItem[]>([emptyItem()]);
+    const [items, setItems] = useState<LineItem[]>([]);
+    const [itemDraft, setItemDraft] = useState<LineItem>(emptyItem());
+    const [editingItemIndex, setEditingItemIndex] = useState<number | null>(
+        null,
+    );
     const [subgroups, setSubgroups] = useState<SubgroupState[]>([]);
     const [groups, setGroups] = useState<GroupState[]>([]);
     const [overheadPercentage, setOverheadPercentage] = useState('');
     const [sellingPercentage, setSellingPercentage] = useState('');
 
-    function updateItem(index: number, changes: Partial<LineItem>): void {
-        setItems((current) =>
-            current.map((item, i) =>
-                i === index ? { ...item, ...changes } : item,
-            ),
-        );
+    function updateItemDraft(changes: Partial<LineItem>): void {
+        setItemDraft((current) => ({ ...current, ...changes }));
     }
 
-    function addItem(): void {
-        setItems((current) => [...current, emptyItem()]);
+    function submitItemDraft(): void {
+        if (editingItemIndex !== null) {
+            setItems((current) =>
+                current.map((item, i) =>
+                    i === editingItemIndex ? itemDraft : item,
+                ),
+            );
+        } else {
+            setItems((current) => [...current, itemDraft]);
+        }
+
+        setItemDraft(emptyItem());
+        setEditingItemIndex(null);
+    }
+
+    function editItem(index: number): void {
+        setItemDraft(items[index]);
+        setEditingItemIndex(index);
+    }
+
+    function cancelItemEdit(): void {
+        setItemDraft(emptyItem());
+        setEditingItemIndex(null);
     }
 
     function removeItem(index: number): void {
         setItems((current) => current.filter((_, i) => i !== index));
+
+        if (editingItemIndex === index) {
+            setItemDraft(emptyItem());
+            setEditingItemIndex(null);
+        } else if (editingItemIndex !== null && editingItemIndex > index) {
+            setEditingItemIndex(editingItemIndex - 1);
+        }
     }
 
     function addSubgroup(): void {
@@ -470,11 +765,67 @@ export default function BomsCreate({ quotation }: Props) {
         );
     }
 
-    function addSubgroupItem(subgroupIndex: number): void {
+    function updateSubgroupDraft(
+        subgroupIndex: number,
+        changes: Partial<LineItem>,
+    ): void {
         setSubgroups((current) =>
             current.map((subgroup, i) =>
                 i === subgroupIndex
-                    ? { ...subgroup, items: [...subgroup.items, emptyItem()] }
+                    ? {
+                          ...subgroup,
+                          draft: { ...subgroup.draft, ...changes },
+                      }
+                    : subgroup,
+            ),
+        );
+    }
+
+    function submitSubgroupItemDraft(subgroupIndex: number): void {
+        setSubgroups((current) =>
+            current.map((subgroup, i) => {
+                if (i !== subgroupIndex) {
+                    return subgroup;
+                }
+
+                const items =
+                    subgroup.editingItemIndex !== null
+                        ? subgroup.items.map((item, j) =>
+                              j === subgroup.editingItemIndex
+                                  ? subgroup.draft
+                                  : item,
+                          )
+                        : [...subgroup.items, subgroup.draft];
+
+                return {
+                    ...subgroup,
+                    items,
+                    draft: emptyItem(),
+                    editingItemIndex: null,
+                };
+            }),
+        );
+    }
+
+    function editSubgroupItem(subgroupIndex: number, itemIndex: number): void {
+        setSubgroups((current) =>
+            current.map((subgroup, i) =>
+                i === subgroupIndex
+                    ? {
+                          ...subgroup,
+                          draft: subgroup.items[itemIndex],
+                          editingItemIndex: itemIndex,
+                      }
+                    : subgroup,
+            ),
+        );
+    }
+
+    function cancelSubgroupItemEdit(subgroupIndex: number): void {
+        setSubgroups((current) =>
+            current.map((subgroup, i) =>
+                i === subgroupIndex
+                    ? { ...subgroup, draft: emptyItem(), editingItemIndex: null }
                     : subgroup,
             ),
         );
@@ -485,35 +836,33 @@ export default function BomsCreate({ quotation }: Props) {
         itemIndex: number,
     ): void {
         setSubgroups((current) =>
-            current.map((subgroup, i) =>
-                i === subgroupIndex
-                    ? {
-                          ...subgroup,
-                          items: subgroup.items.filter(
-                              (_, j) => j !== itemIndex,
-                          ),
-                      }
-                    : subgroup,
-            ),
-        );
-    }
+            current.map((subgroup, i) => {
+                if (i !== subgroupIndex) {
+                    return subgroup;
+                }
 
-    function updateSubgroupItem(
-        subgroupIndex: number,
-        itemIndex: number,
-        changes: Partial<LineItem>,
-    ): void {
-        setSubgroups((current) =>
-            current.map((subgroup, i) =>
-                i === subgroupIndex
-                    ? {
-                          ...subgroup,
-                          items: subgroup.items.map((item, j) =>
-                              j === itemIndex ? { ...item, ...changes } : item,
-                          ),
-                      }
-                    : subgroup,
-            ),
+                const items = subgroup.items.filter((_, j) => j !== itemIndex);
+
+                if (subgroup.editingItemIndex === null) {
+                    return { ...subgroup, items };
+                }
+
+                if (subgroup.editingItemIndex === itemIndex) {
+                    return {
+                        ...subgroup,
+                        items,
+                        draft: emptyItem(),
+                        editingItemIndex: null,
+                    };
+                }
+
+                const editingItemIndex =
+                    subgroup.editingItemIndex > itemIndex
+                        ? subgroup.editingItemIndex - 1
+                        : subgroup.editingItemIndex;
+
+                return { ...subgroup, items, editingItemIndex };
+            }),
         );
     }
 
@@ -536,11 +885,62 @@ export default function BomsCreate({ quotation }: Props) {
         );
     }
 
-    function addGroupItem(groupIndex: number): void {
+    function updateGroupDraft(
+        groupIndex: number,
+        changes: Partial<LineItem>,
+    ): void {
         setGroups((current) =>
             current.map((group, i) =>
                 i === groupIndex
-                    ? { ...group, items: [...group.items, emptyItem()] }
+                    ? { ...group, draft: { ...group.draft, ...changes } }
+                    : group,
+            ),
+        );
+    }
+
+    function submitGroupItemDraft(groupIndex: number): void {
+        setGroups((current) =>
+            current.map((group, i) => {
+                if (i !== groupIndex) {
+                    return group;
+                }
+
+                const items =
+                    group.editingItemIndex !== null
+                        ? group.items.map((item, j) =>
+                              j === group.editingItemIndex ? group.draft : item,
+                          )
+                        : [...group.items, group.draft];
+
+                return {
+                    ...group,
+                    items,
+                    draft: emptyItem(),
+                    editingItemIndex: null,
+                };
+            }),
+        );
+    }
+
+    function editGroupItem(groupIndex: number, itemIndex: number): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? {
+                          ...group,
+                          draft: group.items[itemIndex],
+                          editingItemIndex: itemIndex,
+                      }
+                    : group,
+            ),
+        );
+    }
+
+    function cancelGroupItemEdit(groupIndex: number): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? { ...group, draft: emptyItem(), editingItemIndex: null }
                     : group,
             ),
         );
@@ -548,33 +948,33 @@ export default function BomsCreate({ quotation }: Props) {
 
     function removeGroupItem(groupIndex: number, itemIndex: number): void {
         setGroups((current) =>
-            current.map((group, i) =>
-                i === groupIndex
-                    ? {
-                          ...group,
-                          items: group.items.filter((_, j) => j !== itemIndex),
-                      }
-                    : group,
-            ),
-        );
-    }
+            current.map((group, i) => {
+                if (i !== groupIndex) {
+                    return group;
+                }
 
-    function updateGroupItem(
-        groupIndex: number,
-        itemIndex: number,
-        changes: Partial<LineItem>,
-    ): void {
-        setGroups((current) =>
-            current.map((group, i) =>
-                i === groupIndex
-                    ? {
-                          ...group,
-                          items: group.items.map((item, j) =>
-                              j === itemIndex ? { ...item, ...changes } : item,
-                          ),
-                      }
-                    : group,
-            ),
+                const items = group.items.filter((_, j) => j !== itemIndex);
+
+                if (group.editingItemIndex === null) {
+                    return { ...group, items };
+                }
+
+                if (group.editingItemIndex === itemIndex) {
+                    return {
+                        ...group,
+                        items,
+                        draft: emptyItem(),
+                        editingItemIndex: null,
+                    };
+                }
+
+                const editingItemIndex =
+                    group.editingItemIndex > itemIndex
+                        ? group.editingItemIndex - 1
+                        : group.editingItemIndex;
+
+                return { ...group, items, editingItemIndex };
+            }),
         );
     }
 
@@ -630,7 +1030,97 @@ export default function BomsCreate({ quotation }: Props) {
         );
     }
 
-    function addGroupSubgroupItem(
+    function updateGroupSubgroupDraft(
+        groupIndex: number,
+        subgroupIndex: number,
+        changes: Partial<LineItem>,
+    ): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? {
+                          ...group,
+                          subgroups: group.subgroups.map((subgroup, j) =>
+                              j === subgroupIndex
+                                  ? {
+                                        ...subgroup,
+                                        draft: {
+                                            ...subgroup.draft,
+                                            ...changes,
+                                        },
+                                    }
+                                  : subgroup,
+                          ),
+                      }
+                    : group,
+            ),
+        );
+    }
+
+    function submitGroupSubgroupItemDraft(
+        groupIndex: number,
+        subgroupIndex: number,
+    ): void {
+        setGroups((current) =>
+            current.map((group, i) => {
+                if (i !== groupIndex) {
+                    return group;
+                }
+
+                return {
+                    ...group,
+                    subgroups: group.subgroups.map((subgroup, j) => {
+                        if (j !== subgroupIndex) {
+                            return subgroup;
+                        }
+
+                        const items =
+                            subgroup.editingItemIndex !== null
+                                ? subgroup.items.map((item, k) =>
+                                      k === subgroup.editingItemIndex
+                                          ? subgroup.draft
+                                          : item,
+                                  )
+                                : [...subgroup.items, subgroup.draft];
+
+                        return {
+                            ...subgroup,
+                            items,
+                            draft: emptyItem(),
+                            editingItemIndex: null,
+                        };
+                    }),
+                };
+            }),
+        );
+    }
+
+    function editGroupSubgroupItem(
+        groupIndex: number,
+        subgroupIndex: number,
+        itemIndex: number,
+    ): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? {
+                          ...group,
+                          subgroups: group.subgroups.map((subgroup, j) =>
+                              j === subgroupIndex
+                                  ? {
+                                        ...subgroup,
+                                        draft: subgroup.items[itemIndex],
+                                        editingItemIndex: itemIndex,
+                                    }
+                                  : subgroup,
+                          ),
+                      }
+                    : group,
+            ),
+        );
+    }
+
+    function cancelGroupSubgroupItemEdit(
         groupIndex: number,
         subgroupIndex: number,
     ): void {
@@ -643,7 +1133,8 @@ export default function BomsCreate({ quotation }: Props) {
                               j === subgroupIndex
                                   ? {
                                         ...subgroup,
-                                        items: [...subgroup.items, emptyItem()],
+                                        draft: emptyItem(),
+                                        editingItemIndex: null,
                                     }
                                   : subgroup,
                           ),
@@ -659,52 +1150,44 @@ export default function BomsCreate({ quotation }: Props) {
         itemIndex: number,
     ): void {
         setGroups((current) =>
-            current.map((group, i) =>
-                i === groupIndex
-                    ? {
-                          ...group,
-                          subgroups: group.subgroups.map((subgroup, j) =>
-                              j === subgroupIndex
-                                  ? {
-                                        ...subgroup,
-                                        items: subgroup.items.filter(
-                                            (_, k) => k !== itemIndex,
-                                        ),
-                                    }
-                                  : subgroup,
-                          ),
-                      }
-                    : group,
-            ),
-        );
-    }
+            current.map((group, i) => {
+                if (i !== groupIndex) {
+                    return group;
+                }
 
-    function updateGroupSubgroupItem(
-        groupIndex: number,
-        subgroupIndex: number,
-        itemIndex: number,
-        changes: Partial<LineItem>,
-    ): void {
-        setGroups((current) =>
-            current.map((group, i) =>
-                i === groupIndex
-                    ? {
-                          ...group,
-                          subgroups: group.subgroups.map((subgroup, j) =>
-                              j === subgroupIndex
-                                  ? {
-                                        ...subgroup,
-                                        items: subgroup.items.map((item, k) =>
-                                            k === itemIndex
-                                                ? { ...item, ...changes }
-                                                : item,
-                                        ),
-                                    }
-                                  : subgroup,
-                          ),
-                      }
-                    : group,
-            ),
+                return {
+                    ...group,
+                    subgroups: group.subgroups.map((subgroup, j) => {
+                        if (j !== subgroupIndex) {
+                            return subgroup;
+                        }
+
+                        const items = subgroup.items.filter(
+                            (_, k) => k !== itemIndex,
+                        );
+
+                        if (subgroup.editingItemIndex === null) {
+                            return { ...subgroup, items };
+                        }
+
+                        if (subgroup.editingItemIndex === itemIndex) {
+                            return {
+                                ...subgroup,
+                                items,
+                                draft: emptyItem(),
+                                editingItemIndex: null,
+                            };
+                        }
+
+                        const editingItemIndex =
+                            subgroup.editingItemIndex > itemIndex
+                                ? subgroup.editingItemIndex - 1
+                                : subgroup.editingItemIndex;
+
+                        return { ...subgroup, items, editingItemIndex };
+                    }),
+                };
+            }),
         );
     }
 
@@ -816,77 +1299,50 @@ export default function BomsCreate({ quotation }: Props) {
                                         </div>
                                         <div className="space-y-4">
                                             <div className="space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <Label>
-                                                        Ungrouped materials
-                                                    </Label>
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            addGroupItem(
-                                                                groupIndex,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Plus />
-                                                        Add line
-                                                    </Button>
-                                                </div>
-                                                <InputError
-                                                    message={
-                                                        errors[
-                                                            `${groupErrorPrefix}.items`
-                                                        ]
+                                                <Label>
+                                                    Ungrouped materials
+                                                </Label>
+
+                                                <LineItemsSection
+                                                    idPrefix={`group-${groupIndex}-item`}
+                                                    namePrefix={`${groupNamePrefix}[items]`}
+                                                    errorPrefix={`${groupErrorPrefix}.items`}
+                                                    items={group.items}
+                                                    draft={group.draft}
+                                                    editingItemIndex={
+                                                        group.editingItemIndex
+                                                    }
+                                                    errors={errors}
+                                                    emptyMessage="No materials directly in this group. Add one above, or put materials inside a phase below."
+                                                    onDraftChange={(changes) =>
+                                                        updateGroupDraft(
+                                                            groupIndex,
+                                                            changes,
+                                                        )
+                                                    }
+                                                    onSubmitItem={() =>
+                                                        submitGroupItemDraft(
+                                                            groupIndex,
+                                                        )
+                                                    }
+                                                    onCancelItemEdit={() =>
+                                                        cancelGroupItemEdit(
+                                                            groupIndex,
+                                                        )
+                                                    }
+                                                    onEditItem={(itemIndex) =>
+                                                        editGroupItem(
+                                                            groupIndex,
+                                                            itemIndex,
+                                                        )
+                                                    }
+                                                    onRemoveItem={(itemIndex) =>
+                                                        removeGroupItem(
+                                                            groupIndex,
+                                                            itemIndex,
+                                                        )
                                                     }
                                                 />
-
-                                                {group.items.length === 0 && (
-                                                    <p className="text-sm text-muted-foreground">
-                                                        No materials directly in
-                                                        this group. Add one
-                                                        above, or put materials
-                                                        inside a phase below.
-                                                    </p>
-                                                )}
-
-                                                {group.items.map(
-                                                    (item, itemIndex) => (
-                                                        <LineItemFields
-                                                            key={itemIndex}
-                                                            namePrefix={`${groupNamePrefix}[items][${itemIndex}]`}
-                                                            errorPrefix={`${groupErrorPrefix}.items.${itemIndex}`}
-                                                            item={item}
-                                                            errors={errors}
-                                                            onChange={(
-                                                                changes,
-                                                            ) =>
-                                                                updateGroupItem(
-                                                                    groupIndex,
-                                                                    itemIndex,
-                                                                    changes,
-                                                                )
-                                                            }
-                                                            onRemove={() =>
-                                                                removeGroupItem(
-                                                                    groupIndex,
-                                                                    itemIndex,
-                                                                )
-                                                            }
-                                                        />
-                                                    ),
-                                                )}
-
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        addGroupItem(groupIndex)
-                                                    }
-                                                >
-                                                    <Plus />
-                                                    Add line
-                                                </Button>
                                             </div>
 
                                             <div className="space-y-4">
@@ -926,10 +1382,34 @@ export default function BomsCreate({ quotation }: Props) {
                                                                     name,
                                                                 )
                                                             }
-                                                            onAddItem={() =>
-                                                                addGroupSubgroupItem(
+                                                            onDraftChange={(
+                                                                changes,
+                                                            ) =>
+                                                                updateGroupSubgroupDraft(
                                                                     groupIndex,
                                                                     subgroupIndex,
+                                                                    changes,
+                                                                )
+                                                            }
+                                                            onSubmitItem={() =>
+                                                                submitGroupSubgroupItemDraft(
+                                                                    groupIndex,
+                                                                    subgroupIndex,
+                                                                )
+                                                            }
+                                                            onCancelItemEdit={() =>
+                                                                cancelGroupSubgroupItemEdit(
+                                                                    groupIndex,
+                                                                    subgroupIndex,
+                                                                )
+                                                            }
+                                                            onEditItem={(
+                                                                itemIndex,
+                                                            ) =>
+                                                                editGroupSubgroupItem(
+                                                                    groupIndex,
+                                                                    subgroupIndex,
+                                                                    itemIndex,
                                                                 )
                                                             }
                                                             onRemoveItem={(
@@ -939,17 +1419,6 @@ export default function BomsCreate({ quotation }: Props) {
                                                                     groupIndex,
                                                                     subgroupIndex,
                                                                     itemIndex,
-                                                                )
-                                                            }
-                                                            onUpdateItem={(
-                                                                itemIndex,
-                                                                changes,
-                                                            ) =>
-                                                                updateGroupSubgroupItem(
-                                                                    groupIndex,
-                                                                    subgroupIndex,
-                                                                    itemIndex,
-                                                                    changes,
                                                                 )
                                                             }
                                                             onRemove={() =>
@@ -1009,20 +1478,32 @@ export default function BomsCreate({ quotation }: Props) {
                                                 name,
                                             )
                                         }
-                                        onAddItem={() =>
-                                            addSubgroupItem(subgroupIndex)
+                                        onDraftChange={(changes) =>
+                                            updateSubgroupDraft(
+                                                subgroupIndex,
+                                                changes,
+                                            )
+                                        }
+                                        onSubmitItem={() =>
+                                            submitSubgroupItemDraft(
+                                                subgroupIndex,
+                                            )
+                                        }
+                                        onCancelItemEdit={() =>
+                                            cancelSubgroupItemEdit(
+                                                subgroupIndex,
+                                            )
+                                        }
+                                        onEditItem={(itemIndex) =>
+                                            editSubgroupItem(
+                                                subgroupIndex,
+                                                itemIndex,
+                                            )
                                         }
                                         onRemoveItem={(itemIndex) =>
                                             removeSubgroupItem(
                                                 subgroupIndex,
                                                 itemIndex,
-                                            )
-                                        }
-                                        onUpdateItem={(itemIndex, changes) =>
-                                            updateSubgroupItem(
-                                                subgroupIndex,
-                                                itemIndex,
-                                                changes,
                                             )
                                         }
                                         onRemove={() =>
@@ -1033,50 +1514,25 @@ export default function BomsCreate({ quotation }: Props) {
                             </div>
 
                             <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
+                                <CardHeader>
                                     <CardTitle>Ungrouped Materials</CardTitle>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={addItem}
-                                    >
-                                        <Plus />
-                                        Add line
-                                    </Button>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <InputError message={errors.items} />
-
-                                    {items.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">
-                                            No ungrouped materials. Add one
-                                            above, or put materials inside a
-                                            group or phase.
-                                        </p>
-                                    )}
-
-                                    {items.map((item, index) => (
-                                        <LineItemFields
-                                            key={index}
-                                            namePrefix={`items[${index}]`}
-                                            errorPrefix={`items.${index}`}
-                                            item={item}
-                                            errors={errors}
-                                            onChange={(changes) =>
-                                                updateItem(index, changes)
-                                            }
-                                            onRemove={() => removeItem(index)}
-                                        />
-                                    ))}
-
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={addItem}
-                                    >
-                                        <Plus />
-                                        Add line
-                                    </Button>
+                                    <LineItemsSection
+                                        idPrefix="ungrouped-item"
+                                        namePrefix="items"
+                                        errorPrefix="items"
+                                        items={items}
+                                        draft={itemDraft}
+                                        editingItemIndex={editingItemIndex}
+                                        errors={errors}
+                                        emptyMessage="No ungrouped materials. Add one above, or put materials inside a group or phase."
+                                        onDraftChange={updateItemDraft}
+                                        onSubmitItem={submitItemDraft}
+                                        onCancelItemEdit={cancelItemEdit}
+                                        onEditItem={editItem}
+                                        onRemoveItem={removeItem}
+                                    />
                                 </CardContent>
                             </Card>
 

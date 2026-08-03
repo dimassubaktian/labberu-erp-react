@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -22,6 +23,7 @@ type Currency = {
     name: string;
     symbol: string | null;
     status: string;
+    base_currency: boolean;
 };
 
 type Props = {
@@ -30,6 +32,7 @@ type Props = {
 
 export default function CurrenciesEdit({ currency }: Props) {
     const [status, setStatus] = useState(currency.status);
+    const [baseCurrency, setBaseCurrency] = useState(currency.base_currency);
 
     setLayoutProps({
         breadcrumbs: [
@@ -119,6 +122,25 @@ export default function CurrenciesEdit({ currency }: Props) {
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.status} />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="hidden"
+                                    name="base_currency"
+                                    value={baseCurrency ? '1' : '0'}
+                                />
+                                <Checkbox
+                                    id="base_currency"
+                                    checked={baseCurrency}
+                                    onCheckedChange={(checked) =>
+                                        setBaseCurrency(checked === true)
+                                    }
+                                />
+                                <Label htmlFor="base_currency">
+                                    Set as base currency
+                                </Label>
+                                <InputError message={errors.base_currency} />
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

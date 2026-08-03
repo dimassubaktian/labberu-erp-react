@@ -22,6 +22,7 @@ type Currency = {
     name: string;
     symbol: string | null;
     status: string;
+    base_currency: boolean;
 };
 
 type Props = {
@@ -90,16 +91,23 @@ export default function CurrenciesIndex({ currencies }: Props) {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                currency.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {currency.status}
-                                        </Badge>
+                                        <div className="flex items-center gap-2">
+                                            <Badge
+                                                variant={
+                                                    currency.status === 'active'
+                                                        ? 'secondary'
+                                                        : 'outline'
+                                                }
+                                                className="capitalize"
+                                            >
+                                                {currency.status}
+                                            </Badge>
+                                            {currency.base_currency && (
+                                                <Badge variant="default">
+                                                    Base
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

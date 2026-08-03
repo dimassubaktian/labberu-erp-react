@@ -22,6 +22,7 @@ class CurrencyFactory extends Factory
             'name' => ucwords(fake()->word().' '.fake()->word()).' Currency',
             'symbol' => fake()->randomElement(['$', 'Rp', '€', '£', null]),
             'status' => 'active',
+            'base_currency' => false,
         ];
     }
 
@@ -32,6 +33,16 @@ class CurrencyFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'inactive',
+        ]);
+    }
+
+    /**
+     * Indicate that the currency is the base currency.
+     */
+    public function baseCurrency(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'base_currency' => true,
         ]);
     }
 }

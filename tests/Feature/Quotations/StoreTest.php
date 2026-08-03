@@ -15,7 +15,21 @@ test('quotation create page is displayed', function () {
         ->get(route('quotations.create'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('quotations/create'),
+            ->component('quotations/create')
+            ->where('initialProject', null),
+        );
+});
+
+test('quotation create page preselects the project given in the query string', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('quotations.create', ['project' => $project->uuid]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('quotations/create')
+            ->where('initialProject.id', $project->id),
         );
 });
 

@@ -58,6 +58,7 @@ type CurrencyOption = {
     iso_code: string;
     name: string;
     symbol: string | null;
+    base_currency: boolean;
 };
 
 type TaxOption = {
@@ -203,7 +204,9 @@ function LineItemFields({
                         searchUrl={searchProducts().url}
                         getOptionId={(product) => String(product.id)}
                         getOptionLabel={(product) =>
-                            `${product.product_code} — ${product.name}`
+                            product.reference_number
+                                ? `${product.product_code} — ${product.name} (${product.reference_number})`
+                                : `${product.product_code} — ${product.name}`
                         }
                         initialOption={item.initialProduct}
                         placeholder="Select a product"
@@ -447,7 +450,11 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
     const [address, setAddress] = useState('');
     const [phone, setPhone] = useState('');
     const [fax, setFax] = useState('');
-    const [currencyId, setCurrencyId] = useState('');
+    const [currencyId, setCurrencyId] = useState(() => {
+        const baseCurrency = currencies.find((c) => c.base_currency);
+
+        return baseCurrency ? String(baseCurrency.id) : '';
+    });
     const [taxId, setTaxId] = useState('none');
     const [items, setItems] = useState<LineItem[]>([emptyItem()]);
     const [discounts, setDiscounts] = useState<DiscountLevel[]>([]);

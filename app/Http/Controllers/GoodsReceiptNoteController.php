@@ -9,6 +9,7 @@ use App\Models\GoodsReceiptNote;
 use App\Models\GoodsReceiptNoteItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\StockMovement;
 use App\Models\Workforce;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -169,6 +170,7 @@ class GoodsReceiptNoteController extends Controller
                 'received_at' => now(),
             ]);
 
+            $this->createStockMovements($goodsReceiptNote);
             $this->updatePurchaseOrderProgress($goodsReceiptNote->purchaseOrder);
         });
 
@@ -201,6 +203,30 @@ class GoodsReceiptNoteController extends Controller
                 'quantity_accepted' => $item['quantity_accepted'],
                 'quantity_rejected' => $item['quantity_rejected'] ?? 0,
                 'rejection_reason' => $item['rejection_reason'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Create an "in" stock movement for each accepted, physical-goods line item on this
+     * goods receipt note. Rejected quantity never entered stock, so it's excluded; service
+     * products have no physical stock to track.
+     */
+    private function createStockMovements(GoodsReceiptNote $goodsReceiptNote): void
+    {
+        $goodsReceiptNote->load('items.product');
+
+        foreach ($goodsReceiptNote->items as $item) {
+            if ($item->product->type !== 'goods' || (float) $item->quantity_accepted <= 0) {
+                continue;
+            }
+
+            StockMovement::create([
+                'product_id' => $item->product_id,
+                'type' => 'in',
+                'quantity' => $item->quantity_accepted,
+                'movement_date' => $goodsReceiptNote->received_date,
+                'goods_receipt_note_item_id' => $item->id,
             ]);
         }
     }

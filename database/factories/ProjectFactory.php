@@ -25,7 +25,7 @@ class ProjectFactory extends Factory
             'request_date' => fake()->dateTimeBetween('-3 months', 'now'),
             'person_in_charge_id' => Workforce::factory(),
             'description' => fake()->sentence(),
-            'status' => 'planning',
+            'status' => 'new',
             'priority' => fake()->randomElement(['low', 'medium', 'high', 'urgent']),
             'start_date' => null,
             'end_date' => null,

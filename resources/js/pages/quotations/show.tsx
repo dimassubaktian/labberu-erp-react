@@ -31,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import {
     create as createDeliveryOrder,
@@ -997,6 +998,25 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                     </TableBody>
                                 </Table>
                             </div>
+
+                            <dl className="space-y-2">
+                                <div className="flex justify-between">
+                                    <dt className="text-muted-foreground">
+                                        Subtotal
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {currencySymbol}{' '}
+                                        {formatNumber(
+                                            quotation.items.reduce(
+                                                (sum, item) =>
+                                                    sum +
+                                                    Number(item.total_price),
+                                                0,
+                                            ),
+                                        )}
+                                    </dd>
+                                </div>
+                            </dl>
                         </CardContent>
                     </Card>
                 )}
@@ -1044,287 +1064,327 @@ export default function QuotationsShow({ quotation, history }: Props) {
                 </Card>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Bill of Materials</CardTitle>
-                        {quotation.status === 'draft' && !quotation.bom && (
-                            <Button size="sm" asChild>
-                                <Link href={createBom(quotation)}>
-                                    Create BOM
-                                </Link>
-                            </Button>
-                        )}
-                    </CardHeader>
                     <CardContent>
-                        {quotation.bom ? (
-                            <div className="space-y-4">
-                                <dl className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">
-                                            Main cost
-                                        </dt>
-                                        <dd className="font-medium">
-                                            {currencySymbol}{' '}
-                                            {formatNumber(
-                                                quotation.bom.main_cost,
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">
-                                            Overhead cost
-                                            {quotation.bom
-                                                .overhead_percentage &&
-                                                ` (${quotation.bom.overhead_percentage}%)`}
-                                        </dt>
-                                        <dd className="font-medium">
-                                            {currencySymbol}{' '}
-                                            {formatNumber(
-                                                quotation.bom.overhead_cost,
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
-                                        <dt>Total cost</dt>
-                                        <dd>
-                                            {currencySymbol}{' '}
-                                            {formatNumber(
-                                                quotation.bom.total_cost,
-                                            )}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">
-                                            Selling cost
-                                            {quotation.bom.selling_percentage &&
-                                                ` (${quotation.bom.selling_percentage}%)`}
-                                        </dt>
-                                        <dd className="font-medium">
-                                            {currencySymbol}{' '}
-                                            {formatNumber(
-                                                quotation.bom.selling_cost,
-                                            )}
-                                        </dd>
-                                    </div>
-                                </dl>
+                        <Tabs defaultValue="bom">
+                            <TabsList>
+                                <TabsTrigger value="bom">
+                                    Bill of Materials
+                                </TabsTrigger>
+                                <TabsTrigger value="purchase-orders">
+                                    Purchase Orders
+                                </TabsTrigger>
+                                <TabsTrigger value="delivery-orders">
+                                    Delivery Orders
+                                </TabsTrigger>
+                                <TabsTrigger value="invoices">
+                                    Invoices
+                                </TabsTrigger>
+                            </TabsList>
 
-                                <div className="flex flex-col gap-2 sm:flex-row">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full sm:w-auto"
-                                        asChild
-                                    >
-                                        <Link href={showBom(quotation)}>
-                                            View Bill of Materials
-                                        </Link>
-                                    </Button>
+                            <TabsContent value="bom" className="space-y-4">
+                                {quotation.status === 'draft' &&
+                                    !quotation.bom && (
+                                        <div className="flex justify-end">
+                                            <Button size="sm" asChild>
+                                                <Link href={createBom(quotation)}>
+                                                    Create BOM
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    )}
 
-                                    {quotation.status === 'draft' && (
-                                        <Button
-                                            className="w-full sm:w-auto"
-                                            asChild
-                                        >
-                                            <Link href={editBom(quotation)}>
-                                                Edit Bill of Materials
+                                {quotation.bom ? (
+                                    <div className="space-y-4">
+                                        <dl className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">
+                                                    Main cost
+                                                </dt>
+                                                <dd className="font-medium">
+                                                    {currencySymbol}{' '}
+                                                    {formatNumber(
+                                                        quotation.bom
+                                                            .main_cost,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">
+                                                    Overhead cost
+                                                    {quotation.bom
+                                                        .overhead_percentage &&
+                                                        ` (${quotation.bom.overhead_percentage}%)`}
+                                                </dt>
+                                                <dd className="font-medium">
+                                                    {currencySymbol}{' '}
+                                                    {formatNumber(
+                                                        quotation.bom
+                                                            .overhead_cost,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                                <dt>Total cost</dt>
+                                                <dd>
+                                                    {currencySymbol}{' '}
+                                                    {formatNumber(
+                                                        quotation.bom
+                                                            .total_cost,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <dt className="text-muted-foreground">
+                                                    Selling cost
+                                                    {quotation.bom
+                                                        .selling_percentage &&
+                                                        ` (${quotation.bom.selling_percentage}%)`}
+                                                </dt>
+                                                <dd className="font-medium">
+                                                    {currencySymbol}{' '}
+                                                    {formatNumber(
+                                                        quotation.bom
+                                                            .selling_cost,
+                                                    )}
+                                                </dd>
+                                            </div>
+                                        </dl>
+
+                                        <div className="flex flex-col gap-2 sm:flex-row">
+                                            <Button
+                                                variant="outline"
+                                                className="w-full sm:w-auto"
+                                                asChild
+                                            >
+                                                <Link href={showBom(quotation)}>
+                                                    View Bill of Materials
+                                                </Link>
+                                            </Button>
+
+                                            {quotation.status === 'draft' && (
+                                                <Button
+                                                    className="w-full sm:w-auto"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={editBom(
+                                                            quotation,
+                                                        )}
+                                                    >
+                                                        Edit Bill of Materials
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">
+                                        No bill of materials has been created
+                                        for this quotation yet.
+                                    </p>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent
+                                value="purchase-orders"
+                                className="space-y-4"
+                            >
+                                {quotation.purchase_orders.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        No purchase orders have been raised
+                                        against this quotation yet.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {quotation.purchase_orders.map(
+                                            (purchaseOrder) => (
+                                                <Link
+                                                    key={purchaseOrder.id}
+                                                    href={showPurchaseOrder(
+                                                        purchaseOrder,
+                                                    )}
+                                                    className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                                >
+                                                    <div className="space-y-0.5">
+                                                        <p className="font-medium">
+                                                            {
+                                                                purchaseOrder.purchase_order_code
+                                                            }
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {
+                                                                purchaseOrder
+                                                                    .vendor
+                                                                    .name
+                                                            }
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="font-medium">
+                                                            {purchaseOrder
+                                                                .currency
+                                                                .symbol ??
+                                                                purchaseOrder
+                                                                    .currency
+                                                                    .iso_code}{' '}
+                                                            {formatNumber(
+                                                                purchaseOrder.grand_total,
+                                                            )}
+                                                        </span>
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="capitalize"
+                                                        >
+                                                            {purchaseOrder.status.replaceAll(
+                                                                '_',
+                                                                ' ',
+                                                            )}
+                                                        </Badge>
+                                                    </div>
+                                                </Link>
+                                            ),
+                                        )}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent
+                                value="delivery-orders"
+                                className="space-y-4"
+                            >
+                                {quotation.status === 'approved' && (
+                                    <div className="flex justify-end">
+                                        <Button size="sm" asChild>
+                                            <Link
+                                                href={createDeliveryOrder({
+                                                    query: {
+                                                        quotation:
+                                                            quotation.uuid,
+                                                    },
+                                                })}
+                                            >
+                                                Create DO
                                             </Link>
                                         </Button>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">
-                                No bill of materials has been created for this
-                                quotation yet.
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Purchase Orders</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {quotation.purchase_orders.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No purchase orders have been raised against this
-                                quotation yet.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {quotation.purchase_orders.map(
-                                    (purchaseOrder) => (
-                                        <Link
-                                            key={purchaseOrder.id}
-                                            href={showPurchaseOrder(
-                                                purchaseOrder,
-                                            )}
-                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div className="space-y-0.5">
-                                                <p className="font-medium">
-                                                    {
-                                                        purchaseOrder.purchase_order_code
-                                                    }
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {purchaseOrder.vendor.name}
-                                                </p>
-                                            </div>
-
-                                            <div className="flex items-center gap-3">
-                                                <span className="font-medium">
-                                                    {purchaseOrder.currency
-                                                        .symbol ??
-                                                        purchaseOrder.currency
-                                                            .iso_code}{' '}
-                                                    {formatNumber(
-                                                        purchaseOrder.grand_total,
-                                                    )}
-                                                </span>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="capitalize"
-                                                >
-                                                    {purchaseOrder.status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
-                                            </div>
-                                        </Link>
-                                    ),
+                                    </div>
                                 )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between gap-2">
-                        <CardTitle>Delivery Orders</CardTitle>
-                        {quotation.status === 'approved' && (
-                            <Button size="sm" asChild>
-                                <Link
-                                    href={createDeliveryOrder({
-                                        query: { quotation: quotation.uuid },
-                                    })}
-                                >
-                                    Create DO
-                                </Link>
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        {quotation.delivery_orders.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No delivery orders have been raised against this
-                                quotation yet.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {quotation.delivery_orders.map(
-                                    (deliveryOrder) => (
-                                        <Link
-                                            key={deliveryOrder.id}
-                                            href={showDeliveryOrder(
-                                                deliveryOrder,
-                                            )}
-                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div className="space-y-0.5">
-                                                <p className="font-medium">
-                                                    {deliveryOrder.do_code}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {formatDate(
-                                                        deliveryOrder.delivery_date,
+                                {quotation.delivery_orders.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        No delivery orders have been raised
+                                        against this quotation yet.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {quotation.delivery_orders.map(
+                                            (deliveryOrder) => (
+                                                <Link
+                                                    key={deliveryOrder.id}
+                                                    href={showDeliveryOrder(
+                                                        deliveryOrder,
                                                     )}
-                                                </p>
-                                            </div>
-
-                                            <Badge
-                                                variant="secondary"
-                                                className="w-fit capitalize"
-                                            >
-                                                {deliveryOrder.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
-                                        </Link>
-                                    ),
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between gap-2">
-                        <CardTitle>Invoices</CardTitle>
-                        {quotation.status === 'approved' && (
-                            <Button size="sm" asChild>
-                                <Link
-                                    href={createInvoice({
-                                        query: { quotation: quotation.uuid },
-                                    })}
-                                >
-                                    Create Invoice
-                                </Link>
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        {quotation.invoices.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No invoices have been raised against this
-                                quotation yet.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {quotation.invoices.map((invoice) => (
-                                    <Link
-                                        key={invoice.id}
-                                        href={showInvoice(invoice)}
-                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div className="space-y-0.5">
-                                            <p className="font-medium">
-                                                {invoice.invoice_code}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatDate(
-                                                    invoice.invoice_date,
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            {invoice.payment_status && (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="w-fit capitalize"
+                                                    className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
                                                 >
-                                                    {invoice.payment_status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
-                                            )}
-                                            <Badge
-                                                variant="secondary"
-                                                className="w-fit capitalize"
+                                                    <div className="space-y-0.5">
+                                                        <p className="font-medium">
+                                                            {
+                                                                deliveryOrder.do_code
+                                                            }
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {formatDate(
+                                                                deliveryOrder.delivery_date,
+                                                            )}
+                                                        </p>
+                                                    </div>
+
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="w-fit capitalize"
+                                                    >
+                                                        {deliveryOrder.status.replaceAll(
+                                                            '_',
+                                                            ' ',
+                                                        )}
+                                                    </Badge>
+                                                </Link>
+                                            ),
+                                        )}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="invoices" className="space-y-4">
+                                {quotation.status === 'approved' && (
+                                    <div className="flex justify-end">
+                                        <Button size="sm" asChild>
+                                            <Link
+                                                href={createInvoice({
+                                                    query: {
+                                                        quotation:
+                                                            quotation.uuid,
+                                                    },
+                                                })}
                                             >
-                                                {invoice.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
+                                                Create Invoice
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {quotation.invoices.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        No invoices have been raised against
+                                        this quotation yet.
+                                    </p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {quotation.invoices.map((invoice) => (
+                                            <Link
+                                                key={invoice.id}
+                                                href={showInvoice(invoice)}
+                                                className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                            >
+                                                <div className="space-y-0.5">
+                                                    <p className="font-medium">
+                                                        {invoice.invoice_code}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {formatDate(
+                                                            invoice.invoice_date,
+                                                        )}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    {invoice.payment_status && (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="w-fit capitalize"
+                                                        >
+                                                            {invoice.payment_status.replaceAll(
+                                                                '_',
+                                                                ' ',
+                                                            )}
+                                                        </Badge>
+                                                    )}
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="w-fit capitalize"
+                                                    >
+                                                        {invoice.status.replaceAll(
+                                                            '_',
+                                                            ' ',
+                                                        )}
+                                                    </Badge>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+                        </Tabs>
                     </CardContent>
                 </Card>
 

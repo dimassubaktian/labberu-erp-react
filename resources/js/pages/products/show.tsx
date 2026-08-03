@@ -16,6 +16,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { formatDateTime, formatNumber } from '@/lib/utils';
 import { destroy, edit, index, show } from '@/routes/products';
+import { index as stockMovementsIndex } from '@/routes/stock-movements';
 
 type Product = {
     id: number;
@@ -36,9 +37,10 @@ type Product = {
 
 type Props = {
     product: Product;
+    stockOnHand: number;
 };
 
-export default function ProductsShow({ product }: Props) {
+export default function ProductsShow({ product, stockOnHand }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Products', href: index() },
@@ -202,6 +204,37 @@ export default function ProductsShow({ product }: Props) {
                         </dl>
                     </CardContent>
                 </Card>
+
+                {product.type === 'goods' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Stock</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <dl className="flex items-center justify-between">
+                                <div>
+                                    <dt className="text-sm text-muted-foreground">
+                                        On hand
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {formatNumber(stockOnHand)}{' '}
+                                        {product.unit}
+                                    </dd>
+                                </div>
+
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        href={stockMovementsIndex({
+                                            query: { product: product.uuid },
+                                        })}
+                                    >
+                                        View Movements
+                                    </Link>
+                                </Button>
+                            </dl>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card className="border-destructive/50">
                     <CardHeader>

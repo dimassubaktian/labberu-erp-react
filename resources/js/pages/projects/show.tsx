@@ -1,5 +1,12 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Download, Pencil, Trash2, Upload } from 'lucide-react';
+import {
+    ArrowLeft,
+    Download,
+    Pencil,
+    Plus,
+    Trash2,
+    Upload,
+} from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +32,10 @@ import {
     store as storeAttachment,
 } from '@/routes/projects/attachments';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
-import { show as showQuotation } from '@/routes/quotations';
+import {
+    create as createQuotation,
+    show as showQuotation,
+} from '@/routes/quotations';
 
 function formatFileSize(bytes: number): string {
     if (bytes < 1024) {
@@ -387,8 +397,18 @@ export default function ProjectsShow({
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between gap-2">
                         <CardTitle>Quotations</CardTitle>
+                        <Button size="sm" asChild>
+                            <Link
+                                href={createQuotation({
+                                    query: { project: project.uuid },
+                                })}
+                            >
+                                <Plus />
+                                New Quotation
+                            </Link>
+                        </Button>
                     </CardHeader>
                     <CardContent>
                         {quotations.length === 0 ? (

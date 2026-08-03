@@ -210,6 +210,9 @@ export default function ProjectsEdit({ project, workforces }: Props) {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="new">
+                                                New
+                                            </SelectItem>
                                             <SelectItem value="planning">
                                                 Planning
                                             </SelectItem>

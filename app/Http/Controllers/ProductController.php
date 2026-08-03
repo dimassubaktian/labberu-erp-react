@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProductStoreRequest;
 use App\Http\Requests\ProductUpdateRequest;
 use App\Models\Product;
+use App\Models\StockMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,15 +20,18 @@ class ProductController extends Controller
     public function search(Request $request): JsonResponse
     {
         $query = (string) $request->query('q', '');
+        $type = $request->query('type');
 
         $products = Product::query()
             ->where('status', 'active')
             ->when($query !== '', function ($builder) use ($query): void {
                 $builder->where(function ($inner) use ($query): void {
                     $inner->where('name', 'like', "%{$query}%")
-                        ->orWhere('product_code', 'like', "%{$query}%");
+                        ->orWhere('product_code', 'like', "%{$query}%")
+                        ->orWhere('reference_number', 'like', "%{$query}%");
                 });
             })
+            ->when($type !== null, fn ($builder) => $builder->where('type', $type))
             ->orderBy('name')
             ->limit(20)
             ->get(['id', 'name', 'product_code', 'reference_number', 'descriptions', 'brand', 'unit', 'price', 'cost']);
@@ -77,6 +81,7 @@ class ProductController extends Controller
     {
         return Inertia::render('products/show', [
             'product' => $product,
+            'stockOnHand' => StockMovement::quantityOnHandFor($product),
         ]);
     }
 
