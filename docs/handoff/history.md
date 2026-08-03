@@ -208,3 +208,9 @@ Roughly in order:
     shorter Method `Input` field no longer stretches to match the taller Remarks `Textarea`.
     Also added a **"Session Start"** section to the repo's `CLAUDE.md` instructing future
     sessions to `Read` `HANDOFF.md` first.
+34. **Users, Roles & full RBAC enforcement** — the module 4 plumbing (spatie/laravel-permission
+    installed, `HasRoles` on `User`) finally got wired up: seeded permissions, Users/Roles admin
+    pages, and every existing route in `routes/web.php` gated by `permission:` middleware. See
+    `docs/handoff/rbac.md` for the full design (permission naming scheme, User↔Workforce link,
+    self-lockout guards, the SQLite migration gotcha that corrupted a partial index mid-session,
+    and the test-suite-wide `actingAs()` override).

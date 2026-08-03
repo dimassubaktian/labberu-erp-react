@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeftRight,
     Briefcase,
@@ -44,14 +44,16 @@ import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
 import { index as purchaseOrdersIndex } from '@/routes/purchase-orders';
 import { index as quotationsIndex } from '@/routes/quotations';
+import { index as rolesIndex } from '@/routes/roles';
 import { index as stockAdjustmentsIndex } from '@/routes/stock-adjustments';
 import { index as stockMovementsIndex } from '@/routes/stock-movements';
 import { index as taxesIndex } from '@/routes/taxes';
+import { index as usersIndex } from '@/routes/users';
 import { index as vendorsIndex } from '@/routes/vendors';
 import { index as workforcesIndex } from '@/routes/workforces';
 import type { NavGroup } from '@/types';
 
-const mainNavGroups: NavGroup[] = [
+const navGroups: NavGroup[] = [
     {
         label: 'Menu',
         items: [
@@ -69,14 +71,26 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Projects',
                 href: projectsIndex(),
                 icon: FolderKanban,
+                permission: 'projects.view',
             },
-            { title: 'Quotations', href: quotationsIndex(), icon: FileText },
+            {
+                title: 'Quotations',
+                href: quotationsIndex(),
+                icon: FileText,
+                permission: 'quotations.view',
+            },
             {
                 title: 'Deliver Orders',
                 href: deliveryOrdersIndex(),
                 icon: Truck,
+                permission: 'delivery-orders.view',
             },
-            { title: 'Customers', href: customersIndex(), icon: Contact },
+            {
+                title: 'Customers',
+                href: customersIndex(),
+                icon: Contact,
+                permission: 'customers.view',
+            },
         ],
     },
     {
@@ -86,40 +100,65 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Purchase Orders',
                 href: purchaseOrdersIndex(),
                 icon: ShoppingCart,
+                permission: 'purchase-orders.view',
             },
             {
                 title: 'Goods Receipt Note',
                 href: goodsReceiptNotesIndex(),
                 icon: PackageCheck,
+                permission: 'goods-receipt-notes.view',
             },
-            { title: 'Vendors', href: vendorsIndex(), icon: Building2 },
+            {
+                title: 'Vendors',
+                href: vendorsIndex(),
+                icon: Building2,
+                permission: 'vendors.view',
+            },
         ],
     },
     {
         label: 'Inventory',
         items: [
-            { title: 'Products', href: productsIndex(), icon: Package },
+            {
+                title: 'Products',
+                href: productsIndex(),
+                icon: Package,
+                permission: 'products.view',
+            },
             {
                 title: 'Stock Movements',
                 href: stockMovementsIndex(),
                 icon: ArrowLeftRight,
+                permission: 'stock-movements.view',
             },
             {
                 title: 'Stock Adjustments',
                 href: stockAdjustmentsIndex(),
                 icon: ClipboardEdit,
+                permission: 'stock-adjustments.view',
             },
         ],
     },
     {
         label: 'Finance',
         items: [
-            { title: 'Invoice', href: invoicesIndex(), icon: Receipt },
-            { title: 'Taxes', href: taxesIndex(), icon: Percent },
+            {
+                title: 'Invoice',
+                href: invoicesIndex(),
+                icon: Receipt,
+                permission: 'invoices.view',
+            },
+            {
+                title: 'Taxes',
+                href: taxesIndex(),
+                icon: Percent,
+                permission: 'taxes.view',
+            },
             {
                 title: 'Currencies',
                 href: currenciesIndex(),
                 icon: Coins,
+                permission: 'currencies.view',
             },
         ],
     },
@@ -130,29 +169,55 @@ const mainNavGroups: NavGroup[] = [
                 title: 'Workforces',
                 href: workforcesIndex(),
                 icon: Users,
+                permission: 'workforces.view',
             },
             {
                 title: 'Job Titles',
                 href: jobTitlesIndex(),
                 icon: Briefcase,
+                permission: 'job-titles.view',
             },
         ],
     },
     {
         label: 'System',
         items: [
-            { title: 'Users', href: '#', icon: UserCog, disabled: true },
-            { title: 'Roles', href: '#', icon: ShieldCheck, disabled: true },
+            {
+                title: 'Users',
+                href: usersIndex(),
+                icon: UserCog,
+                permission: 'users.view',
+            },
+            {
+                title: 'Roles',
+                href: rolesIndex(),
+                icon: ShieldCheck,
+                permission: 'roles.view',
+            },
             {
                 title: 'Settings',
                 href: companySettingsEdit(),
                 icon: Settings,
+                permission: 'company-settings.view',
             },
         ],
     },
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const permissions = auth.permissions ?? [];
+
+    const visibleNavGroups = navGroups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter(
+                (item) =>
+                    !item.permission || permissions.includes(item.permission),
+            ),
+        }))
+        .filter((group) => group.items.length > 0);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -168,7 +233,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain groups={mainNavGroups} />
+                <NavMain groups={visibleNavGroups} />
             </SidebarContent>
 
             <SidebarFooter>

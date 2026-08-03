@@ -18,7 +18,7 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 ## Detail docs (`docs/handoff/`)
 
 - [`history.md`](docs/handoff/history.md) — full chronological log of what's been done,
-  session by session (31 numbered items).
+  session by session (34 numbered items).
 - [`crud-pattern.md`](docs/handoff/crud-pattern.md) — the established CRUD pattern every
   simple module follows (migration/model/request/controller/routes/pages/tests shape).
 - [`quotations.md`](docs/handoff/quotations.md) — status workflow, revisioning, item groups,
@@ -42,6 +42,9 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
   before repeating the same mistake.
 - [`conventions.md`](docs/handoff/conventions.md) — explicit user preferences/conventions
   that cut across modules (button colors, workflow patterns, when to interview first, etc).
+- [`rbac.md`](docs/handoff/rbac.md) — Users/Roles admin UI, permission naming scheme, route-level
+  enforcement mechanism, self-lockout guards, sidebar gating, and the test-suite-wide changes
+  needed to support it.
 
 ## Modules built so far (in this order)
 
@@ -69,16 +72,11 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 14. **Invoices** — see `docs/handoff/invoices.md`.
 15. **Stock Movements** — see `docs/handoff/stock-movements.md`.
 16. **Stock Adjustments** — see `docs/handoff/stock-adjustments.md`.
+17. **Users, Roles & RBAC enforcement** — see `docs/handoff/rbac.md`. Every route in the app is
+    now gated by a seeded permission; sidebar items hide themselves accordingly.
 
 ## What's NOT built yet (natural next steps)
 
-- No pages/routes for: Users, Roles. Still disabled placeholders in the sidebar.
-- RBAC (`spatie/laravel-permission`) is installed but nothing is actually gated by
-  roles/permissions yet — no seeded roles, no policy/gate wired to any route or UI element.
-  This is arguably the most important gap, and it's gotten bigger with every module built:
-  approving/rejecting/voiding a quotation, purchase order, or invoice, confirming a GRN/DO,
-  recording/removing a payment, or recording a stock adjustment is currently possible for
-  anyone logged in.
 - No API layer, no tests beyond Pest feature tests (no Dusk/browser tests). Relatedly, GRN,
   DO, Invoice, Stock Movements, and Stock Adjustments haven't been clicked through in an
   actual browser — verification for those has been HTTP/test-level only.
@@ -109,7 +107,8 @@ closest template — it's the most reused pattern in the app at this point. For 
 workflow/revision-like, follow `docs/handoff/quotations.md`; for nested groupings,
 `docs/handoff/bom.md`; for a strictly auto-generated, no-manual-entry ledger,
 `docs/handoff/stock-movements.md`; for a single-step manual-entry-only module,
-`docs/handoff/stock-adjustments.md`; otherwise the base pattern in
-`docs/handoff/crud-pattern.md`. Given the gaps above, RBAC enforcement and PDF/print export
-are probably the two highest-leverage next picks — everything else is a new module, but
-those two cut across every module already built.
+`docs/handoff/stock-adjustments.md`; for permission-gating a new route,
+`docs/handoff/rbac.md`; otherwise the base pattern in `docs/handoff/crud-pattern.md`. With RBAC
+now closed, PDF/print export is probably the single highest-leverage next pick — it cuts across
+every document module already built (Quotation, PO, GRN, DO, Invoice), none of which can
+currently produce a document to hand to a customer or vendor.

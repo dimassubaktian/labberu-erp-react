@@ -23,11 +23,12 @@ use Illuminate\Support\Str;
  * @property string $gender
  * @property string|null $photo
  * @property string $status
+ * @property int|null $user_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
-#[Fillable(['full_name', 'email', 'phone', 'address', 'job_title_id', 'gender', 'photo', 'status'])]
+#[Fillable(['full_name', 'email', 'phone', 'address', 'job_title_id', 'gender', 'photo', 'status', 'user_id'])]
 class Workforce extends Model
 {
     /** @use HasFactory<WorkforceFactory> */
@@ -60,6 +61,16 @@ class Workforce extends Model
     public function jobTitle(): BelongsTo
     {
         return $this->belongsTo(JobTitle::class);
+    }
+
+    /**
+     * Get the user account linked to this workforce member, if any.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

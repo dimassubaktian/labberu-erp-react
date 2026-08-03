@@ -15,6 +15,7 @@
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
+    --radius-xl: calc(var(--radius) + 4px);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -85,7 +86,7 @@
     --chart-3: oklch(0.54 0.079 215.973);
     --chart-4: oklch(0.366 0.071 160.779);
     --chart-5: oklch(0.479 0.016 124.843);
-    --radius: 0.625rem;
+    --radius: 0.25rem;
     --sidebar: oklch(0.271 0.049 161.71);
     --sidebar-foreground: oklch(0.952 0.029 125.962);
     --sidebar-primary: oklch(0.471 0.095 159.839);
