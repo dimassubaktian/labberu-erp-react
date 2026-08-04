@@ -15,6 +15,7 @@ use App\Models\Currency;
 use App\Models\GoodsReceiptNoteItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\Quotation;
 use App\Models\Tax;
 use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
@@ -96,8 +97,20 @@ class PurchaseOrderController extends Controller
     /**
      * Show the form for creating a new purchase order.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $initialQuotation = null;
+
+        if ($request->query('quotation')) {
+            $initialQuotation = Quotation::query()
+                ->where('uuid', $request->query('quotation'))
+                ->with([
+                    'project' => fn ($q) => $q->select('id', 'uuid', 'name', 'project_code', 'customer_id'),
+                    'project.customer' => fn ($q) => $q->select('id', 'name'),
+                ])
+                ->first(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'is_current', 'project_id']);
+        }
+
         $currencies = Currency::query()
             ->where('status', 'active')
             ->orderBy('iso_code')
@@ -106,6 +119,7 @@ class PurchaseOrderController extends Controller
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
         return Inertia::render('purchase-orders/create', [
+            'initialQuotation' => $initialQuotation,
             'currencies' => $currencies,
             'taxes' => $taxes,
         ]);

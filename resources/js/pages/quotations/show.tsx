@@ -41,7 +41,7 @@ import {
     show as showInvoice,
 } from '@/routes/invoices';
 import { show as showProject } from '@/routes/projects';
-import { show as showPurchaseOrder } from '@/routes/purchase-orders';
+import { create as createPurchaseOrder, show as showPurchaseOrder } from '@/routes/purchase-orders';
 import { destroy, edit, index, show } from '@/routes/quotations';
 import {
     create as createBom,
@@ -1086,6 +1086,20 @@ export default function QuotationsShow({ quotation, history }: Props) {
                     </TabsContent>
 
                     <TabsContent value="purchase-orders" className="space-y-4">
+                        <div className="flex justify-end">
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={createPurchaseOrder({
+                                        query: {
+                                            quotation: quotation.uuid,
+                                        },
+                                    })}
+                                >
+                                    Create PO
+                                </Link>
+                            </Button>
+                        </div>
+
                         {quotation.purchase_orders.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 No purchase orders have been raised against this

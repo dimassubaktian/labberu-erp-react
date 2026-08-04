@@ -1,12 +1,22 @@
 import { Form, Head, Link, useHttp } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import { ImportBomItemsDialog } from '@/components/import-bom-items-dialog';
 import type { ImportedBomItem } from '@/components/import-bom-items-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -17,6 +27,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import type { ProductOption } from '@/lib/product-options';
 import { productLabel } from '@/lib/product-options';
@@ -77,7 +95,7 @@ type LineItem = {
     quantity: string;
     unit: string;
     unit_price: string;
-    initialProduct?: ProductOption;
+    product: ProductOption | null;
 };
 
 type DiscountLevel = {
@@ -86,7 +104,18 @@ type DiscountLevel = {
     discount_value: string;
 };
 
+type InitialQuotation = {
+    id: number;
+    uuid: string;
+    quotation_code: string;
+    version_major: number;
+    version_minor: number;
+    is_current: boolean;
+    project: ProjectOption;
+};
+
 type Props = {
+    initialQuotation: InitialQuotation | null;
     currencies: CurrencyOption[];
     taxes: TaxOption[];
 };
@@ -104,6 +133,7 @@ function emptyItem(): LineItem {
         quantity: '1',
         unit: '',
         unit_price: '0',
+        product: null,
     };
 }
 
@@ -140,24 +170,22 @@ function calculateDiscountLevels(subtotal: number, discounts: DiscountLevel[]) {
     return { rows, discountTotal, netAfterDiscount: runningBalance };
 }
 
-type LineItemFieldsProps = {
-    index: number;
-    item: LineItem;
-    errors: Partial<Record<string, string>>;
+type LineItemFormProps = {
+    draft: LineItem;
+    editingIndex: number | null;
     onChange: (changes: Partial<LineItem>) => void;
-    onRemove?: () => void;
+    onCommit: () => void;
+    onCancel: () => void;
 };
 
-function LineItemFields({
-    index,
-    item,
-    errors,
+function LineItemForm({
+    draft,
+    editingIndex,
     onChange,
-    onRemove,
-}: LineItemFieldsProps) {
-    const namePrefix = `items[${index}]`;
-    const errorPrefix = `items.${index}`;
-    const total = calculateItemTotal(item);
+    onCommit,
+    onCancel,
+}: LineItemFormProps) {
+    const total = calculateItemTotal(draft);
 
     function handleProductChange(
         productId: string,
@@ -170,125 +198,79 @@ function LineItemFields({
             description: product?.descriptions ?? '',
             unit: product?.unit ?? '',
             unit_price: product?.cost ?? '0',
+            product: product ?? null,
         });
     }
 
     return (
-        <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
-            <div className="flex items-start justify-between gap-2">
-                <div className="grid flex-1 gap-2">
-                    <Label htmlFor={`item-${index}-product`}>Product</Label>
-                    <input
-                        type="hidden"
-                        name={`${namePrefix}[product_id]`}
-                        value={item.product_id}
-                    />
-                    <input
-                        type="hidden"
-                        name={`${namePrefix}[bom_item_id]`}
-                        value={item.bom_item_id}
-                    />
-                    <AsyncCombobox<ProductOption>
-                        id={`item-${index}-product`}
-                        value={item.product_id}
-                        onValueChange={handleProductChange}
-                        searchUrl={searchProducts().url}
-                        getOptionId={(product) => String(product.id)}
-                        getOptionLabel={productLabel}
-                        initialOption={item.initialProduct}
-                        placeholder="Select a product"
-                    />
-                    <InputError message={errors[`${errorPrefix}.product_id`]} />
-                </div>
-
-                {onRemove && (
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="mt-6"
-                        onClick={onRemove}
-                    >
-                        <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                    </Button>
-                )}
+        <div className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
+            <div className="grid gap-2">
+                <Label>Product</Label>
+                <AsyncCombobox<ProductOption>
+                    value={draft.product_id}
+                    onValueChange={handleProductChange}
+                    searchUrl={searchProducts().url}
+                    getOptionId={(product) => String(product.id)}
+                    getOptionLabel={productLabel}
+                    initialOption={draft.product ?? undefined}
+                    placeholder="Select a product"
+                />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
-                    <Label htmlFor={`item-${index}-reference-number`}>
-                        Reference number
-                    </Label>
+                    <Label>Reference number</Label>
                     <Input
-                        id={`item-${index}-reference-number`}
-                        name={`${namePrefix}[reference_number]`}
-                        value={item.reference_number}
+                        value={draft.reference_number}
                         onChange={(e) =>
                             onChange({ reference_number: e.target.value })
                         }
                         placeholder="Optional"
                     />
-                    <InputError
-                        message={errors[`${errorPrefix}.reference_number`]}
-                    />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`item-${index}-unit`}>Unit</Label>
+                    <Label>Unit</Label>
                     <Input
-                        id={`item-${index}-unit`}
-                        name={`${namePrefix}[unit]`}
-                        value={item.unit}
+                        value={draft.unit}
                         onChange={(e) => onChange({ unit: e.target.value })}
                     />
-                    <InputError message={errors[`${errorPrefix}.unit`]} />
                 </div>
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor={`item-${index}-description`}>Description</Label>
+                <Label>Description</Label>
                 <Textarea
-                    id={`item-${index}-description`}
-                    name={`${namePrefix}[description]`}
-                    value={item.description}
+                    value={draft.description}
                     onChange={(e) => onChange({ description: e.target.value })}
                     placeholder="Optional"
                     rows={2}
                 />
-                <InputError message={errors[`${errorPrefix}.description`]} />
             </div>
 
             <div className="grid gap-2 sm:grid-cols-3">
                 <div className="grid gap-2">
-                    <Label htmlFor={`item-${index}-quantity`}>Quantity</Label>
+                    <Label>Quantity</Label>
                     <Input
-                        id={`item-${index}-quantity`}
                         type="number"
                         step="0.01"
                         min="0.01"
-                        name={`${namePrefix}[quantity]`}
-                        value={item.quantity}
+                        value={draft.quantity}
                         onChange={(e) => onChange({ quantity: e.target.value })}
                     />
-                    <InputError message={errors[`${errorPrefix}.quantity`]} />
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor={`item-${index}-unit-price`}>
-                        Unit price
-                    </Label>
+                    <Label>Unit price</Label>
                     <Input
-                        id={`item-${index}-unit-price`}
                         type="number"
                         step="0.01"
                         min="0"
-                        name={`${namePrefix}[unit_price]`}
-                        value={item.unit_price}
+                        value={draft.unit_price}
                         onChange={(e) =>
                             onChange({ unit_price: e.target.value })
                         }
                     />
-                    <InputError message={errors[`${errorPrefix}.unit_price`]} />
                 </div>
 
                 <div className="grid gap-2">
@@ -297,6 +279,21 @@ function LineItemFields({
                         {formatNumber(total)}
                     </p>
                 </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+                {editingIndex !== null && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onCancel}
+                    >
+                        Cancel edit
+                    </Button>
+                )}
+                <Button type="button" onClick={onCommit}>
+                    {editingIndex !== null ? 'Update line' : 'Add line'}
+                </Button>
             </div>
         </div>
     );
@@ -325,7 +322,7 @@ function DiscountFields({
     const errorPrefix = `discounts.${index}`;
 
     return (
-        <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
+        <div className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
             <div className="flex items-start justify-between gap-2">
                 <div className="grid flex-1 gap-2">
                     <Label htmlFor={`discount-${index}-label`}>
@@ -421,17 +418,29 @@ function DiscountFields({
     );
 }
 
-export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
+export default function PurchaseOrdersCreate({ initialQuotation, currencies, taxes }: Props) {
     const { submit } = useHttp();
 
-    const [projectId, setProjectId] = useState('');
-    const [projectName, setProjectName] = useState('');
-    const [customerId, setCustomerId] = useState('');
-    const [customerName, setCustomerName] = useState('');
-    const [quotationId, setQuotationId] = useState('');
-    const [quotationUuid, setQuotationUuid] = useState('');
+    const [projectId, setProjectId] = useState(
+        initialQuotation ? String(initialQuotation.project.id) : '',
+    );
+    const [projectName, setProjectName] = useState(
+        initialQuotation?.project.name ?? '',
+    );
+    const [customerId, setCustomerId] = useState(
+        initialQuotation ? String(initialQuotation.project.customer.id) : '',
+    );
+    const [customerName, setCustomerName] = useState(
+        initialQuotation?.project.customer.name ?? '',
+    );
+    const [quotationId, setQuotationId] = useState(
+        initialQuotation ? String(initialQuotation.id) : '',
+    );
+    const [quotationUuid, setQuotationUuid] = useState(
+        initialQuotation?.uuid ?? '',
+    );
     const [quotationOptions, setQuotationOptions] = useState<QuotationOption[]>(
-        [],
+        initialQuotation ? [initialQuotation] : [],
     );
     const [vendorId, setVendorId] = useState('');
     const [address, setAddress] = useState('');
@@ -443,8 +452,24 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
         return baseCurrency ? String(baseCurrency.id) : '';
     });
     const [taxId, setTaxId] = useState('none');
-    const [items, setItems] = useState<LineItem[]>([emptyItem()]);
+    const [items, setItems] = useState<LineItem[]>([]);
+    const [draft, setDraft] = useState<LineItem>(emptyItem());
+    const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+    const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
     const [discounts, setDiscounts] = useState<DiscountLevel[]>([]);
+
+    useEffect(() => {
+        if (!initialQuotation) {
+            return;
+        }
+
+        submit(projectQuotations(initialQuotation.project.uuid))
+            .then((response) => {
+                const data = (response as { data: QuotationOption[] }).data;
+                setQuotationOptions(data);
+            })
+            .catch(() => {});
+    }, []);
 
     async function handleProjectChange(
         id: string,
@@ -486,24 +511,74 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
         setFax(option?.fax ?? '');
     }
 
-    function updateItem(index: number, changes: Partial<LineItem>): void {
-        setItems((current) =>
-            current.map((item, i) =>
-                i === index ? { ...item, ...changes } : item,
-            ),
-        );
+    function updateDraft(changes: Partial<LineItem>): void {
+        setDraft((current) => ({ ...current, ...changes }));
     }
 
-    function addItem(): void {
-        setItems((current) => [...current, emptyItem()]);
+    function handleCommitItem(): void {
+        if (editingItemIndex !== null) {
+            setItems((current) =>
+                current.map((item, i) =>
+                    i === editingItemIndex ? draft : item,
+                ),
+            );
+            setEditingItemIndex(null);
+        } else {
+            setItems((current) => [...current, draft]);
+        }
+        setDraft(emptyItem());
+    }
+
+    function handleEditItem(index: number): void {
+        setDraft(items[index]);
+        setEditingItemIndex(index);
+    }
+
+    function handleCancelEdit(): void {
+        setDraft(emptyItem());
+        setEditingItemIndex(null);
     }
 
     function removeItem(index: number): void {
+        if (editingItemIndex === index) {
+            setDraft(emptyItem());
+            setEditingItemIndex(null);
+        }
         setItems((current) => current.filter((_, i) => i !== index));
+        setSelectedIndices(new Set());
+    }
+
+    function toggleSelectAll(): void {
+        if (selectedIndices.size === items.length) {
+            setSelectedIndices(new Set());
+        } else {
+            setSelectedIndices(new Set(items.map((_, i) => i)));
+        }
+    }
+
+    function removeSelectedItems(): void {
+        if (editingItemIndex !== null && selectedIndices.has(editingItemIndex)) {
+            setDraft(emptyItem());
+            setEditingItemIndex(null);
+        }
+        setItems((current) => current.filter((_, i) => !selectedIndices.has(i)));
+        setSelectedIndices(new Set());
     }
 
     function handleImportBomItems(imported: ImportedBomItem[]): void {
-        setItems((current) => [...current, ...imported]);
+        setItems((current) => [
+            ...current,
+            ...imported.map((item) => ({
+                product_id: item.product_id,
+                bom_item_id: item.bom_item_id,
+                reference_number: item.reference_number,
+                description: item.description,
+                quantity: item.quantity,
+                unit: item.unit,
+                unit_price: item.unit_price,
+                product: item.initialProduct,
+            })),
+        ]);
     }
 
     function updateDiscount(
@@ -578,6 +653,10 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
                                             }
                                             getOptionLabel={(project) =>
                                                 `${project.project_code} — ${project.name} (${project.customer.name})`
+                                            }
+                                            initialOption={
+                                                initialQuotation?.project ??
+                                                undefined
                                             }
                                             placeholder="Select a project"
                                         />
@@ -916,49 +995,346 @@ export default function PurchaseOrdersCreate({ currencies, taxes }: Props) {
                                     <h2 className="text-base font-semibold">
                                         Line Items
                                     </h2>
-                                    <div className="flex gap-2">
-                                        <ImportBomItemsDialog
-                                            quotationId={quotationUuid}
-                                            disabled={!quotationUuid}
-                                            onImport={handleImportBomItems}
-                                        />
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            onClick={addItem}
-                                        >
-                                            <Plus />
-                                            Add line
-                                        </Button>
-                                    </div>
+                                    <ImportBomItemsDialog
+                                        quotationId={quotationUuid}
+                                        disabled={!quotationUuid}
+                                        onImport={handleImportBomItems}
+                                    />
                                 </div>
                                 <InputError message={errors.items} />
 
-                                {items.map((item, index) => (
-                                    <LineItemFields
-                                        key={index}
-                                        index={index}
-                                        item={item}
-                                        errors={errors}
-                                        onChange={(changes) =>
-                                            updateItem(index, changes)
-                                        }
-                                        onRemove={
-                                            items.length > 1
-                                                ? () => removeItem(index)
-                                                : undefined
-                                        }
-                                    />
-                                ))}
+                                <LineItemForm
+                                    draft={draft}
+                                    editingIndex={editingItemIndex}
+                                    onChange={updateDraft}
+                                    onCommit={handleCommitItem}
+                                    onCancel={handleCancelEdit}
+                                />
 
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={addItem}
-                                >
-                                    <Plus />
-                                    Add line
-                                </Button>
+                                {selectedIndices.size > 0 && (
+                                    <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/40 px-3 py-2">
+                                        <span className="text-sm text-muted-foreground">
+                                            {selectedIndices.size}{' '}
+                                            {selectedIndices.size === 1
+                                                ? 'item'
+                                                : 'items'}{' '}
+                                            selected
+                                        </span>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="destructive"
+                                                    size="sm"
+                                                >
+                                                    Delete selected
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogTitle>
+                                                    Remove{' '}
+                                                    {selectedIndices.size}{' '}
+                                                    {selectedIndices.size === 1
+                                                        ? 'item'
+                                                        : 'items'}
+                                                    ?
+                                                </DialogTitle>
+                                                <DialogDescription>
+                                                    This will remove the
+                                                    selected line items from the
+                                                    purchase order.
+                                                </DialogDescription>
+                                                <DialogFooter>
+                                                    <DialogClose asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </DialogClose>
+                                                    <DialogClose asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            onClick={
+                                                                removeSelectedItems
+                                                            }
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    </DialogClose>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                )}
+
+                                {items.length > 0 && (
+                                    <div className="overflow-hidden rounded-lg border border-border/50">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-10">
+                                                        <Checkbox
+                                                            checked={
+                                                                items.length >
+                                                                    0 &&
+                                                                selectedIndices.size ===
+                                                                    items.length
+                                                                    ? true
+                                                                    : selectedIndices.size >
+                                                                        0
+                                                                      ? 'indeterminate'
+                                                                      : false
+                                                            }
+                                                            onCheckedChange={
+                                                                toggleSelectAll
+                                                            }
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                            aria-label="Select all"
+                                                        />
+                                                    </TableHead>
+                                                    <TableHead>
+                                                        Product
+                                                    </TableHead>
+                                                    <TableHead className="w-32">
+                                                        Qty
+                                                    </TableHead>
+                                                    <TableHead className="w-28">
+                                                        Unit price
+                                                    </TableHead>
+                                                    <TableHead className="w-28 text-right">
+                                                        Total
+                                                    </TableHead>
+                                                    <TableHead className="w-16" />
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {items.map((item, index) => (
+                                                    <TableRow
+                                                        key={index}
+                                                        className="cursor-pointer"
+                                                        data-state={
+                                                            editingItemIndex ===
+                                                            index
+                                                                ? 'selected'
+                                                                : undefined
+                                                        }
+                                                        onClick={() =>
+                                                            handleEditItem(
+                                                                index,
+                                                            )
+                                                        }
+                                                    >
+                                                        <TableCell
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                        >
+                                                            <Checkbox
+                                                                checked={selectedIndices.has(
+                                                                    index,
+                                                                )}
+                                                                onCheckedChange={() => {
+                                                                    setSelectedIndices(
+                                                                        (
+                                                                            prev,
+                                                                        ) => {
+                                                                            const next =
+                                                                                new Set(
+                                                                                    prev,
+                                                                                );
+                                                                            next.has(
+                                                                                index,
+                                                                            )
+                                                                                ? next.delete(
+                                                                                      index,
+                                                                                  )
+                                                                                : next.add(
+                                                                                      index,
+                                                                                  );
+                                                                            return next;
+                                                                        },
+                                                                    );
+                                                                }}
+                                                                aria-label={`Select row ${index + 1}`}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="whitespace-normal">
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][product_id]`}
+                                                                value={
+                                                                    item.product_id
+                                                                }
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][bom_item_id]`}
+                                                                value={
+                                                                    item.bom_item_id
+                                                                }
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][reference_number]`}
+                                                                value={
+                                                                    item.reference_number
+                                                                }
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][description]`}
+                                                                value={
+                                                                    item.description
+                                                                }
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][unit]`}
+                                                                value={item.unit}
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][unit_price]`}
+                                                                value={
+                                                                    item.unit_price
+                                                                }
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][quantity]`}
+                                                                value={
+                                                                    item.quantity
+                                                                }
+                                                            />
+                                                            <div className="font-medium">
+                                                                {productLabel(
+                                                                    item.product,
+                                                                )}
+                                                            </div>
+                                                            {item.reference_number && (
+                                                                <div className="text-sm text-muted-foreground">
+                                                                    {
+                                                                        item.reference_number
+                                                                    }
+                                                                </div>
+                                                            )}
+                                                            {errors[
+                                                                `items.${index}.product_id`
+                                                            ] && (
+                                                                <p className="text-xs text-destructive dark:text-destructive-foreground">
+                                                                    {
+                                                                        errors[
+                                                                            `items.${index}.product_id`
+                                                                        ]
+                                                                    }
+                                                                </p>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {item.quantity}
+                                                            {item.unit
+                                                                ? ' ' + item.unit
+                                                                : ''}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {formatNumber(
+                                                                Number(
+                                                                    item.unit_price,
+                                                                ),
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-right font-medium">
+                                                            {formatNumber(
+                                                                Number(
+                                                                    item.quantity,
+                                                                ) *
+                                                                    Number(
+                                                                        item.unit_price,
+                                                                    ),
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Dialog>
+                                                                <DialogTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={(
+                                                                            e,
+                                                                        ) =>
+                                                                            e.stopPropagation()
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent
+                                                                    onClick={(
+                                                                        e,
+                                                                    ) =>
+                                                                        e.stopPropagation()
+                                                                    }
+                                                                >
+                                                                    <DialogTitle>
+                                                                        Remove
+                                                                        line
+                                                                        item?
+                                                                    </DialogTitle>
+                                                                    <DialogDescription>
+                                                                        This
+                                                                        will
+                                                                        remove{' '}
+                                                                        {productLabel(
+                                                                            item.product,
+                                                                        )}{' '}
+                                                                        from the
+                                                                        purchase
+                                                                        order.
+                                                                    </DialogDescription>
+                                                                    <DialogFooter>
+                                                                        <DialogClose
+                                                                            asChild
+                                                                        >
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                            >
+                                                                                Cancel
+                                                                            </Button>
+                                                                        </DialogClose>
+                                                                        <DialogClose
+                                                                            asChild
+                                                                        >
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="destructive"
+                                                                                onClick={() =>
+                                                                                    removeItem(
+                                                                                        index,
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                Remove
+                                                                            </Button>
+                                                                        </DialogClose>
+                                                                    </DialogFooter>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-4">

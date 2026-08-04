@@ -116,6 +116,14 @@ export function ImportBomItemsDialog({
         setSelected((current) => ({ ...current, [id]: !current[id] }));
     }
 
+    function toggleAll(): void {
+        if (allSelected) {
+            setSelected({});
+        } else {
+            setSelected(Object.fromEntries(items.map((row) => [row.id, true])));
+        }
+    }
+
     function handleImport(): void {
         const toImport: ImportedBomItem[] = items
             .filter((row) => selected[row.id] && Number(quantities[row.id]) > 0)
@@ -146,6 +154,8 @@ export function ImportBomItemsDialog({
     }
 
     const selectedCount = items.filter((row) => selected[row.id]).length;
+    const allSelected = items.length > 0 && selectedCount === items.length;
+    const someSelected = selectedCount > 0 && !allSelected;
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -189,7 +199,12 @@ export function ImportBomItemsDialog({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead />
+                                    <TableHead>
+                                        <Checkbox
+                                            checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                                            onCheckedChange={toggleAll}
+                                        />
+                                    </TableHead>
                                     <TableHead>Material</TableHead>
                                     <TableHead>BOM qty</TableHead>
                                     <TableHead>Remaining</TableHead>
