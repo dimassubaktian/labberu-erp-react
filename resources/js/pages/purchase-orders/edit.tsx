@@ -6,7 +6,6 @@ import Heading from '@/components/heading';
 import { ImportBomItemsDialog } from '@/components/import-bom-items-dialog';
 import type { ImportedBomItem } from '@/components/import-bom-items-dialog';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +18,8 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import type { ProductOption } from '@/lib/product-options';
+import { productLabel } from '@/lib/product-options';
 import { formatNumber } from '@/lib/utils';
 import { search as searchProducts } from '@/routes/products';
 import { index as projectQuotations } from '@/routes/projects/quotations';
@@ -63,17 +64,6 @@ type TaxOption = {
     id: number;
     name: string;
     rate: string;
-    type: string;
-};
-
-type ProductOption = {
-    id: number;
-    name: string;
-    product_code: string;
-    reference_number: string;
-    descriptions: string;
-    unit: string;
-    cost: string;
     type: string;
 };
 
@@ -183,12 +173,6 @@ function toDiscountLevel(discount: PurchaseOrderDiscountProp): DiscountLevel {
     };
 }
 
-function productLabel(product: ProductOption): string {
-    return product.reference_number
-        ? `${product.product_code} — ${product.name} (${product.reference_number})`
-        : `${product.product_code} — ${product.name}`;
-}
-
 function calculateItemTotal(item: LineItem): number {
     return (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
 }
@@ -273,19 +257,6 @@ function LineItemFields({
                         searchUrl={searchProducts().url}
                         getOptionId={(product) => String(product.id)}
                         getOptionLabel={productLabel}
-                        renderOption={(product) => (
-                            <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                                <span className="truncate">
-                                    {productLabel(product)}
-                                </span>
-                                <Badge
-                                    variant="secondary"
-                                    className="shrink-0 capitalize"
-                                >
-                                    {product.type}
-                                </Badge>
-                            </div>
-                        )}
                         initialOption={item.initialProduct}
                         placeholder="Select a product"
                     />

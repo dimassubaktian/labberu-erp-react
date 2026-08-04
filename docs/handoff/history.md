@@ -312,3 +312,22 @@ Roughly in order:
     real conflict risk) completed cleanly. Verified with `tsc --noEmit` and `eslint` across
     `resources/js/pages` (both clean) plus a live Vite dev server whose HMR log showed zero
     compile errors across every touched file.
+42. **Product picker label reformatted to `[Type] Name` + consolidated into a shared helper** —
+    previously each of the 7 product pickers (Quotations/Purchase Orders/BOMs create+edit, Stock
+    Adjustments create) independently copy-pasted its own `productLabel()` function and
+    `ProductOption` type, hand-edited three times across items 30, 40, and this one. Extracted a
+    single `resources/js/lib/product-options.ts` exporting `ProductOption` (the full column set
+    `ProductController::search()` returns) and `productLabel()`, imported by all 7 call sites —
+    future label tweaks now need one edit instead of seven. Label went through two revisions in
+    this session: first `[Type] Name (Code)` with `(Reference)` appended when present, then the
+    user asked to drop the code entirely, landing on `[Type] Name` / `[Type] Name (Reference)`.
+    The per-row type `Badge` added in item 40 was removed from `renderOption` since type is now
+    in the label text itself — showing it twice was redundant; `AsyncCombobox` falls back to
+    `getOptionLabel` for row rendering when `renderOption` is omitted, so no other markup changed.
+    Consolidating the type onto one shared shape surfaced a latent gap: `import-bom-items-dialog.tsx`'s
+    `ImportedBomItem.initialProduct` had its own narrower inline type (missing `brand`/`price`),
+    which only became a `tsc` error once Purchase Orders switched to the shared `ProductOption` —
+    fixed by widening it to the shared type and filling `brand` from the BOM item row (`price`
+    defaults to `'0'`, unused in the PO flow). Verified with `tsc --noEmit`, `eslint`, `prettier
+    --check`, and `npm run build` (all clean) after each revision; no backend or test changes
+    needed since the label is pure frontend display logic.

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -34,6 +33,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import type { ProductOption } from '@/lib/product-options';
+import { productLabel } from '@/lib/product-options';
 import { formatNumber } from '@/lib/utils';
 import { search as searchProducts } from '@/routes/products';
 import { index, show as showQuotation } from '@/routes/quotations';
@@ -43,18 +44,6 @@ type QuotationOption = {
     id: number;
     uuid: string;
     quotation_code: string;
-};
-
-type ProductOption = {
-    id: number;
-    name: string;
-    product_code: string;
-    reference_number: string;
-    descriptions: string;
-    brand: string;
-    unit: string;
-    cost: string;
-    type: string;
 };
 
 type LineItem = {
@@ -182,16 +171,6 @@ function emptyGroup(): GroupState {
     };
 }
 
-function productLabel(product: ProductOption | null | undefined): string {
-    if (!product) {
-        return '—';
-    }
-
-    return product.reference_number
-        ? `${product.product_code} — ${product.name} (${product.reference_number})`
-        : `${product.product_code} — ${product.name}`;
-}
-
 function discountLabel(item: LineItem): string {
     if (item.discount_type === 'none' || item.discount_value === '') {
         return '—';
@@ -283,19 +262,6 @@ function LineItemForm({
                     searchUrl={searchProducts().url}
                     getOptionId={(product) => String(product.id)}
                     getOptionLabel={productLabel}
-                    renderOption={(product) => (
-                        <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                            <span className="truncate">
-                                {productLabel(product)}
-                            </span>
-                            <Badge
-                                variant="secondary"
-                                className="shrink-0 capitalize"
-                            >
-                                {product.type}
-                            </Badge>
-                        </div>
-                    )}
                     initialOption={draft.product}
                     placeholder="Select a product"
                 />

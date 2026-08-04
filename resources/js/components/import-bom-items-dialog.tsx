@@ -22,6 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import type { ProductOption } from '@/lib/product-options';
 import { formatNumber } from '@/lib/utils';
 import { index as bomItems } from '@/routes/quotations/bom-items';
 
@@ -53,16 +54,7 @@ export type ImportedBomItem = {
     unit: string;
     unit_price: string;
     bom_item_id: string;
-    initialProduct: {
-        id: number;
-        product_code: string;
-        name: string;
-        reference_number: string;
-        descriptions: string;
-        unit: string;
-        cost: string;
-        type: string;
-    };
+    initialProduct: ProductOption;
 };
 
 type ImportBomItemsDialogProps = {
@@ -141,7 +133,9 @@ export function ImportBomItemsDialog({
                     name: row.product.name,
                     reference_number: row.product.reference_number ?? '',
                     descriptions: row.description ?? '',
+                    brand: row.brand,
                     unit: row.unit,
+                    price: '0',
                     cost: row.unit_cost,
                     type: row.product.type,
                 },

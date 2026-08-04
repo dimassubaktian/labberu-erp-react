@@ -18,7 +18,7 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 ## Detail docs (`docs/handoff/`)
 
 - [`history.md`](docs/handoff/history.md) — full chronological log of what's been done,
-  session by session (41 numbered items).
+  session by session (42 numbered items).
 - [`crud-pattern.md`](docs/handoff/crud-pattern.md) — the established CRUD pattern every
   simple module follows (migration/model/request/controller/routes/pages/tests shape).
 - [`quotations.md`](docs/handoff/quotations.md) — status workflow, revisioning, item groups,

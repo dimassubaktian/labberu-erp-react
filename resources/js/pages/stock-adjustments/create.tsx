@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import type { ProductOption } from '@/lib/product-options';
+import { productLabel } from '@/lib/product-options';
 import { search as searchProducts } from '@/routes/products';
 import { create, index, store } from '@/routes/stock-adjustments';
 
@@ -25,14 +27,6 @@ const reasons = [
     'Initial Stock Load',
     'Other',
 ];
-
-type ProductOption = {
-    id: number;
-    name: string;
-    product_code: string;
-    reference_number: string;
-    unit: string;
-};
 
 export default function StockAdjustmentsCreate() {
     const [productId, setProductId] = useState('');
@@ -71,11 +65,7 @@ export default function StockAdjustmentsCreate() {
                                     getOptionId={(product) =>
                                         String(product.id)
                                     }
-                                    getOptionLabel={(product) =>
-                                        product.reference_number
-                                            ? `${product.product_code} — ${product.name} (${product.reference_number})`
-                                            : `${product.product_code} — ${product.name}`
-                                    }
+                                    getOptionLabel={productLabel}
                                     placeholder="Select a product"
                                 />
                                 <InputError message={errors.product_id} />

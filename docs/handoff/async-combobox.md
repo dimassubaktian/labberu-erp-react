@@ -61,10 +61,17 @@ these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
 
 **`ProductController::search()` also matches `reference_number`** (added later — see
 `docs/handoff/history.md` item 30) — additive to the existing name/`product_code` `LIKE` match,
-same three-way `orWhere` clause. Every `AsyncCombobox<ProductOption>` call site's
-`getOptionLabel` shows the reference number in parentheses when present.
+same three-way `orWhere` clause.
 
-**Product pickers also show a goods/service type badge** (see `docs/handoff/history.md` item
-40) — `renderOption` (already part of `AsyncCombobox`'s API, previously unused) renders the
-label plus a capitalized `Badge` for `product.type`. `ProductController::search()`'s selected
-columns and `QuotationController::bomItems()`'s eager-loads both had to add `type` for this.
+**Product label format and shared helper** (see `docs/handoff/history.md` items 40 and 42) — all
+7 `AsyncCombobox<ProductOption>` product pickers (Quotations/Purchase Orders/BOMs create+edit,
+Stock Adjustments create) now import a single `ProductOption` type and `productLabel()` function
+from `resources/js/lib/product-options.ts` instead of each maintaining its own copy. Current
+label format: `` `[${Type}] ${Name}` ``, with `` ` (${Reference})` `` appended when
+`reference_number` is present — e.g. `[Goods] Widget A (REF-123)`. `Type` is capitalized for
+display; the product code is intentionally *not* in the label (it was in an earlier revision,
+removed at the user's request). There is no separate type `Badge` in the dropdown rows anymore —
+an item-40-era `renderOption` badge was removed once type moved into the label text itself, since
+showing it twice was redundant. `ProductController::search()`'s selected columns still include
+`type` (needed by `productLabel()`), as does `QuotationController::bomItems()`'s eager-load used
+by the "Import from BOM" dialog.
