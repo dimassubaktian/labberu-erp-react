@@ -214,3 +214,101 @@ Roughly in order:
     `docs/handoff/rbac.md` for the full design (permission naming scheme, User↔Workforce link,
     self-lockout guards, the SQLite migration gotcha that corrupted a partial index mid-session,
     and the test-suite-wide `actingAs()` override).
+35. **Table header standout background** — the shared `TableHeader` component
+    (`resources/js/components/ui/table.tsx`) gained `bg-muted`, matching the existing
+    `AppSidebarHeader`'s treatment (`bg-muted` on the page header). Applies to every table in
+    the app at once since none of the ~35 call sites override `TableHeader`'s className.
+36. **Appearance (light/dark) shortcut in the user nav dropdown** — `UserMenuContent`
+    (`resources/js/components/user-menu-content.tsx`) gained a single toggle menu item between
+    Settings and Log out (Sun/Moon icon, flips `resolvedAppearance` via the existing
+    `useAppearance()` hook) so users don't have to visit Settings → Appearance just to swap
+    light/dark. Deliberately a simple two-way toggle, not a submenu or inline 3-way control —
+    `system` mode is still only reachable from the full Settings page. Also got `cursor-pointer`
+    added, since the base `DropdownMenuItem` intentionally defaults to `cursor-default` (native
+    OS-menu convention) which read wrong for a button-like action.
+37. **Demo dataset seeders built for a client demo** — 8 new/extended seeders covering Roles
+    (8 roles, least-privilege permission matrix), Users (8 demo logins), Job Titles, Workforces
+    (linked to the demo users), Currencies (ASEAN + USD), Taxes (Indonesian PPN/PPh types),
+    Products (electrical panel + solar equipment catalog), Vendors, and Customers. Uncovered and
+    fixed a real bug along the way: `DatabaseSeeder`'s `WithoutModelEvents` trait was silently
+    disabling every model's `uuid`/code auto-generation for **every** seeder called via
+    `$this->call([...])`, not just its own inline code — removed the trait. See
+    `docs/handoff/demo-seeder.md` for the full permission matrix, demo credentials, and the
+    vendor/customer "legal suffix goes last" naming convention.
+38. **Searchable Person in Charge picker + redirect-to-detail after Project create** — new
+    `resources/js/components/combobox.tsx` (`Combobox<T>`), a local-filtering sibling of
+    `async-combobox.tsx`: same `Popover`+`Command` structure/styling, but filters an
+    already-loaded `options` array via cmdk's built-in `shouldFilter` instead of debouncing a
+    server search. Added because Project's Workforce list for the Person in Charge field is
+    already fetched in full by `ProjectController::create()`/`::edit()` (no pagination) — a
+    server search endpoint would've been unnecessary round-trip overhead. Wired into
+    `projects/create.tsx` and `edit.tsx`, replacing the old plain `<Select>` for
+    `person_in_charge_id`. Separately, `ProjectController::store()` now redirects to
+    `projects.show` (the newly created project) instead of `projects.index`, matching
+    `update()`'s existing behavior — landing on the record you just touched rather than the
+    list. `tests/Feature/Projects/StoreTest.php`'s two redirect assertions updated to match.
+39. **Dark-mode border/contrast fixes batch** — started as matching two "boxed section"
+    borders (Project's Attachments form/rows in `projects/show.tsx`, and the Quotation
+    line-item entry form — `LineItemForm` in `quotations/create.tsx`/`edit.tsx`) to the
+    `Table` component's border color (`border-border/50`) instead of the older
+    `border-sidebar-border/70`/`dark:border-sidebar-border` convention, for visual consistency
+    with tables elsewhere. That surfaced a real dark-mode design-token bug in
+    `resources/css/app.css`: `.dark`'s `--border` was defined as the *exact same* oklch value
+    as `--card`/`--muted`/`--popover`/`--secondary`/`--input`, so any `border-border` element
+    sitting on a card/muted surface was invisible regardless of opacity (alpha-blending a
+    color with itself is a no-op). Fixed by lightening `.dark`'s `--border`
+    (`oklch(0.366 0.071 160.779)` → `oklch(0.479 0.071 160.779)`, same hue/chroma) — a global
+    token fix chosen by the user, so it also fixes table borders app-wide, not just the two
+    spots above. Separately, `text-destructive` (used ~39 times across 22 page files for
+    Danger Zone card titles, delete icons, row-error text) had the same root problem —
+    `--destructive` (0.396) barely differs from `--card`/`--background` in dark mode. Since the
+    user wanted the destructive `Button`'s background (which also reads `--destructive`) left
+    untouched, this one was fixed text-only instead of via the token: appended
+    `dark:text-destructive-foreground` to every `text-destructive` occurrence, reusing the
+    existing `--destructive-foreground` token (already lighter in dark mode, identical to
+    `--destructive` in light mode, so light mode is visually unchanged).
+40. **Goods/service type badge on product pickers** — every `AsyncCombobox<ProductOption>`
+    product picker (Quotations, Purchase Orders, BOMs — create and edit — plus the "Import from
+    BOM" dialog on Purchase Orders) now shows a capitalized `Badge` for the product's `type`
+    (`goods`/`service`) next to its label in the dropdown list, matching how `products/index.tsx`
+    already displays it. Used `AsyncCombobox`'s existing `renderOption` prop rather than adding
+    new API surface. Backend: `ProductController::search()` now selects `type` (it filtered by
+    type already, via `stock-adjustments/create.tsx`'s `type: 'goods'` query param, but never
+    returned the column); `QuotationController::bomItems()` also had to start eager-loading
+    `product.type` since the BOM-import dialog builds its own `ProductOption`-shaped object from
+    that endpoint's response. `stock-adjustments/create.tsx` was deliberately left out — it
+    already filters to `type: 'goods'` only, so every result would show the same badge.
+41. **Removed `Card` wrapping from every page in favor of plain `<div><h2>` sections**, to give
+    small-screen forms more horizontal room — `Card`'s `border py-6 shadow-sm` plus
+    `CardHeader`/`CardContent`'s `px-6` padding was eating a lot of width on top of each page's
+    own `p-4` container padding. Started as a user-requested POC on `quotations/create.tsx`
+    only; once approved, rolled out to the remaining 29 files that imported `Card`
+    (`resources/js/components/ui/card.tsx` itself is untouched — still used by the sign-in/2FA
+    auth pages, which were out of scope). The straight swap (`Card`/`CardHeader`/`CardTitle`/
+    `CardContent` → `<div className="space-y-6"><h2 className="text-base font-semibold">Title</h2>…</div>`,
+    reusing `CardContent`'s original spacing className, or `mb-4` on the `<h2>` if it had none)
+    covered most sections, but four repeatable exceptions needed different treatment so meaning
+    wasn't silently lost: a "Danger Zone" section keeps a `border-destructive/50` bordered `div`
+    (the red border is a deliberate warning cue, not decoration — new convention, see
+    `docs/handoff/conventions.md`); a section header with an inline action button (PO's Line
+    Items/Discounts, GRN button on PO/Project show pages) wraps the `<h2>` and button in a
+    `flex items-center justify-between` row; a headerless "container" Card (the `Tabs` wrapper on
+    `quotations/show.tsx`, the avatar/name hero row on `workforces/show.tsx`) just drops the
+    `Card` entirely with no heading added; and `roles/create.tsx`/`edit.tsx`'s permission-module
+    cards — genuinely laid out side-by-side in a `sm:grid-cols-2` grid, where the border is the
+    only thing separating adjacent modules — kept a plain `border-border/50` bordered `div`
+    instead of dropping the border outright. `boms/show.tsx`'s `SubgroupCard` component, which
+    already conditionally rendered as a `Card` only when top-level (vs. a plain `<h4>`-headed
+    `div` when nested, to avoid double-boxing), had only its top-level branch converted, matched
+    to the nested branch's existing `<h4>` heading level rather than introducing a mismatched
+    `<h2>`. One file (`roles/show.tsx`) was missed off the initial file-list plan and caught
+    during final verification — worth double-checking `grep -rl "from '@/components/ui/card'"
+    resources/js/pages` after any future batch like this rather than trusting a hand-built list.
+    Execution note: the work was split across 6 parallel background agents by file group; the
+    first attempt used `isolation: "worktree"` for each, which silently created every worktree
+    from a stale commit (missing the Roles feature and all in-session uncommitted changes) — one
+    batch failed outright, the rest were killed before finishing. Re-running the same 6 agents
+    without worktree isolation (safe here since each batch touched a disjoint file set, so no
+    real conflict risk) completed cleanly. Verified with `tsc --noEmit` and `eslint` across
+    `resources/js/pages` (both clean) plus a live Vite dev server whose HMR log showed zero
+    compile errors across every touched file.

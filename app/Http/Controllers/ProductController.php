@@ -34,7 +34,7 @@ class ProductController extends Controller
             ->when($type !== null, fn ($builder) => $builder->where('type', $type))
             ->orderBy('name')
             ->limit(20)
-            ->get(['id', 'name', 'product_code', 'reference_number', 'descriptions', 'brand', 'unit', 'price', 'cost']);
+            ->get(['id', 'name', 'product_code', 'reference_number', 'descriptions', 'brand', 'unit', 'price', 'cost', 'type']);
 
         return response()->json(['data' => $products]);
     }

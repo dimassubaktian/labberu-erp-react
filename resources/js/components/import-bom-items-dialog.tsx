@@ -34,6 +34,7 @@ type BomItemOption = {
         product_code: string;
         name: string;
         reference_number: string;
+        type: string;
     };
     description: string | null;
     brand: string;
@@ -60,6 +61,7 @@ export type ImportedBomItem = {
         descriptions: string;
         unit: string;
         cost: string;
+        type: string;
     };
 };
 
@@ -141,6 +143,7 @@ export function ImportBomItemsDialog({
                     descriptions: row.description ?? '',
                     unit: row.unit,
                     cost: row.unit_cost,
+                    type: row.product.type,
                 },
             }));
 

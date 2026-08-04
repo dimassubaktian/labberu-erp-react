@@ -4,7 +4,6 @@ import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -252,440 +251,405 @@ export default function InvoicesCreate({ initialQuotation, taxes }: Props) {
                 <Form {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Details</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Details
+                                </h2>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="quotation_id">
+                                        Quotation
+                                    </Label>
+                                    <input
+                                        type="hidden"
+                                        name="quotation_id"
+                                        value={quotationId}
+                                    />
+                                    <AsyncCombobox<QuotationOption>
+                                        id="quotation_id"
+                                        value={quotationId}
+                                        onValueChange={handleQuotationChange}
+                                        searchUrl={searchQuotations().url}
+                                        getOptionId={(quotation) =>
+                                            String(quotation.id)
+                                        }
+                                        getOptionLabel={(quotation) =>
+                                            `${quotation.quotation_code} v${quotation.version_major}.${quotation.version_minor} — ${quotation.project.customer.name}`
+                                        }
+                                        initialOption={initialQuotation}
+                                        placeholder="Select an approved quotation"
+                                    />
+                                    <InputError message={errors.quotation_id} />
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="quotation_id">
-                                            Quotation
+                                        <Label htmlFor="invoice_date">
+                                            Invoice date
+                                        </Label>
+                                        <Input
+                                            id="invoice_date"
+                                            type="date"
+                                            name="invoice_date"
+                                            defaultValue={todayDate()}
+                                        />
+                                        <InputError
+                                            message={errors.invoice_date}
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="due_date">
+                                            Due date
+                                        </Label>
+                                        <Input
+                                            id="due_date"
+                                            type="date"
+                                            name="due_date"
+                                            defaultValue={defaultDueDate()}
+                                        />
+                                        <InputError message={errors.due_date} />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="remarks">Remarks</Label>
+                                    <Textarea
+                                        id="remarks"
+                                        name="remarks"
+                                        placeholder="Optional"
+                                        rows={3}
+                                    />
+                                    <InputError message={errors.remarks} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Items
+                                </h2>
+                                <InputError message={errors.items} />
+
+                                {!quotationUuid && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Select a quotation to list its line
+                                        items.
+                                    </p>
+                                )}
+
+                                {quotationUuid && loadingItems && (
+                                    <div className="flex items-center justify-center py-10">
+                                        <Spinner />
+                                    </div>
+                                )}
+
+                                {quotationUuid &&
+                                    !loadingItems &&
+                                    items.length > 0 && (
+                                        <div className="overflow-hidden rounded-xl border border-border/50">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>
+                                                            Product
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Unit price
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Ordered
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Delivered
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Invoiced so far
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Remaining
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Invoice qty
+                                                        </TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {items.map((item) => {
+                                                        const state =
+                                                            itemStates[
+                                                                item.id
+                                                            ] ??
+                                                            emptyItemState();
+                                                        const submittableIndex =
+                                                            submittableIndexByItemId.get(
+                                                                item.id,
+                                                            );
+                                                        const errorPrefix =
+                                                            submittableIndex !==
+                                                            undefined
+                                                                ? `items.${submittableIndex}`
+                                                                : null;
+
+                                                        return (
+                                                            <TableRow
+                                                                key={item.id}
+                                                            >
+                                                                <TableCell className="font-medium">
+                                                                    {
+                                                                        item
+                                                                            .product
+                                                                            .product_code
+                                                                    }{' '}
+                                                                    &mdash;{' '}
+                                                                    {
+                                                                        item
+                                                                            .product
+                                                                            .name
+                                                                    }
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.unit_price,
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.quantity,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.delivered,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.invoiced,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.remaining_to_invoice,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        className="w-24"
+                                                                        value={
+                                                                            state.quantity_invoiced
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateItemState(
+                                                                                item.id,
+                                                                                {
+                                                                                    quantity_invoiced:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <InputError
+                                                                        message={
+                                                                            errorPrefix
+                                                                                ? errors[
+                                                                                      `${errorPrefix}.quantity_invoiced`
+                                                                                  ]
+                                                                                : undefined
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    )}
+
+                                {submittableItems.map((item, idx) => (
+                                    <div key={item.id}>
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][quotation_item_id]`}
+                                            value={item.id}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][quantity_invoiced]`}
+                                            value={
+                                                itemStates[item.id]
+                                                    ?.quantity_invoiced ?? '0'
+                                            }
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Tax &amp; Discount
+                                </h2>
+                                <div className="grid gap-2 sm:grid-cols-3">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="tax_id">
+                                            Overall tax
                                         </Label>
                                         <input
                                             type="hidden"
-                                            name="quotation_id"
-                                            value={quotationId}
-                                        />
-                                        <AsyncCombobox<QuotationOption>
-                                            id="quotation_id"
-                                            value={quotationId}
-                                            onValueChange={
-                                                handleQuotationChange
+                                            name="tax_id"
+                                            value={
+                                                taxId === 'none' ? '' : taxId
                                             }
-                                            searchUrl={searchQuotations().url}
-                                            getOptionId={(quotation) =>
-                                                String(quotation.id)
-                                            }
-                                            getOptionLabel={(quotation) =>
-                                                `${quotation.quotation_code} v${quotation.version_major}.${quotation.version_minor} — ${quotation.project.customer.name}`
-                                            }
-                                            initialOption={initialQuotation}
-                                            placeholder="Select an approved quotation"
                                         />
-                                        <InputError
-                                            message={errors.quotation_id}
-                                        />
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="invoice_date">
-                                                Invoice date
-                                            </Label>
-                                            <Input
-                                                id="invoice_date"
-                                                type="date"
-                                                name="invoice_date"
-                                                defaultValue={todayDate()}
-                                            />
-                                            <InputError
-                                                message={errors.invoice_date}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="due_date">
-                                                Due date
-                                            </Label>
-                                            <Input
-                                                id="due_date"
-                                                type="date"
-                                                name="due_date"
-                                                defaultValue={defaultDueDate()}
-                                            />
-                                            <InputError
-                                                message={errors.due_date}
-                                            />
-                                        </div>
+                                        <Select
+                                            value={taxId}
+                                            onValueChange={setTaxId}
+                                        >
+                                            <SelectTrigger
+                                                id="tax_id"
+                                                className="w-full min-w-0"
+                                            >
+                                                <SelectValue className="truncate" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                <SelectItem value="none">
+                                                    No tax
+                                                </SelectItem>
+                                                {taxes.map((tax) => (
+                                                    <SelectItem
+                                                        key={tax.id}
+                                                        value={String(tax.id)}
+                                                    >
+                                                        <span className="block truncate">
+                                                            {tax.name} (
+                                                            {tax.type ===
+                                                            'percentage'
+                                                                ? `${tax.rate}%`
+                                                                : tax.rate}
+                                                            )
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.tax_id} />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="remarks">Remarks</Label>
-                                        <Textarea
-                                            id="remarks"
-                                            name="remarks"
-                                            placeholder="Optional"
-                                            rows={3}
+                                        <Label htmlFor="discount_type">
+                                            Overall discount type
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="discount_type"
+                                            value={
+                                                discountType === 'none'
+                                                    ? ''
+                                                    : discountType
+                                            }
                                         />
-                                        <InputError message={errors.remarks} />
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Items</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <InputError message={errors.items} />
-
-                                    {!quotationUuid && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Select a quotation to list its line
-                                            items.
-                                        </p>
-                                    )}
-
-                                    {quotationUuid && loadingItems && (
-                                        <div className="flex items-center justify-center py-10">
-                                            <Spinner />
-                                        </div>
-                                    )}
-
-                                    {quotationUuid &&
-                                        !loadingItems &&
-                                        items.length > 0 && (
-                                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>
-                                                                Product
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Unit price
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Ordered
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Delivered
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Invoiced so far
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Remaining
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Invoice qty
-                                                            </TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {items.map((item) => {
-                                                            const state =
-                                                                itemStates[
-                                                                    item.id
-                                                                ] ??
-                                                                emptyItemState();
-                                                            const submittableIndex =
-                                                                submittableIndexByItemId.get(
-                                                                    item.id,
-                                                                );
-                                                            const errorPrefix =
-                                                                submittableIndex !==
-                                                                undefined
-                                                                    ? `items.${submittableIndex}`
-                                                                    : null;
-
-                                                            return (
-                                                                <TableRow
-                                                                    key={
-                                                                        item.id
-                                                                    }
-                                                                >
-                                                                    <TableCell className="font-medium">
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                .product_code
-                                                                        }{' '}
-                                                                        &mdash;{' '}
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                .name
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.unit_price,
-                                                                        )}
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.quantity,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.delivered,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.invoiced,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.remaining_to_invoice,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            className="w-24"
-                                                                            value={
-                                                                                state.quantity_invoiced
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateItemState(
-                                                                                    item.id,
-                                                                                    {
-                                                                                        quantity_invoiced:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                errorPrefix
-                                                                                    ? errors[
-                                                                                          `${errorPrefix}.quantity_invoiced`
-                                                                                      ]
-                                                                                    : undefined
-                                                                            }
-                                                                        />
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            );
-                                                        })}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        )}
-
-                                    {submittableItems.map((item, idx) => (
-                                        <div key={item.id}>
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][quotation_item_id]`}
-                                                value={item.id}
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][quantity_invoiced]`}
-                                                value={
-                                                    itemStates[item.id]
-                                                        ?.quantity_invoiced ??
-                                                    '0'
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Tax &amp; Discount</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="grid gap-2 sm:grid-cols-3">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="tax_id">
-                                                Overall tax
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="tax_id"
-                                                value={
-                                                    taxId === 'none'
-                                                        ? ''
-                                                        : taxId
-                                                }
-                                            />
-                                            <Select
-                                                value={taxId}
-                                                onValueChange={setTaxId}
+                                        <Select
+                                            value={discountType}
+                                            onValueChange={setDiscountType}
+                                        >
+                                            <SelectTrigger
+                                                id="discount_type"
+                                                className="w-full"
                                             >
-                                                <SelectTrigger
-                                                    id="tax_id"
-                                                    className="w-full min-w-0"
-                                                >
-                                                    <SelectValue className="truncate" />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                    <SelectItem value="none">
-                                                        No tax
-                                                    </SelectItem>
-                                                    {taxes.map((tax) => (
-                                                        <SelectItem
-                                                            key={tax.id}
-                                                            value={String(
-                                                                tax.id,
-                                                            )}
-                                                        >
-                                                            <span className="block truncate">
-                                                                {tax.name} (
-                                                                {tax.type ===
-                                                                'percentage'
-                                                                    ? `${tax.rate}%`
-                                                                    : tax.rate}
-                                                                )
-                                                            </span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.tax_id}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_type">
-                                                Overall discount type
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="discount_type"
-                                                value={
-                                                    discountType === 'none'
-                                                        ? ''
-                                                        : discountType
-                                                }
-                                            />
-                                            <Select
-                                                value={discountType}
-                                                onValueChange={setDiscountType}
-                                            >
-                                                <SelectTrigger
-                                                    id="discount_type"
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">
-                                                        No discount
-                                                    </SelectItem>
-                                                    <SelectItem value="percentage">
-                                                        Percentage
-                                                    </SelectItem>
-                                                    <SelectItem value="fixed">
-                                                        Fixed amount
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.discount_type}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_value">
-                                                Overall discount value
-                                            </Label>
-                                            <Input
-                                                id="discount_value"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                name="discount_value"
-                                                value={discountValue}
-                                                onChange={(e) =>
-                                                    setDiscountValue(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                disabled={
-                                                    discountType === 'none'
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.discount_value}
-                                            />
-                                        </div>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">
+                                                    No discount
+                                                </SelectItem>
+                                                <SelectItem value="percentage">
+                                                    Percentage
+                                                </SelectItem>
+                                                <SelectItem value="fixed">
+                                                    Fixed amount
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={errors.discount_type}
+                                        />
                                     </div>
-                                </CardContent>
-                            </Card>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Summary</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Subtotal
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(subtotal)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Discount
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(discountAmount)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Tax
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(taxAmount)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                            <dt>Total</dt>
-                                            <dd>
-                                                {currencySymbol}{' '}
-                                                {formatNumber(total)}
-                                            </dd>
-                                        </div>
-                                    </dl>
-                                </CardContent>
-                            </Card>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="discount_value">
+                                            Overall discount value
+                                        </Label>
+                                        <Input
+                                            id="discount_value"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            name="discount_value"
+                                            value={discountValue}
+                                            onChange={(e) =>
+                                                setDiscountValue(e.target.value)
+                                            }
+                                            disabled={discountType === 'none'}
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.discount_value}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Summary
+                                </h2>
+                                <dl className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Subtotal
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(subtotal)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Discount
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(discountAmount)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Tax
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(taxAmount)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                        <dt>Total</dt>
+                                        <dd>
+                                            {currencySymbol}{' '}
+                                            {formatNumber(total)}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

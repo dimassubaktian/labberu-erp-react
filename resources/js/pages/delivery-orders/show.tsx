@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -158,277 +157,249 @@ export default function DeliveryOrdersShow({
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Status
-                                </dt>
-                                <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {deliveryOrder.status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
-                                </dd>
-                            </div>
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Details</h2>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Status
+                            </dt>
+                            <dd>
+                                <Badge
+                                    variant="secondary"
+                                    className="capitalize"
+                                >
+                                    {deliveryOrder.status.replaceAll('_', ' ')}
+                                </Badge>
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Quotation
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link
-                                        href={showQuotation(
-                                            deliveryOrder.quotation,
-                                        )}
-                                    >
-                                        {deliveryOrder.quotation.quotation_code}
-                                    </Link>
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Quotation
+                            </dt>
+                            <dd className="font-medium">
+                                <Link
+                                    href={showQuotation(
+                                        deliveryOrder.quotation,
+                                    )}
+                                >
+                                    {deliveryOrder.quotation.quotation_code}
+                                </Link>
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Customer
-                                </dt>
-                                <dd className="font-medium">
-                                    {
-                                        deliveryOrder.quotation.project.customer
-                                            .name
-                                    }
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Customer
+                            </dt>
+                            <dd className="font-medium">
+                                {deliveryOrder.quotation.project.customer.name}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Delivery date
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDate(deliveryOrder.delivery_date)}
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Delivery date
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDate(deliveryOrder.delivery_date)}
+                            </dd>
+                        </div>
 
-                            {deliveryOrder.delivered_by &&
-                                deliveryOrder.delivered_at && (
-                                    <div>
-                                        <dt className="text-sm text-muted-foreground">
-                                            Delivered by
-                                        </dt>
-                                        <dd className="font-medium">
-                                            {
-                                                deliveryOrder.delivered_by
-                                                    .full_name
-                                            }{' '}
-                                            &mdash;{' '}
-                                            {formatDateTime(
-                                                deliveryOrder.delivered_at,
-                                            )}
-                                        </dd>
-                                    </div>
-                                )}
-
-                            {deliveryOrder.remarks && (
-                                <div className="sm:col-span-2">
+                        {deliveryOrder.delivered_by &&
+                            deliveryOrder.delivered_at && (
+                                <div>
                                     <dt className="text-sm text-muted-foreground">
-                                        Remarks
+                                        Delivered by
                                     </dt>
-                                    <dd className="font-medium whitespace-pre-line">
-                                        {deliveryOrder.remarks}
+                                    <dd className="font-medium">
+                                        {deliveryOrder.delivered_by.full_name}{' '}
+                                        &mdash;{' '}
+                                        {formatDateTime(
+                                            deliveryOrder.delivered_at,
+                                        )}
                                     </dd>
                                 </div>
                             )}
-                        </dl>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-hidden rounded-xl border border-border/50">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>No</TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Ordered</TableHead>
-                                        <TableHead>Delivered</TableHead>
+                        {deliveryOrder.remarks && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Remarks
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {deliveryOrder.remarks}
+                                </dd>
+                            </div>
+                        )}
+                    </dl>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Items</h2>
+                    <div className="overflow-hidden rounded-xl border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>No</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Ordered</TableHead>
+                                    <TableHead>Delivered</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {deliveryOrder.items.map((item, idx) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="text-muted-foreground">
+                                            {idx + 1}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {item.product.product_code} &mdash;{' '}
+                                            {item.product.name}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                item.quantity_ordered,
+                                            )}{' '}
+                                            {item.unit}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                item.quantity_delivered,
+                                            )}{' '}
+                                            {item.unit}
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {deliveryOrder.items.map((item, idx) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="text-muted-foreground">
-                                                {idx + 1}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {item.product.product_code}{' '}
-                                                &mdash; {item.product.name}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(
-                                                    item.quantity_ordered,
-                                                )}{' '}
-                                                {item.unit}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(
-                                                    item.quantity_delivered,
-                                                )}{' '}
-                                                {item.unit}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
 
                 {deliveryOrder.status === 'draft' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Confirm Delivery</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Confirm Delivery
+                        </h2>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button>Confirm</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>
+                                    Confirm this delivery order?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    This locks the order and updates the linked
+                                    quotation&apos;s fulfillment progress. This
+                                    action cannot be undone.
+                                </DialogDescription>
+
+                                <Form
+                                    {...confirm.form(deliveryOrder)}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing }) => (
+                                        <>
+                                            <WorkforceSelect
+                                                id="delivered_by_id"
+                                                name="delivered_by_id"
+                                                value={deliveredById}
+                                                onValueChange={setDeliveredById}
+                                                workforces={workforces}
+                                            />
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Confirm
+                                                </Button>
+                                            </DialogFooter>
+                                        </>
+                                    )}
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                )}
+
+                {deliveryOrder.status === 'draft' && (
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this delivery order
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this delivery order cannot be
+                                    restored.
+                                </p>
+                            </div>
+
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button>Confirm</Button>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Delivery Order
+                                    </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogTitle>
-                                        Confirm this delivery order?
+                                        Delete &quot;
+                                        {deliveryOrder.do_code}
+                                        &quot;?
                                     </DialogTitle>
                                     <DialogDescription>
-                                        This locks the order and updates the
-                                        linked quotation&apos;s fulfillment
-                                        progress. This action cannot be undone.
+                                        This action cannot be undone. This
+                                        delivery order will be permanently
+                                        deleted.
                                     </DialogDescription>
 
                                     <Form
-                                        {...confirm.form(deliveryOrder)}
+                                        {...destroy.form(deliveryOrder)}
                                         options={{ preserveScroll: true }}
                                     >
                                         {({ processing }) => (
-                                            <>
-                                                <WorkforceSelect
-                                                    id="delivered_by_id"
-                                                    name="delivered_by_id"
-                                                    value={deliveredById}
-                                                    onValueChange={
-                                                        setDeliveredById
-                                                    }
-                                                    workforces={workforces}
-                                                />
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-                                                    <Button
-                                                        type="submit"
-                                                        disabled={processing}
-                                                    >
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    asChild
+                                                >
+                                                    <button type="submit">
                                                         {processing && (
                                                             <Spinner />
                                                         )}
-                                                        Confirm
-                                                    </Button>
-                                                </DialogFooter>
-                                            </>
+                                                        Delete Delivery Order
+                                                    </button>
+                                                </Button>
+                                            </DialogFooter>
                                         )}
                                     </Form>
                                 </DialogContent>
                             </Dialog>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {deliveryOrder.status === 'draft' && (
-                    <Card className="border-destructive/50">
-                        <CardHeader>
-                            <CardTitle className="text-destructive">
-                                Danger Zone
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                    <p className="font-medium">
-                                        Delete this delivery order
-                                    </p>
-                                    <p className="text-sm">
-                                        Once deleted, this delivery order cannot
-                                        be restored.
-                                    </p>
-                                </div>
-
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Trash2 />
-                                            Delete Delivery Order
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Delete &quot;
-                                            {deliveryOrder.do_code}
-                                            &quot;?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This action cannot be undone. This
-                                            delivery order will be permanently
-                                            deleted.
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...destroy.form(deliveryOrder)}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-
-                                                    <Button
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                        asChild
-                                                    >
-                                                        <button type="submit">
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Delete Delivery
-                                                            Order
-                                                        </button>
-                                                    </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

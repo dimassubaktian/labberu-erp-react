@@ -4,7 +4,6 @@ import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -185,314 +184,298 @@ export default function GoodsReceiptNotesCreate({
                 <Form {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Details</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Details
+                                </h2>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="purchase_order_id">
+                                        Purchase order
+                                    </Label>
+                                    <input
+                                        type="hidden"
+                                        name="purchase_order_id"
+                                        value={purchaseOrderId}
+                                    />
+                                    <AsyncCombobox<PurchaseOrderOption>
+                                        id="purchase_order_id"
+                                        value={purchaseOrderId}
+                                        onValueChange={
+                                            handlePurchaseOrderChange
+                                        }
+                                        searchUrl={searchPurchaseOrders().url}
+                                        getOptionId={(po) => String(po.id)}
+                                        getOptionLabel={(po) =>
+                                            `${po.purchase_order_code} — ${po.vendor.name}`
+                                        }
+                                        initialOption={initialPurchaseOrder}
+                                        placeholder="Select an approved purchase order"
+                                    />
+                                    <InputError
+                                        message={errors.purchase_order_id}
+                                    />
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="purchase_order_id">
-                                            Purchase order
+                                        <Label htmlFor="received_date">
+                                            Received date
                                         </Label>
-                                        <input
-                                            type="hidden"
-                                            name="purchase_order_id"
-                                            value={purchaseOrderId}
-                                        />
-                                        <AsyncCombobox<PurchaseOrderOption>
-                                            id="purchase_order_id"
-                                            value={purchaseOrderId}
-                                            onValueChange={
-                                                handlePurchaseOrderChange
-                                            }
-                                            searchUrl={
-                                                searchPurchaseOrders().url
-                                            }
-                                            getOptionId={(po) => String(po.id)}
-                                            getOptionLabel={(po) =>
-                                                `${po.purchase_order_code} — ${po.vendor.name}`
-                                            }
-                                            initialOption={initialPurchaseOrder}
-                                            placeholder="Select an approved purchase order"
+                                        <Input
+                                            id="received_date"
+                                            type="date"
+                                            name="received_date"
+                                            defaultValue={todayDate()}
                                         />
                                         <InputError
-                                            message={errors.purchase_order_id}
+                                            message={errors.received_date}
                                         />
                                     </div>
+                                </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="received_date">
-                                                Received date
-                                            </Label>
-                                            <Input
-                                                id="received_date"
-                                                type="date"
-                                                name="received_date"
-                                                defaultValue={todayDate()}
-                                            />
-                                            <InputError
-                                                message={errors.received_date}
-                                            />
-                                        </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="remarks">Remarks</Label>
+                                    <Textarea
+                                        id="remarks"
+                                        name="remarks"
+                                        placeholder="Optional"
+                                        rows={3}
+                                    />
+                                    <InputError message={errors.remarks} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Items
+                                </h2>
+                                <InputError message={errors.items} />
+
+                                {!purchaseOrderUuid && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Select a purchase order to list its line
+                                        items.
+                                    </p>
+                                )}
+
+                                {purchaseOrderUuid && loadingItems && (
+                                    <div className="flex items-center justify-center py-10">
+                                        <Spinner />
                                     </div>
+                                )}
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="remarks">Remarks</Label>
-                                        <Textarea
-                                            id="remarks"
-                                            name="remarks"
-                                            placeholder="Optional"
-                                            rows={3}
-                                        />
-                                        <InputError message={errors.remarks} />
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Items</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <InputError message={errors.items} />
-
-                                    {!purchaseOrderUuid && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Select a purchase order to list its
-                                            line items.
-                                        </p>
-                                    )}
-
-                                    {purchaseOrderUuid && loadingItems && (
-                                        <div className="flex items-center justify-center py-10">
-                                            <Spinner />
-                                        </div>
-                                    )}
-
-                                    {purchaseOrderUuid &&
-                                        !loadingItems &&
-                                        poItems.length > 0 && (
-                                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>
-                                                                Product
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Ordered
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Received so far
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Remaining
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Accepted
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Rejected
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Rejection reason
-                                                            </TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {poItems.map((item) => {
-                                                            const state =
-                                                                itemStates[
-                                                                    item.id
-                                                                ] ??
-                                                                emptyItemState();
-                                                            const submittableIndex =
-                                                                submittableIndexByItemId.get(
-                                                                    item.id,
-                                                                );
-                                                            const errorPrefix =
-                                                                submittableIndex !==
-                                                                undefined
-                                                                    ? `items.${submittableIndex}`
-                                                                    : null;
-
-                                                            return (
-                                                                <TableRow
-                                                                    key={
-                                                                        item.id
-                                                                    }
-                                                                >
-                                                                    <TableCell className="font-medium">
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                .product_code
-                                                                        }{' '}
-                                                                        &mdash;{' '}
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                .name
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.quantity,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.received,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.remaining,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            className="w-24"
-                                                                            value={
-                                                                                state.quantity_accepted
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateItemState(
-                                                                                    item.id,
-                                                                                    {
-                                                                                        quantity_accepted:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                errorPrefix
-                                                                                    ? errors[
-                                                                                          `${errorPrefix}.quantity_accepted`
-                                                                                      ]
-                                                                                    : undefined
-                                                                            }
-                                                                        />
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            className="w-24"
-                                                                            value={
-                                                                                state.quantity_rejected
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateItemState(
-                                                                                    item.id,
-                                                                                    {
-                                                                                        quantity_rejected:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                errorPrefix
-                                                                                    ? errors[
-                                                                                          `${errorPrefix}.quantity_rejected`
-                                                                                      ]
-                                                                                    : undefined
-                                                                            }
-                                                                        />
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Input
-                                                                            className="w-40"
-                                                                            placeholder="Optional"
-                                                                            value={
-                                                                                state.rejection_reason
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateItemState(
-                                                                                    item.id,
-                                                                                    {
-                                                                                        rejection_reason:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    </TableCell>
-                                                                </TableRow>
+                                {purchaseOrderUuid &&
+                                    !loadingItems &&
+                                    poItems.length > 0 && (
+                                        <div className="overflow-hidden rounded-xl border border-border/50">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>
+                                                            Product
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Ordered
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Received so far
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Remaining
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Accepted
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Rejected
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Rejection reason
+                                                        </TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {poItems.map((item) => {
+                                                        const state =
+                                                            itemStates[
+                                                                item.id
+                                                            ] ??
+                                                            emptyItemState();
+                                                        const submittableIndex =
+                                                            submittableIndexByItemId.get(
+                                                                item.id,
                                                             );
-                                                        })}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        )}
+                                                        const errorPrefix =
+                                                            submittableIndex !==
+                                                            undefined
+                                                                ? `items.${submittableIndex}`
+                                                                : null;
 
-                                    {submittableItems.map((item, idx) => (
-                                        <div key={item.id}>
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][purchase_order_item_id]`}
-                                                value={item.id}
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][quantity_accepted]`}
-                                                value={
-                                                    itemStates[item.id]
-                                                        ?.quantity_accepted ??
-                                                    '0'
-                                                }
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][quantity_rejected]`}
-                                                value={
-                                                    itemStates[item.id]
-                                                        ?.quantity_rejected ??
-                                                    '0'
-                                                }
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][rejection_reason]`}
-                                                value={
-                                                    itemStates[item.id]
-                                                        ?.rejection_reason ?? ''
-                                                }
-                                            />
+                                                        return (
+                                                            <TableRow
+                                                                key={item.id}
+                                                            >
+                                                                <TableCell className="font-medium">
+                                                                    {
+                                                                        item
+                                                                            .product
+                                                                            .product_code
+                                                                    }{' '}
+                                                                    &mdash;{' '}
+                                                                    {
+                                                                        item
+                                                                            .product
+                                                                            .name
+                                                                    }
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.quantity,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.received,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.remaining,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        className="w-24"
+                                                                        value={
+                                                                            state.quantity_accepted
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateItemState(
+                                                                                item.id,
+                                                                                {
+                                                                                    quantity_accepted:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <InputError
+                                                                        message={
+                                                                            errorPrefix
+                                                                                ? errors[
+                                                                                      `${errorPrefix}.quantity_accepted`
+                                                                                  ]
+                                                                                : undefined
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        className="w-24"
+                                                                        value={
+                                                                            state.quantity_rejected
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateItemState(
+                                                                                item.id,
+                                                                                {
+                                                                                    quantity_rejected:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <InputError
+                                                                        message={
+                                                                            errorPrefix
+                                                                                ? errors[
+                                                                                      `${errorPrefix}.quantity_rejected`
+                                                                                  ]
+                                                                                : undefined
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        className="w-40"
+                                                                        placeholder="Optional"
+                                                                        value={
+                                                                            state.rejection_reason
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateItemState(
+                                                                                item.id,
+                                                                                {
+                                                                                    rejection_reason:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                </TableBody>
+                                            </Table>
                                         </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
+                                    )}
+
+                                {submittableItems.map((item, idx) => (
+                                    <div key={item.id}>
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][purchase_order_item_id]`}
+                                            value={item.id}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][quantity_accepted]`}
+                                            value={
+                                                itemStates[item.id]
+                                                    ?.quantity_accepted ?? '0'
+                                            }
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][quantity_rejected]`}
+                                            value={
+                                                itemStates[item.id]
+                                                    ?.quantity_rejected ?? '0'
+                                            }
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][rejection_reason]`}
+                                            value={
+                                                itemStates[item.id]
+                                                    ?.rejection_reason ?? ''
+                                            }
+                                        />
+                                    </div>
+                                ))}
+                            </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

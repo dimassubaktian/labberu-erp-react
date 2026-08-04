@@ -2,7 +2,6 @@ import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -162,9 +161,7 @@ function SubgroupCard({
     if (nested) {
         return (
             <div className="space-y-4">
-                <h4 className="leading-none font-semibold">
-                    {subgroup.name}
-                </h4>
+                <h4 className="leading-none font-semibold">{subgroup.name}</h4>
 
                 <MaterialsTable items={subgroup.items} />
 
@@ -177,19 +174,16 @@ function SubgroupCard({
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{subgroup.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <MaterialsTable items={subgroup.items} />
+        <div className="space-y-6">
+            <h4 className="leading-none font-semibold">{subgroup.name}</h4>
 
-                <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
-                    <dt>Phase subtotal</dt>
-                    <dd>{formatNumber(subgroup.subtotal)}</dd>
-                </dl>
-            </CardContent>
-        </Card>
+            <MaterialsTable items={subgroup.items} />
+
+            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                <dt>Phase subtotal</dt>
+                <dd>{formatNumber(subgroup.subtotal)}</dd>
+            </dl>
+        </div>
     );
 }
 
@@ -240,29 +234,28 @@ export default function BomsShow({ quotation, bom }: Props) {
                 </div>
 
                 {bom.groups.map((group) => (
-                    <Card key={group.id}>
-                        <CardHeader>
-                            <CardTitle>{group.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {group.items.length > 0 && (
-                                <MaterialsTable items={group.items} />
-                            )}
+                    <div key={group.id} className="space-y-6">
+                        <h2 className="text-base font-semibold">
+                            {group.name}
+                        </h2>
 
-                            {group.subgroups.map((subgroup) => (
-                                <SubgroupCard
-                                    key={subgroup.id}
-                                    subgroup={subgroup}
-                                    nested
-                                />
-                            ))}
+                        {group.items.length > 0 && (
+                            <MaterialsTable items={group.items} />
+                        )}
 
-                            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
-                                <dt>Group subtotal</dt>
-                                <dd>{formatNumber(group.subtotal)}</dd>
-                            </dl>
-                        </CardContent>
-                    </Card>
+                        {group.subgroups.map((subgroup) => (
+                            <SubgroupCard
+                                key={subgroup.id}
+                                subgroup={subgroup}
+                                nested
+                            />
+                        ))}
+
+                        <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                            <dt>Group subtotal</dt>
+                            <dd>{formatNumber(group.subtotal)}</dd>
+                        </dl>
+                    </div>
                 ))}
 
                 {bom.subgroups.map((subgroup) => (
@@ -270,150 +263,136 @@ export default function BomsShow({ quotation, bom }: Props) {
                 ))}
 
                 {bom.items.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Ungrouped Materials</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <MaterialsTable items={bom.items} />
-                        </CardContent>
-                    </Card>
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Ungrouped Materials
+                        </h2>
+                        <MaterialsTable items={bom.items} />
+                    </div>
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Cost Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="space-y-2">
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Main cost
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(bom.main_cost)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Overhead cost
-                                    {bom.overhead_percentage &&
-                                        ` (${bom.overhead_percentage}%)`}
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(bom.overhead_cost)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
-                                <dt>Total cost</dt>
-                                <dd>
-                                    {currencySymbol}{' '}
-                                    {formatNumber(bom.total_cost)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Selling cost
-                                    {bom.selling_percentage &&
-                                        ` (${bom.selling_percentage}%)`}
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(bom.selling_cost)}
-                                </dd>
-                            </div>
-                        </dl>
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">
+                        Cost Summary
+                    </h2>
+                    <dl className="space-y-2">
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Main cost</dt>
+                            <dd className="font-medium">
+                                {currencySymbol} {formatNumber(bom.main_cost)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Overhead cost
+                                {bom.overhead_percentage &&
+                                    ` (${bom.overhead_percentage}%)`}
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(bom.overhead_cost)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                            <dt>Total cost</dt>
+                            <dd>
+                                {currencySymbol} {formatNumber(bom.total_cost)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Selling cost
+                                {bom.selling_percentage &&
+                                    ` (${bom.selling_percentage}%)`}
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(bom.selling_cost)}
+                            </dd>
+                        </div>
+                    </dl>
 
-                        {bom.remarks && (
-                            <div className="mt-6 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
-                                <p className="text-sm text-muted-foreground">
-                                    Remarks
-                                </p>
-                                <p className="font-medium whitespace-pre-line">
-                                    {bom.remarks}
-                                </p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                    {bom.remarks && (
+                        <div className="mt-6 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                            <p className="text-sm text-muted-foreground">
+                                Remarks
+                            </p>
+                            <p className="font-medium whitespace-pre-line">
+                                {bom.remarks}
+                            </p>
+                        </div>
+                    )}
+                </div>
 
                 {quotation.status === 'draft' && (
-                    <Card className="border-destructive/50">
-                        <CardHeader>
-                            <CardTitle className="text-destructive">
-                                Danger Zone
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                    <p className="font-medium">
-                                        Delete this Bill of Materials
-                                    </p>
-                                    <p className="text-sm">
-                                        Once deleted, this Bill of Materials
-                                        cannot be restored. Any purchase order
-                                        lines already imported from it will be
-                                        kept, but will no longer be linked back
-                                        to it.
-                                    </p>
-                                </div>
-
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Trash2 />
-                                            Delete Bill of Materials
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Delete this Bill of Materials?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This action cannot be undone. This
-                                            Bill of Materials will be
-                                            permanently deleted.
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...destroyBom.form(quotation)}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-
-                                                    <Button
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                        asChild
-                                                    >
-                                                        <button type="submit">
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Delete Bill of
-                                                            Materials
-                                                        </button>
-                                                    </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this Bill of Materials
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this Bill of Materials cannot
+                                    be restored. Any purchase order lines
+                                    already imported from it will be kept, but
+                                    will no longer be linked back to it.
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Bill of Materials
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Delete this Bill of Materials?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This action cannot be undone. This Bill
+                                        of Materials will be permanently
+                                        deleted.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...destroyBom.form(quotation)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    asChild
+                                                >
+                                                    <button type="submit">
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Delete Bill of Materials
+                                                    </button>
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

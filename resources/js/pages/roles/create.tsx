@@ -3,7 +3,6 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,13 +82,14 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     {Object.entries(permissionsByModule).map(
                                         ([module, permissions]) => (
-                                            <Card key={module}>
-                                                <CardHeader>
-                                                    <CardTitle className="text-base">
-                                                        {moduleLabel(module)}
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="grid gap-3">
+                                            <div
+                                                key={module}
+                                                className="space-y-3 rounded-lg border border-border/50 p-4"
+                                            >
+                                                <h2 className="text-base font-semibold">
+                                                    {moduleLabel(module)}
+                                                </h2>
+                                                <div className="grid gap-3">
                                                     {permissions.map(
                                                         (permission) => (
                                                             <div
@@ -125,8 +125,8 @@ export default function RolesCreate({ permissionsByModule }: Props) {
                                                             </div>
                                                         ),
                                                     )}
-                                                </CardContent>
-                                            </Card>
+                                                </div>
+                                            </div>
                                         ),
                                     )}
                                 </div>

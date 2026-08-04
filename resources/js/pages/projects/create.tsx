@@ -1,6 +1,7 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
+import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -113,27 +114,19 @@ export default function ProjectsCreate({ workforces }: Props) {
                                     name="person_in_charge_id"
                                     value={personInChargeId}
                                 />
-                                <Select
+                                <Combobox<WorkforceOption>
+                                    id="person_in_charge_id"
                                     value={personInChargeId}
                                     onValueChange={setPersonInChargeId}
-                                >
-                                    <SelectTrigger
-                                        id="person_in_charge_id"
-                                        className="w-full"
-                                    >
-                                        <SelectValue placeholder="Optional" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {workforces.map((workforce) => (
-                                            <SelectItem
-                                                key={workforce.id}
-                                                value={String(workforce.id)}
-                                            >
-                                                {workforce.full_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    options={workforces}
+                                    getOptionId={(workforce) =>
+                                        String(workforce.id)
+                                    }
+                                    getOptionLabel={(workforce) =>
+                                        workforce.full_name
+                                    }
+                                    placeholder="Optional"
+                                />
                                 <InputError
                                     message={errors.person_in_charge_id}
                                 />

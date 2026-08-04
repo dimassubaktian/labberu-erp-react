@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -70,6 +70,7 @@ type ProductOption = {
     unit: string;
     price: string;
     cost: string;
+    type: string;
 };
 
 type LineItem = {
@@ -257,7 +258,7 @@ function LineItemForm({
     }
 
     return (
-        <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
+        <div className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
             <div className="grid gap-2">
                 <Label htmlFor={`${idPrefix}-product`}>Product</Label>
                 <AsyncCombobox<ProductOption>
@@ -267,6 +268,19 @@ function LineItemForm({
                     searchUrl={searchProducts().url}
                     getOptionId={(product) => String(product.id)}
                     getOptionLabel={productLabel}
+                    renderOption={(product) => (
+                        <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                            <span className="truncate">
+                                {productLabel(product)}
+                            </span>
+                            <Badge
+                                variant="secondary"
+                                className="shrink-0 capitalize"
+                            >
+                                {product.type}
+                            </Badge>
+                        </div>
+                    )}
                     initialOption={draft.product}
                     placeholder="Select a product"
                 />
@@ -529,7 +543,9 @@ function LineItemRow({
                 />
                 <div className="font-medium">{productLabel(item.product)}</div>
                 {rowError && (
-                    <p className="text-xs text-destructive">{rowError}</p>
+                    <p className="text-xs text-destructive dark:text-destructive-foreground">
+                        {rowError}
+                    </p>
                 )}
             </TableCell>
             <TableCell>
@@ -550,7 +566,7 @@ function LineItemRow({
                             size="icon"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <Trash2 className="text-destructive" />
+                            <Trash2 className="text-destructive dark:text-destructive-foreground" />
                         </Button>
                     </DialogTrigger>
                     <DialogContent onClick={(e) => e.stopPropagation()}>
@@ -796,122 +812,112 @@ export default function QuotationsCreate({
                 <Form {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Details</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="project_id">
-                                                Project
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="project_id"
-                                                value={projectId}
-                                            />
-                                            <AsyncCombobox<ProjectOption>
-                                                id="project_id"
-                                                value={projectId}
-                                                onValueChange={setProjectId}
-                                                searchUrl={searchProjects().url}
-                                                getOptionId={(project) =>
-                                                    String(project.id)
-                                                }
-                                                getOptionLabel={(project) =>
-                                                    `${project.project_code} — ${project.name} (${project.customer.name})`
-                                                }
-                                                initialOption={initialProject}
-                                                placeholder="Select a project"
-                                            />
-                                            <InputError
-                                                message={errors.project_id}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="currency_id">
-                                                Currency
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="currency_id"
-                                                value={currencyId}
-                                            />
-                                            <Select
-                                                value={currencyId}
-                                                onValueChange={setCurrencyId}
-                                            >
-                                                <SelectTrigger
-                                                    id="currency_id"
-                                                    className="w-full min-w-0"
-                                                >
-                                                    <SelectValue
-                                                        placeholder="Select a currency"
-                                                        className="truncate"
-                                                    />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                    {currencies.map(
-                                                        (currency) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    currency.id
-                                                                }
-                                                                value={String(
-                                                                    currency.id,
-                                                                )}
-                                                            >
-                                                                <span className="block truncate">
-                                                                    {
-                                                                        currency.iso_code
-                                                                    }{' '}
-                                                                    &mdash;{' '}
-                                                                    {
-                                                                        currency.name
-                                                                    }
-                                                                </span>
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.currency_id}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="valid_until">
-                                                Valid until
-                                            </Label>
-                                            <Input
-                                                id="valid_until"
-                                                type="date"
-                                                name="valid_until"
-                                                defaultValue={defaultValidUntil()}
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.valid_until}
-                                            />
-                                        </div>
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Details
+                                </h2>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="project_id">
+                                            Project
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="project_id"
+                                            value={projectId}
+                                        />
+                                        <AsyncCombobox<ProjectOption>
+                                            id="project_id"
+                                            value={projectId}
+                                            onValueChange={setProjectId}
+                                            searchUrl={searchProjects().url}
+                                            getOptionId={(project) =>
+                                                String(project.id)
+                                            }
+                                            getOptionLabel={(project) =>
+                                                `${project.project_code} — ${project.name} (${project.customer.name})`
+                                            }
+                                            initialOption={initialProject}
+                                            placeholder="Select a project"
+                                        />
+                                        <InputError
+                                            message={errors.project_id}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="remarks">Remarks</Label>
-                                        <Textarea
-                                            id="remarks"
-                                            name="remarks"
+                                        <Label htmlFor="currency_id">
+                                            Currency
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="currency_id"
+                                            value={currencyId}
+                                        />
+                                        <Select
+                                            value={currencyId}
+                                            onValueChange={setCurrencyId}
+                                        >
+                                            <SelectTrigger
+                                                id="currency_id"
+                                                className="w-full min-w-0"
+                                            >
+                                                <SelectValue
+                                                    placeholder="Select a currency"
+                                                    className="truncate"
+                                                />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                {currencies.map((currency) => (
+                                                    <SelectItem
+                                                        key={currency.id}
+                                                        value={String(
+                                                            currency.id,
+                                                        )}
+                                                    >
+                                                        <span className="block truncate">
+                                                            {currency.iso_code}{' '}
+                                                            &mdash;{' '}
+                                                            {currency.name}
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={errors.currency_id}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="valid_until">
+                                            Valid until
+                                        </Label>
+                                        <Input
+                                            id="valid_until"
+                                            type="date"
+                                            name="valid_until"
+                                            defaultValue={defaultValidUntil()}
                                             placeholder="Optional"
                                         />
-                                        <InputError message={errors.remarks} />
+                                        <InputError
+                                            message={errors.valid_until}
+                                        />
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="remarks">Remarks</Label>
+                                    <Textarea
+                                        id="remarks"
+                                        name="remarks"
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.remarks} />
+                                </div>
+                            </div>
 
                             {groups.map((group, groupIndex) => {
                                 const totals = groupTotals[groupIndex];
@@ -962,7 +968,7 @@ export default function QuotationsCreate({
                                                     removeGroup(groupIndex)
                                                 }
                                             >
-                                                <Trash2 className="text-destructive" />
+                                                <Trash2 className="text-destructive dark:text-destructive-foreground" />
                                             </Button>
                                         </div>
                                         <div className="grid gap-2 sm:grid-cols-3">
@@ -1279,277 +1285,255 @@ export default function QuotationsCreate({
                                 Add group
                             </Button>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Ungrouped items</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <InputError message={errors.items} />
+                            <div className="space-y-4">
+                                <h2 className="text-base font-semibold">
+                                    Ungrouped items
+                                </h2>
+                                <InputError message={errors.items} />
 
-                                    <LineItemForm
-                                        idPrefix="ungrouped-item"
-                                        draft={itemDraft}
-                                        errors={errors}
-                                        errorPrefix={
-                                            editingItemIndex !== null
-                                                ? `items.${editingItemIndex}`
-                                                : undefined
-                                        }
-                                        isEditing={editingItemIndex !== null}
-                                        onDraftChange={updateItemDraft}
-                                        onSubmit={submitItemDraft}
-                                        onCancel={cancelItemEdit}
-                                    />
+                                <LineItemForm
+                                    idPrefix="ungrouped-item"
+                                    draft={itemDraft}
+                                    errors={errors}
+                                    errorPrefix={
+                                        editingItemIndex !== null
+                                            ? `items.${editingItemIndex}`
+                                            : undefined
+                                    }
+                                    isEditing={editingItemIndex !== null}
+                                    onDraftChange={updateItemDraft}
+                                    onSubmit={submitItemDraft}
+                                    onCancel={cancelItemEdit}
+                                />
 
-                                    {items.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">
-                                            No ungrouped items. Add one above,
-                                            or put items inside a group.
-                                        </p>
-                                    )}
+                                {items.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        No ungrouped items. Add one above, or
+                                        put items inside a group.
+                                    </p>
+                                )}
 
-                                    {items.length > 0 && (
-                                        <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>
-                                                            Product
-                                                        </TableHead>
-                                                        <TableHead className="w-24">
-                                                            Qty
-                                                        </TableHead>
-                                                        <TableHead className="w-28">
-                                                            Unit price
-                                                        </TableHead>
-                                                        <TableHead className="w-24">
-                                                            Discount
-                                                        </TableHead>
-                                                        <TableHead className="w-28 text-right">
-                                                            Total price
-                                                        </TableHead>
-                                                        <TableHead className="w-16" />
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {items.map(
-                                                        (item, index) => (
-                                                            <LineItemRow
-                                                                key={index}
-                                                                namePrefix={`items[${index}]`}
-                                                                errorPrefix={`items.${index}`}
-                                                                item={item}
-                                                                errors={errors}
-                                                                isEditing={
-                                                                    editingItemIndex ===
-                                                                    index
-                                                                }
-                                                                onEdit={() =>
-                                                                    editItem(
-                                                                        index,
-                                                                    )
-                                                                }
-                                                                onRemove={() =>
-                                                                    removeItem(
-                                                                        index,
-                                                                    )
-                                                                }
-                                                            />
-                                                        ),
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    )}
-
-                                    {items.length > 0 && (
-                                        <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
-                                            <div className="flex justify-between">
-                                                <dt className="text-muted-foreground">
-                                                    Subtotal
-                                                </dt>
-                                                <dd className="font-medium">
-                                                    {formatNumber(
-                                                        ungroupedSubtotal,
-                                                    )}
-                                                </dd>
-                                            </div>
-                                        </dl>
-                                    )}
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Tax &amp; Discount</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="grid gap-2 sm:grid-cols-3">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="tax_id">
-                                                Overall tax
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="tax_id"
-                                                value={
-                                                    taxId === 'none'
-                                                        ? ''
-                                                        : taxId
-                                                }
-                                            />
-                                            <Select
-                                                value={taxId}
-                                                onValueChange={setTaxId}
-                                            >
-                                                <SelectTrigger
-                                                    id="tax_id"
-                                                    className="w-full min-w-0"
-                                                >
-                                                    <SelectValue className="truncate" />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                    <SelectItem value="none">
-                                                        No tax
-                                                    </SelectItem>
-                                                    {taxes.map((tax) => (
-                                                        <SelectItem
-                                                            key={tax.id}
-                                                            value={String(
-                                                                tax.id,
-                                                            )}
-                                                        >
-                                                            <span className="block truncate">
-                                                                {tax.name} (
-                                                                {tax.type ===
-                                                                'percentage'
-                                                                    ? `${tax.rate}%`
-                                                                    : tax.rate}
-                                                                )
-                                                            </span>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.tax_id}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_type">
-                                                Overall discount type
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="discount_type"
-                                                value={
-                                                    discountType === 'none'
-                                                        ? ''
-                                                        : discountType
-                                                }
-                                            />
-                                            <Select
-                                                value={discountType}
-                                                onValueChange={setDiscountType}
-                                            >
-                                                <SelectTrigger
-                                                    id="discount_type"
-                                                    className="w-full"
-                                                >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">
-                                                        No discount
-                                                    </SelectItem>
-                                                    <SelectItem value="percentage">
-                                                        Percentage
-                                                    </SelectItem>
-                                                    <SelectItem value="fixed">
-                                                        Fixed amount
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.discount_type}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="discount_value">
-                                                Overall discount value
-                                            </Label>
-                                            <Input
-                                                id="discount_value"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                name="discount_value"
-                                                value={discountValue}
-                                                onChange={(e) =>
-                                                    setDiscountValue(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                disabled={
-                                                    discountType === 'none'
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.discount_value}
-                                            />
-                                        </div>
+                                {items.length > 0 && (
+                                    <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>
+                                                        Product
+                                                    </TableHead>
+                                                    <TableHead className="w-24">
+                                                        Qty
+                                                    </TableHead>
+                                                    <TableHead className="w-28">
+                                                        Unit price
+                                                    </TableHead>
+                                                    <TableHead className="w-24">
+                                                        Discount
+                                                    </TableHead>
+                                                    <TableHead className="w-28 text-right">
+                                                        Total price
+                                                    </TableHead>
+                                                    <TableHead className="w-16" />
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {items.map((item, index) => (
+                                                    <LineItemRow
+                                                        key={index}
+                                                        namePrefix={`items[${index}]`}
+                                                        errorPrefix={`items.${index}`}
+                                                        item={item}
+                                                        errors={errors}
+                                                        isEditing={
+                                                            editingItemIndex ===
+                                                            index
+                                                        }
+                                                        onEdit={() =>
+                                                            editItem(index)
+                                                        }
+                                                        onRemove={() =>
+                                                            removeItem(index)
+                                                        }
+                                                    />
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                )}
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Summary</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="space-y-2">
+                                {items.length > 0 && (
+                                    <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">
-                                                Subtotal (groups + ungrouped)
+                                                Subtotal
                                             </dt>
                                             <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(subtotal)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Overall discount
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
                                                 {formatNumber(
-                                                    quotationDiscountAmount,
+                                                    ungroupedSubtotal,
                                                 )}
                                             </dd>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Overall tax
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(taxAmount)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                            <dt>Total</dt>
-                                            <dd>
-                                                {currencySymbol}{' '}
-                                                {formatNumber(total)}
-                                            </dd>
-                                        </div>
                                     </dl>
-                                </CardContent>
-                            </Card>
+                                )}
+                            </div>
+
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Tax &amp; Discount
+                                </h2>
+                                <div className="grid gap-2 sm:grid-cols-3">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="tax_id">
+                                            Overall tax
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="tax_id"
+                                            value={
+                                                taxId === 'none' ? '' : taxId
+                                            }
+                                        />
+                                        <Select
+                                            value={taxId}
+                                            onValueChange={setTaxId}
+                                        >
+                                            <SelectTrigger
+                                                id="tax_id"
+                                                className="w-full min-w-0"
+                                            >
+                                                <SelectValue className="truncate" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                <SelectItem value="none">
+                                                    No tax
+                                                </SelectItem>
+                                                {taxes.map((tax) => (
+                                                    <SelectItem
+                                                        key={tax.id}
+                                                        value={String(tax.id)}
+                                                    >
+                                                        <span className="block truncate">
+                                                            {tax.name} (
+                                                            {tax.type ===
+                                                            'percentage'
+                                                                ? `${tax.rate}%`
+                                                                : tax.rate}
+                                                            )
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.tax_id} />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="discount_type">
+                                            Overall discount type
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="discount_type"
+                                            value={
+                                                discountType === 'none'
+                                                    ? ''
+                                                    : discountType
+                                            }
+                                        />
+                                        <Select
+                                            value={discountType}
+                                            onValueChange={setDiscountType}
+                                        >
+                                            <SelectTrigger
+                                                id="discount_type"
+                                                className="w-full"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">
+                                                    No discount
+                                                </SelectItem>
+                                                <SelectItem value="percentage">
+                                                    Percentage
+                                                </SelectItem>
+                                                <SelectItem value="fixed">
+                                                    Fixed amount
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={errors.discount_type}
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="discount_value">
+                                            Overall discount value
+                                        </Label>
+                                        <Input
+                                            id="discount_value"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            name="discount_value"
+                                            value={discountValue}
+                                            onChange={(e) =>
+                                                setDiscountValue(e.target.value)
+                                            }
+                                            disabled={discountType === 'none'}
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.discount_value}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Summary
+                                </h2>
+                                <dl className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Subtotal (groups + ungrouped)
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(subtotal)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Overall discount
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotationDiscountAmount,
+                                            )}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Overall tax
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(taxAmount)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                        <dt>Total</dt>
+                                        <dd>
+                                            {currencySymbol}{' '}
+                                            {formatNumber(total)}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

@@ -97,3 +97,12 @@ Part of the `docs/handoff/` detail set — see `HANDOFF.md` at the repo root for
   just another set of workflow questions — the client picked against the recommended simpler
   default specifically because real bookkeeping needed installment/partial payment history,
   something none of the quantity-tracking modules needed.
+- **Page sections don't use `Card` anymore** (see `docs/handoff/history.md` item 41) — small
+  screens need the horizontal room `Card`'s padding/border/shadow eats. Default for a new
+  top-level section: `<div className="space-y-6"><h2 className="text-base font-semibold">Title</h2>…</div>`
+  (or `mb-4` on the `<h2>` if the content has no natural `space-y-*` gap). Only fall back to a
+  bordered `div` (`rounded-lg border border-border/50 p-4`, no shadow/`py-6`) when the border is
+  actually load-bearing — a "Danger Zone" delete section (`border-destructive/50` instead) or
+  multiple sections genuinely laid out side-by-side in a grid where the border is the only
+  visual separator between them (e.g. Roles' permission-module grid). Don't reach for `Card` by
+  default when adding a new page or section.

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -54,6 +54,7 @@ type ProductOption = {
     brand: string;
     unit: string;
     cost: string;
+    type: string;
 };
 
 type LineItem = {
@@ -282,6 +283,19 @@ function LineItemForm({
                     searchUrl={searchProducts().url}
                     getOptionId={(product) => String(product.id)}
                     getOptionLabel={productLabel}
+                    renderOption={(product) => (
+                        <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                            <span className="truncate">
+                                {productLabel(product)}
+                            </span>
+                            <Badge
+                                variant="secondary"
+                                className="shrink-0 capitalize"
+                            >
+                                {product.type}
+                            </Badge>
+                        </div>
+                    )}
                     initialOption={draft.product}
                     placeholder="Select a product"
                 />
@@ -515,7 +529,9 @@ function LineItemRow({
                 />
                 <div className="font-medium">{productLabel(item.product)}</div>
                 {rowError && (
-                    <p className="text-xs text-destructive">{rowError}</p>
+                    <p className="text-xs text-destructive dark:text-destructive-foreground">
+                        {rowError}
+                    </p>
                 )}
             </TableCell>
             <TableCell>
@@ -536,7 +552,7 @@ function LineItemRow({
                             size="icon"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <Trash2 className="text-destructive" />
+                            <Trash2 className="text-destructive dark:text-destructive-foreground" />
                         </Button>
                     </DialogTrigger>
                     <DialogContent onClick={(e) => e.stopPropagation()}>
@@ -620,9 +636,7 @@ function LineItemsSection({
             />
 
             {items.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    {emptyMessage}
-                </p>
+                <p className="text-sm text-muted-foreground">{emptyMessage}</p>
             )}
 
             {items.length > 0 && (
@@ -635,9 +649,7 @@ function LineItemsSection({
                                 <TableHead className="w-28">
                                     Unit cost
                                 </TableHead>
-                                <TableHead className="w-24">
-                                    Discount
-                                </TableHead>
+                                <TableHead className="w-24">Discount</TableHead>
                                 <TableHead className="w-28 text-right">
                                     Total cost
                                 </TableHead>
@@ -652,9 +664,7 @@ function LineItemsSection({
                                     errorPrefix={`${errorPrefix}.${itemIndex}`}
                                     item={item}
                                     errors={errors}
-                                    isEditing={
-                                        editingItemIndex === itemIndex
-                                    }
+                                    isEditing={editingItemIndex === itemIndex}
                                     onEdit={() => onEditItem(itemIndex)}
                                     onRemove={() => onRemoveItem(itemIndex)}
                                 />
@@ -718,7 +728,7 @@ function SubgroupFields({
                     className="mt-6"
                     onClick={onRemove}
                 >
-                    <Trash2 className="text-destructive" />
+                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
                 </Button>
             </div>
             <div className="space-y-4">
@@ -901,7 +911,11 @@ export default function BomsEdit({ quotation, bom }: Props) {
         setSubgroups((current) =>
             current.map((subgroup, i) =>
                 i === subgroupIndex
-                    ? { ...subgroup, draft: emptyItem(), editingItemIndex: null }
+                    ? {
+                          ...subgroup,
+                          draft: emptyItem(),
+                          editingItemIndex: null,
+                      }
                     : subgroup,
             ),
         );
@@ -1370,7 +1384,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                     removeGroup(groupIndex)
                                                 }
                                             >
-                                                <Trash2 className="text-destructive" />
+                                                <Trash2 className="text-destructive dark:text-destructive-foreground" />
                                             </Button>
                                         </div>
                                         <div className="space-y-4">
@@ -1589,129 +1603,121 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                 ))}
                             </div>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Ungrouped Materials</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <LineItemsSection
-                                        idPrefix="ungrouped-item"
-                                        namePrefix="items"
-                                        errorPrefix="items"
-                                        items={items}
-                                        draft={itemDraft}
-                                        editingItemIndex={editingItemIndex}
-                                        errors={errors}
-                                        emptyMessage="No ungrouped materials. Add one above, or put materials inside a group or phase."
-                                        onDraftChange={updateItemDraft}
-                                        onSubmitItem={submitItemDraft}
-                                        onCancelItemEdit={cancelItemEdit}
-                                        onEditItem={editItem}
-                                        onRemoveItem={removeItem}
-                                    />
-                                </CardContent>
-                            </Card>
+                            <div className="space-y-4">
+                                <h2 className="text-base font-semibold">
+                                    Ungrouped Materials
+                                </h2>
+                                <LineItemsSection
+                                    idPrefix="ungrouped-item"
+                                    namePrefix="items"
+                                    errorPrefix="items"
+                                    items={items}
+                                    draft={itemDraft}
+                                    editingItemIndex={editingItemIndex}
+                                    errors={errors}
+                                    emptyMessage="No ungrouped materials. Add one above, or put materials inside a group or phase."
+                                    onDraftChange={updateItemDraft}
+                                    onSubmitItem={submitItemDraft}
+                                    onCancelItemEdit={cancelItemEdit}
+                                    onEditItem={editItem}
+                                    onRemoveItem={removeItem}
+                                />
+                            </div>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Cost Summary</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="overhead_percentage">
-                                                Overhead percentage
-                                            </Label>
-                                            <Input
-                                                id="overhead_percentage"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                name="overhead_percentage"
-                                                value={overheadPercentage}
-                                                onChange={(e) =>
-                                                    setOverheadPercentage(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={
-                                                    errors.overhead_percentage
-                                                }
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="selling_percentage">
-                                                Selling percentage
-                                            </Label>
-                                            <Input
-                                                id="selling_percentage"
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                name="selling_percentage"
-                                                value={sellingPercentage}
-                                                onChange={(e) =>
-                                                    setSellingPercentage(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={
-                                                    errors.selling_percentage
-                                                }
-                                            />
-                                        </div>
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Cost Summary
+                                </h2>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="overhead_percentage">
+                                            Overhead percentage
+                                        </Label>
+                                        <Input
+                                            id="overhead_percentage"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            name="overhead_percentage"
+                                            value={overheadPercentage}
+                                            onChange={(e) =>
+                                                setOverheadPercentage(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.overhead_percentage}
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="remarks">Remarks</Label>
-                                        <Textarea
-                                            id="remarks"
-                                            name="remarks"
-                                            defaultValue={bom.remarks ?? ''}
+                                        <Label htmlFor="selling_percentage">
+                                            Selling percentage
+                                        </Label>
+                                        <Input
+                                            id="selling_percentage"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            name="selling_percentage"
+                                            value={sellingPercentage}
+                                            onChange={(e) =>
+                                                setSellingPercentage(
+                                                    e.target.value,
+                                                )
+                                            }
                                             placeholder="Optional"
                                         />
-                                        <InputError message={errors.remarks} />
+                                        <InputError
+                                            message={errors.selling_percentage}
+                                        />
                                     </div>
+                                </div>
 
-                                    <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Main cost
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {formatNumber(mainCost)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Overhead cost
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {formatNumber(overheadCost)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
-                                            <dt>Total cost</dt>
-                                            <dd>{formatNumber(totalCost)}</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Selling cost
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {formatNumber(sellingCost)}
-                                            </dd>
-                                        </div>
-                                    </dl>
-                                </CardContent>
-                            </Card>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="remarks">Remarks</Label>
+                                    <Textarea
+                                        id="remarks"
+                                        name="remarks"
+                                        defaultValue={bom.remarks ?? ''}
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.remarks} />
+                                </div>
+
+                                <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Main cost
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {formatNumber(mainCost)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Overhead cost
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {formatNumber(overheadCost)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                        <dt>Total cost</dt>
+                                        <dd>{formatNumber(totalCost)}</dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Selling cost
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {formatNumber(sellingCost)}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

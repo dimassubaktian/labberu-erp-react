@@ -6,8 +6,8 @@ import Heading from '@/components/heading';
 import { ImportBomItemsDialog } from '@/components/import-bom-items-dialog';
 import type { ImportedBomItem } from '@/components/import-bom-items-dialog';
 import InputError from '@/components/input-error';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -74,6 +74,7 @@ type ProductOption = {
     descriptions: string;
     unit: string;
     cost: string;
+    type: string;
 };
 
 type LineItem = {
@@ -182,6 +183,12 @@ function toDiscountLevel(discount: PurchaseOrderDiscountProp): DiscountLevel {
     };
 }
 
+function productLabel(product: ProductOption): string {
+    return product.reference_number
+        ? `${product.product_code} — ${product.name} (${product.reference_number})`
+        : `${product.product_code} — ${product.name}`;
+}
+
 function calculateItemTotal(item: LineItem): number {
     return (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
 }
@@ -265,11 +272,20 @@ function LineItemFields({
                         onValueChange={handleProductChange}
                         searchUrl={searchProducts().url}
                         getOptionId={(product) => String(product.id)}
-                        getOptionLabel={(product) =>
-                            product.reference_number
-                                ? `${product.product_code} — ${product.name} (${product.reference_number})`
-                                : `${product.product_code} — ${product.name}`
-                        }
+                        getOptionLabel={productLabel}
+                        renderOption={(product) => (
+                            <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                                <span className="truncate">
+                                    {productLabel(product)}
+                                </span>
+                                <Badge
+                                    variant="secondary"
+                                    className="shrink-0 capitalize"
+                                >
+                                    {product.type}
+                                </Badge>
+                            </div>
+                        )}
                         initialOption={item.initialProduct}
                         placeholder="Select a product"
                     />
@@ -284,7 +300,7 @@ function LineItemFields({
                         className="mt-6"
                         onClick={onRemove}
                     >
-                        <Trash2 className="text-destructive" />
+                        <Trash2 className="text-destructive dark:text-destructive-foreground" />
                     </Button>
                 )}
             </div>
@@ -423,7 +439,7 @@ function DiscountFields({
                     className="mt-6"
                     onClick={onRemove}
                 >
-                    <Trash2 className="text-destructive" />
+                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
                 </Button>
             </div>
 
@@ -661,418 +677,393 @@ export default function PurchaseOrdersEdit({
                 <Form {...update.form(purchaseOrder)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Details</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label>Project</Label>
-                                            <input
-                                                type="hidden"
-                                                name="project_id"
-                                                value={projectId}
-                                            />
-                                            <p className="rounded-md border border-sidebar-border/70 px-3 py-2 text-sm text-muted-foreground dark:border-sidebar-border">
-                                                {
-                                                    purchaseOrder.project
-                                                        .project_code
-                                                }{' '}
-                                                &mdash;{' '}
-                                                {purchaseOrder.project.name} (
-                                                {
-                                                    purchaseOrder.project
-                                                        .customer.name
-                                                }
-                                                )
-                                            </p>
-                                            <InputError
-                                                message={errors.project_id}
-                                            />
-                                        </div>
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Details
+                                </h2>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label>Project</Label>
+                                        <input
+                                            type="hidden"
+                                            name="project_id"
+                                            value={projectId}
+                                        />
+                                        <p className="rounded-md border border-sidebar-border/70 px-3 py-2 text-sm text-muted-foreground dark:border-sidebar-border">
+                                            {purchaseOrder.project.project_code}{' '}
+                                            &mdash; {purchaseOrder.project.name}{' '}
+                                            (
+                                            {
+                                                purchaseOrder.project.customer
+                                                    .name
+                                            }
+                                            )
+                                        </p>
+                                        <InputError
+                                            message={errors.project_id}
+                                        />
+                                    </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="quotation_id">
-                                                Quotation
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="quotation_id"
-                                                value={quotationId}
-                                            />
-                                            <Select
-                                                value={quotationId}
-                                                onValueChange={
-                                                    handleQuotationChange
-                                                }
-                                                disabled={!projectId}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="quotation_id">
+                                            Quotation
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="quotation_id"
+                                            value={quotationId}
+                                        />
+                                        <Select
+                                            value={quotationId}
+                                            onValueChange={
+                                                handleQuotationChange
+                                            }
+                                            disabled={!projectId}
+                                        >
+                                            <SelectTrigger
+                                                id="quotation_id"
+                                                className="w-full min-w-0"
                                             >
-                                                <SelectTrigger
-                                                    id="quotation_id"
-                                                    className="w-full min-w-0"
-                                                >
-                                                    <SelectValue
-                                                        placeholder="Select a quotation"
-                                                        className="truncate"
-                                                    />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                    {quotationOptions.map(
-                                                        (quotation) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    quotation.id
+                                                <SelectValue
+                                                    placeholder="Select a quotation"
+                                                    className="truncate"
+                                                />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                {quotationOptions.map(
+                                                    (quotation) => (
+                                                        <SelectItem
+                                                            key={quotation.id}
+                                                            value={String(
+                                                                quotation.id,
+                                                            )}
+                                                        >
+                                                            <span className="block truncate">
+                                                                {
+                                                                    quotation.quotation_code
+                                                                }{' '}
+                                                                v
+                                                                {
+                                                                    quotation.version_major
                                                                 }
-                                                                value={String(
-                                                                    quotation.id,
-                                                                )}
-                                                            >
-                                                                <span className="block truncate">
-                                                                    {
-                                                                        quotation.quotation_code
-                                                                    }{' '}
-                                                                    v
-                                                                    {
-                                                                        quotation.version_major
-                                                                    }
-                                                                    .
-                                                                    {
-                                                                        quotation.version_minor
-                                                                    }
-                                                                    {quotation.is_current
-                                                                        ? ' (current)'
-                                                                        : ''}
-                                                                </span>
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.quotation_id}
-                                            />
-                                        </div>
+                                                                .
+                                                                {
+                                                                    quotation.version_minor
+                                                                }
+                                                                {quotation.is_current
+                                                                    ? ' (current)'
+                                                                    : ''}
+                                                            </span>
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={errors.quotation_id}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="project_name">
+                                            Project name
+                                        </Label>
+                                        <Input
+                                            id="project_name"
+                                            name="project_name"
+                                            value={projectName}
+                                            onChange={(e) =>
+                                                setProjectName(e.target.value)
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors.project_name}
+                                        />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="project_name">
-                                                Project name
-                                            </Label>
-                                            <Input
-                                                id="project_name"
-                                                name="project_name"
-                                                value={projectName}
-                                                onChange={(e) =>
-                                                    setProjectName(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <InputError
-                                                message={errors.project_name}
-                                            />
-                                        </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="customer_name">
+                                            Customer
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="customer_id"
+                                            value={customerId}
+                                        />
+                                        <Input
+                                            id="customer_name"
+                                            value={customerName}
+                                            readOnly
+                                            disabled
+                                        />
+                                        <InputError
+                                            message={errors.customer_id}
+                                        />
+                                    </div>
+                                </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="customer_name">
-                                                Customer
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="customer_id"
-                                                value={customerId}
-                                            />
-                                            <Input
-                                                id="customer_name"
-                                                value={customerName}
-                                                readOnly
-                                                disabled
-                                            />
-                                            <InputError
-                                                message={errors.customer_id}
-                                            />
-                                        </div>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="vendor_id">
+                                            Vendor
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="vendor_id"
+                                            value={vendorId}
+                                        />
+                                        <AsyncCombobox<VendorOption>
+                                            id="vendor_id"
+                                            value={vendorId}
+                                            onValueChange={handleVendorChange}
+                                            searchUrl={searchVendors().url}
+                                            getOptionId={(vendor) =>
+                                                String(vendor.id)
+                                            }
+                                            getOptionLabel={(vendor) =>
+                                                `${vendor.vendor_code} — ${vendor.name}`
+                                            }
+                                            initialOption={purchaseOrder.vendor}
+                                            placeholder="Select a vendor"
+                                        />
+                                        <InputError
+                                            message={errors.vendor_id}
+                                        />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="vendor_id">
-                                                Vendor
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="vendor_id"
-                                                value={vendorId}
-                                            />
-                                            <AsyncCombobox<VendorOption>
-                                                id="vendor_id"
-                                                value={vendorId}
-                                                onValueChange={
-                                                    handleVendorChange
-                                                }
-                                                searchUrl={searchVendors().url}
-                                                getOptionId={(vendor) =>
-                                                    String(vendor.id)
-                                                }
-                                                getOptionLabel={(vendor) =>
-                                                    `${vendor.vendor_code} — ${vendor.name}`
-                                                }
-                                                initialOption={
-                                                    purchaseOrder.vendor
-                                                }
-                                                placeholder="Select a vendor"
-                                            />
-                                            <InputError
-                                                message={errors.vendor_id}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="currency_id">
-                                                Currency
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="currency_id"
-                                                value={currencyId}
-                                            />
-                                            <Select
-                                                value={currencyId}
-                                                onValueChange={setCurrencyId}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="currency_id">
+                                            Currency
+                                        </Label>
+                                        <input
+                                            type="hidden"
+                                            name="currency_id"
+                                            value={currencyId}
+                                        />
+                                        <Select
+                                            value={currencyId}
+                                            onValueChange={setCurrencyId}
+                                        >
+                                            <SelectTrigger
+                                                id="currency_id"
+                                                className="w-full min-w-0"
                                             >
-                                                <SelectTrigger
-                                                    id="currency_id"
-                                                    className="w-full min-w-0"
-                                                >
-                                                    <SelectValue
-                                                        placeholder="Select a currency"
-                                                        className="truncate"
-                                                    />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                    {currencies.map(
-                                                        (currency) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    currency.id
-                                                                }
-                                                                value={String(
-                                                                    currency.id,
-                                                                )}
-                                                            >
-                                                                <span className="block truncate">
-                                                                    {
-                                                                        currency.iso_code
-                                                                    }{' '}
-                                                                    &mdash;{' '}
-                                                                    {
-                                                                        currency.name
-                                                                    }
-                                                                </span>
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={errors.currency_id}
-                                            />
-                                        </div>
+                                                <SelectValue
+                                                    placeholder="Select a currency"
+                                                    className="truncate"
+                                                />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                                {currencies.map((currency) => (
+                                                    <SelectItem
+                                                        key={currency.id}
+                                                        value={String(
+                                                            currency.id,
+                                                        )}
+                                                    >
+                                                        <span className="block truncate">
+                                                            {currency.iso_code}{' '}
+                                                            &mdash;{' '}
+                                                            {currency.name}
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError
+                                            message={errors.currency_id}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="address">
+                                            Vendor address
+                                        </Label>
+                                        <Input
+                                            id="address"
+                                            name="address"
+                                            value={address}
+                                            onChange={(e) =>
+                                                setAddress(e.target.value)
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError message={errors.address} />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="address">
-                                                Vendor address
-                                            </Label>
-                                            <Input
-                                                id="address"
-                                                name="address"
-                                                value={address}
-                                                onChange={(e) =>
-                                                    setAddress(e.target.value)
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.address}
-                                            />
-                                        </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="attention">
+                                            Attention
+                                        </Label>
+                                        <Input
+                                            id="attention"
+                                            name="attention"
+                                            defaultValue={
+                                                purchaseOrder.attention ?? ''
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.attention}
+                                        />
+                                    </div>
+                                </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="attention">
-                                                Attention
-                                            </Label>
-                                            <Input
-                                                id="attention"
-                                                name="attention"
-                                                defaultValue={
-                                                    purchaseOrder.attention ??
-                                                    ''
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.attention}
-                                            />
-                                        </div>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="phone">Phone</Label>
+                                        <Input
+                                            id="phone"
+                                            name="phone"
+                                            value={phone}
+                                            onChange={(e) =>
+                                                setPhone(e.target.value)
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError message={errors.phone} />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="phone">Phone</Label>
-                                            <Input
-                                                id="phone"
-                                                name="phone"
-                                                value={phone}
-                                                onChange={(e) =>
-                                                    setPhone(e.target.value)
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.phone}
-                                            />
-                                        </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="fax">Fax</Label>
+                                        <Input
+                                            id="fax"
+                                            name="fax"
+                                            value={fax}
+                                            onChange={(e) =>
+                                                setFax(e.target.value)
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError message={errors.fax} />
+                                    </div>
+                                </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="fax">Fax</Label>
-                                            <Input
-                                                id="fax"
-                                                name="fax"
-                                                value={fax}
-                                                onChange={(e) =>
-                                                    setFax(e.target.value)
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError message={errors.fax} />
-                                        </div>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="quotation_no">
+                                            Vendor quotation no.
+                                        </Label>
+                                        <Input
+                                            id="quotation_no"
+                                            name="quotation_no"
+                                            defaultValue={
+                                                purchaseOrder.quotation_no ?? ''
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.quotation_no}
+                                        />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="quotation_no">
-                                                Vendor quotation no.
-                                            </Label>
-                                            <Input
-                                                id="quotation_no"
-                                                name="quotation_no"
-                                                defaultValue={
-                                                    purchaseOrder.quotation_no ??
-                                                    ''
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.quotation_no}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="quotation_date">
-                                                Vendor quotation date
-                                            </Label>
-                                            <Input
-                                                id="quotation_date"
-                                                type="date"
-                                                name="quotation_date"
-                                                defaultValue={
-                                                    purchaseOrder.quotation_date?.slice(
-                                                        0,
-                                                        10,
-                                                    ) ?? ''
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.quotation_date}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="date">Date</Label>
-                                            <Input
-                                                id="date"
-                                                type="date"
-                                                name="date"
-                                                defaultValue={purchaseOrder.date.slice(
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="quotation_date">
+                                            Vendor quotation date
+                                        </Label>
+                                        <Input
+                                            id="quotation_date"
+                                            type="date"
+                                            name="quotation_date"
+                                            defaultValue={
+                                                purchaseOrder.quotation_date?.slice(
                                                     0,
                                                     10,
-                                                )}
-                                            />
-                                            <InputError message={errors.date} />
-                                        </div>
+                                                ) ?? ''
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.quotation_date}
+                                        />
+                                    </div>
+                                </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="delivery_date">
-                                                Delivery date
-                                            </Label>
-                                            <Input
-                                                id="delivery_date"
-                                                type="date"
-                                                name="delivery_date"
-                                                defaultValue={
-                                                    purchaseOrder.delivery_date?.slice(
-                                                        0,
-                                                        10,
-                                                    ) ?? ''
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.delivery_date}
-                                            />
-                                        </div>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="date">Date</Label>
+                                        <Input
+                                            id="date"
+                                            type="date"
+                                            name="date"
+                                            defaultValue={purchaseOrder.date.slice(
+                                                0,
+                                                10,
+                                            )}
+                                        />
+                                        <InputError message={errors.date} />
                                     </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="shipping_method">
-                                                Shipping method
-                                            </Label>
-                                            <Input
-                                                id="shipping_method"
-                                                name="shipping_method"
-                                                defaultValue={
-                                                    purchaseOrder.shipping_method ??
-                                                    ''
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.shipping_method}
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="shipping_terms">
-                                                Shipping terms
-                                            </Label>
-                                            <Input
-                                                id="shipping_terms"
-                                                name="shipping_terms"
-                                                defaultValue={
-                                                    purchaseOrder.shipping_terms ??
-                                                    ''
-                                                }
-                                                placeholder="Optional"
-                                            />
-                                            <InputError
-                                                message={errors.shipping_terms}
-                                            />
-                                        </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="delivery_date">
+                                            Delivery date
+                                        </Label>
+                                        <Input
+                                            id="delivery_date"
+                                            type="date"
+                                            name="delivery_date"
+                                            defaultValue={
+                                                purchaseOrder.delivery_date?.slice(
+                                                    0,
+                                                    10,
+                                                ) ?? ''
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.delivery_date}
+                                        />
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
 
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between gap-2">
-                                    <CardTitle>Line Items</CardTitle>
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="shipping_method">
+                                            Shipping method
+                                        </Label>
+                                        <Input
+                                            id="shipping_method"
+                                            name="shipping_method"
+                                            defaultValue={
+                                                purchaseOrder.shipping_method ??
+                                                ''
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.shipping_method}
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="shipping_terms">
+                                            Shipping terms
+                                        </Label>
+                                        <Input
+                                            id="shipping_terms"
+                                            name="shipping_terms"
+                                            defaultValue={
+                                                purchaseOrder.shipping_terms ??
+                                                ''
+                                            }
+                                            placeholder="Optional"
+                                        />
+                                        <InputError
+                                            message={errors.shipping_terms}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-2">
+                                    <h2 className="text-base font-semibold">
+                                        Line Items
+                                    </h2>
                                     <div className="flex gap-2">
                                         <ImportBomItemsDialog
                                             quotationId={quotationUuid}
@@ -1088,41 +1079,41 @@ export default function PurchaseOrdersEdit({
                                             Add line
                                         </Button>
                                     </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <InputError message={errors.items} />
+                                </div>
+                                <InputError message={errors.items} />
 
-                                    {items.map((item, index) => (
-                                        <LineItemFields
-                                            key={index}
-                                            index={index}
-                                            item={item}
-                                            errors={errors}
-                                            onChange={(changes) =>
-                                                updateItem(index, changes)
-                                            }
-                                            onRemove={
-                                                items.length > 1
-                                                    ? () => removeItem(index)
-                                                    : undefined
-                                            }
-                                        />
-                                    ))}
+                                {items.map((item, index) => (
+                                    <LineItemFields
+                                        key={index}
+                                        index={index}
+                                        item={item}
+                                        errors={errors}
+                                        onChange={(changes) =>
+                                            updateItem(index, changes)
+                                        }
+                                        onRemove={
+                                            items.length > 1
+                                                ? () => removeItem(index)
+                                                : undefined
+                                        }
+                                    />
+                                ))}
 
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={addItem}
-                                    >
-                                        <Plus />
-                                        Add line
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={addItem}
+                                >
+                                    <Plus />
+                                    Add line
+                                </Button>
+                            </div>
 
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle>Discounts</CardTitle>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-2">
+                                    <h2 className="text-base font-semibold">
+                                        Discounts
+                                    </h2>
                                     <Button
                                         type="button"
                                         size="sm"
@@ -1131,144 +1122,131 @@ export default function PurchaseOrdersEdit({
                                         <Plus />
                                         Add discount level
                                     </Button>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {discounts.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">
-                                            No discount levels added. Each level
-                                            applies in order, on top of the
-                                            balance left by the previous one.
-                                        </p>
-                                    )}
+                                </div>
+                                {discounts.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">
+                                        No discount levels added. Each level
+                                        applies in order, on top of the balance
+                                        left by the previous one.
+                                    </p>
+                                )}
 
-                                    {discounts.map((discount, index) => (
-                                        <DiscountFields
-                                            key={index}
-                                            index={index}
-                                            discount={discount}
-                                            baseAmount={
-                                                discountRows[index]
-                                                    ?.baseAmount ?? 0
-                                            }
-                                            amount={
-                                                discountRows[index]?.amount ?? 0
-                                            }
-                                            errors={errors}
-                                            onChange={(changes) =>
-                                                updateDiscount(index, changes)
-                                            }
-                                            onRemove={() =>
-                                                removeDiscount(index)
-                                            }
-                                        />
-                                    ))}
-                                </CardContent>
-                            </Card>
+                                {discounts.map((discount, index) => (
+                                    <DiscountFields
+                                        key={index}
+                                        index={index}
+                                        discount={discount}
+                                        baseAmount={
+                                            discountRows[index]?.baseAmount ?? 0
+                                        }
+                                        amount={
+                                            discountRows[index]?.amount ?? 0
+                                        }
+                                        errors={errors}
+                                        onChange={(changes) =>
+                                            updateDiscount(index, changes)
+                                        }
+                                        onRemove={() => removeDiscount(index)}
+                                    />
+                                ))}
+                            </div>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Tax</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="grid gap-2 sm:w-1/2">
-                                        <Label htmlFor="tax_id">
-                                            Overall tax
-                                        </Label>
-                                        <input
-                                            type="hidden"
-                                            name="tax_id"
-                                            value={
-                                                taxId === 'none' ? '' : taxId
-                                            }
-                                        />
-                                        <Select
-                                            value={taxId}
-                                            onValueChange={setTaxId}
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Tax
+                                </h2>
+                                <div className="grid gap-2 sm:w-1/2">
+                                    <Label htmlFor="tax_id">Overall tax</Label>
+                                    <input
+                                        type="hidden"
+                                        name="tax_id"
+                                        value={taxId === 'none' ? '' : taxId}
+                                    />
+                                    <Select
+                                        value={taxId}
+                                        onValueChange={setTaxId}
+                                    >
+                                        <SelectTrigger
+                                            id="tax_id"
+                                            className="w-full min-w-0"
                                         >
-                                            <SelectTrigger
-                                                id="tax_id"
-                                                className="w-full min-w-0"
-                                            >
-                                                <SelectValue className="truncate" />
-                                            </SelectTrigger>
-                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                <SelectItem value="none">
-                                                    No tax
+                                            <SelectValue className="truncate" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-w-(--radix-select-trigger-width)">
+                                            <SelectItem value="none">
+                                                No tax
+                                            </SelectItem>
+                                            {taxes.map((tax) => (
+                                                <SelectItem
+                                                    key={tax.id}
+                                                    value={String(tax.id)}
+                                                >
+                                                    <span className="block truncate">
+                                                        {tax.name} (
+                                                        {tax.type ===
+                                                        'percentage'
+                                                            ? `${tax.rate}%`
+                                                            : tax.rate}
+                                                        )
+                                                    </span>
                                                 </SelectItem>
-                                                {taxes.map((tax) => (
-                                                    <SelectItem
-                                                        key={tax.id}
-                                                        value={String(tax.id)}
-                                                    >
-                                                        <span className="block truncate">
-                                                            {tax.name} (
-                                                            {tax.type ===
-                                                            'percentage'
-                                                                ? `${tax.rate}%`
-                                                                : tax.rate}
-                                                            )
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <InputError message={errors.tax_id} />
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.tax_id} />
+                                </div>
+                            </div>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Summary</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <dl className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Subtotal
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(subtotal)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Discount total
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(discountTotal)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Net after discount
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(netAfterDiscount)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">
-                                                Tax
-                                            </dt>
-                                            <dd className="font-medium">
-                                                {currencySymbol}{' '}
-                                                {formatNumber(taxAmount)}
-                                            </dd>
-                                        </div>
-                                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                            <dt>Grand total</dt>
-                                            <dd>
-                                                {currencySymbol}{' '}
-                                                {formatNumber(grandTotal)}
-                                            </dd>
-                                        </div>
-                                    </dl>
-                                </CardContent>
-                            </Card>
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Summary
+                                </h2>
+                                <dl className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Subtotal
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(subtotal)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Discount total
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(discountTotal)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Net after discount
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(netAfterDiscount)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Tax
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(taxAmount)}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                        <dt>Grand total</dt>
+                                        <dd>
+                                            {currencySymbol}{' '}
+                                            {formatNumber(grandTotal)}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

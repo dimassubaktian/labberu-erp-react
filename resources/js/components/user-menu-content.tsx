@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Moon, Settings, Sun } from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -7,6 +7,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
+import { useAppearance } from '@/hooks/use-appearance';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
@@ -18,6 +19,7 @@ type Props = {
 
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
+    const { resolvedAppearance, updateAppearance } = useAppearance();
 
     const handleLogout = () => {
         cleanup();
@@ -43,6 +45,26 @@ export function UserMenuContent({ user }: Props) {
                         <Settings className="mr-2" />
                         Settings
                     </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() =>
+                        updateAppearance(
+                            resolvedAppearance === 'dark' ? 'light' : 'dark',
+                        )
+                    }
+                >
+                    {resolvedAppearance === 'dark' ? (
+                        <>
+                            <Sun className="mr-2" />
+                            Switch to light mode
+                        </>
+                    ) : (
+                        <>
+                            <Moon className="mr-2" />
+                            Switch to dark mode
+                        </>
+                    )}
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

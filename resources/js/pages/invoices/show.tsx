@@ -3,7 +3,6 @@ import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -137,239 +136,479 @@ export default function InvoicesShow({ invoice }: Props) {
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Details</h2>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Status
+                            </dt>
+                            <dd>
+                                <Badge
+                                    variant="secondary"
+                                    className="capitalize"
+                                >
+                                    {invoice.status.replaceAll('_', ' ')}
+                                </Badge>
+                            </dd>
+                        </div>
+
+                        {invoice.payment_status && (
                             <div>
                                 <dt className="text-sm text-muted-foreground">
-                                    Status
+                                    Payment
                                 </dt>
                                 <dd>
                                     <Badge
                                         variant="secondary"
                                         className="capitalize"
                                     >
-                                        {invoice.status.replaceAll('_', ' ')}
+                                        {invoice.payment_status.replaceAll(
+                                            '_',
+                                            ' ',
+                                        )}
                                     </Badge>
                                 </dd>
                             </div>
+                        )}
 
-                            {invoice.payment_status && (
-                                <div>
-                                    <dt className="text-sm text-muted-foreground">
-                                        Payment
-                                    </dt>
-                                    <dd>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {invoice.payment_status.replaceAll(
-                                                '_',
-                                                ' ',
-                                            )}
-                                        </Badge>
-                                    </dd>
-                                </div>
-                            )}
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Quotation
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link
-                                        href={showQuotation(invoice.quotation)}
-                                    >
-                                        {invoice.quotation.quotation_code}
-                                    </Link>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Customer
-                                </dt>
-                                <dd className="font-medium">
-                                    {invoice.quotation.project.customer.name}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Invoice date
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDate(invoice.invoice_date)}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Due date
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDate(invoice.due_date)}
-                                </dd>
-                            </div>
-
-                            {invoice.issued_at && (
-                                <div>
-                                    <dt className="text-sm text-muted-foreground">
-                                        Issued at
-                                    </dt>
-                                    <dd className="font-medium">
-                                        {formatDateTime(invoice.issued_at)}
-                                    </dd>
-                                </div>
-                            )}
-
-                            {invoice.remarks && (
-                                <div className="sm:col-span-2">
-                                    <dt className="text-sm text-muted-foreground">
-                                        Remarks
-                                    </dt>
-                                    <dd className="font-medium whitespace-pre-line">
-                                        {invoice.remarks}
-                                    </dd>
-                                </div>
-                            )}
-                        </dl>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-hidden rounded-xl border border-border/50">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>No</TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Qty invoiced</TableHead>
-                                        <TableHead>Unit price</TableHead>
-                                        <TableHead>Total</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {invoice.items.map((item, idx) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="text-muted-foreground">
-                                                {idx + 1}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {item.product.product_code}{' '}
-                                                &mdash; {item.product.name}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(
-                                                    item.quantity_invoiced,
-                                                )}{' '}
-                                                {item.unit}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.unit_price)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.total)}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Quotation
+                            </dt>
+                            <dd className="font-medium">
+                                <Link href={showQuotation(invoice.quotation)}>
+                                    {invoice.quotation.quotation_code}
+                                </Link>
+                            </dd>
                         </div>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="space-y-2">
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Subtotal
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Customer
+                            </dt>
+                            <dd className="font-medium">
+                                {invoice.quotation.project.customer.name}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Invoice date
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDate(invoice.invoice_date)}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Due date
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDate(invoice.due_date)}
+                            </dd>
+                        </div>
+
+                        {invoice.issued_at && (
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Issued at
                                 </dt>
                                 <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(invoice.subtotal)}
+                                    {formatDateTime(invoice.issued_at)}
                                 </dd>
                             </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Discount
+                        )}
+
+                        {invoice.remarks && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Remarks
                                 </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(invoice.discount_amount)}
+                                <dd className="font-medium whitespace-pre-line">
+                                    {invoice.remarks}
                                 </dd>
                             </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Tax
-                                    {invoice.tax && ` (${invoice.tax.name})`}
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(invoice.tax_amount)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                <dt>Total</dt>
-                                <dd>
-                                    {currencySymbol}{' '}
-                                    {formatNumber(invoice.total)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Amount paid
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol} {formatNumber(totalPaid)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Balance due
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol} {formatNumber(balanceDue)}
-                                </dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
+                        )}
+                    </dl>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Items</h2>
+                    <div className="overflow-hidden rounded-xl border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>No</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Qty invoiced</TableHead>
+                                    <TableHead>Unit price</TableHead>
+                                    <TableHead>Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {invoice.items.map((item, idx) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="text-muted-foreground">
+                                            {idx + 1}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {item.product.product_code} &mdash;{' '}
+                                            {item.product.name}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                item.quantity_invoiced,
+                                            )}{' '}
+                                            {item.unit}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(item.unit_price)}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(item.total)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Summary</h2>
+                    <dl className="space-y-2">
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Subtotal</dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(invoice.subtotal)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Discount</dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(invoice.discount_amount)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Tax
+                                {invoice.tax && ` (${invoice.tax.name})`}
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(invoice.tax_amount)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                            <dt>Total</dt>
+                            <dd>
+                                {currencySymbol} {formatNumber(invoice.total)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Amount paid
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol} {formatNumber(totalPaid)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Balance due
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol} {formatNumber(balanceDue)}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
 
                 {invoice.status === 'draft' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Issue Invoice</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Issue Invoice
+                        </h2>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button>Issue</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>Issue this invoice?</DialogTitle>
+                                <DialogDescription>
+                                    This locks the invoice from further edits
+                                    and makes it ready to receive payments.
+                                </DialogDescription>
+
+                                <Form
+                                    {...issue.form(invoice)}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing }) => (
+                                        <DialogFooter className="gap-2">
+                                            <DialogClose asChild>
+                                                <Button variant="secondary">
+                                                    Cancel
+                                                </Button>
+                                            </DialogClose>
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                            >
+                                                {processing && <Spinner />}
+                                                Issue
+                                            </Button>
+                                        </DialogFooter>
+                                    )}
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                )}
+
+                {invoice.status === 'issued' && (
+                    <div className="space-y-6">
+                        <h2 className="text-base font-semibold">Payments</h2>
+                        {invoice.payments.length > 0 && (
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Amount</TableHead>
+                                            <TableHead>Method</TableHead>
+                                            <TableHead>Recorded by</TableHead>
+                                            <TableHead />
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {invoice.payments.map((payment) => (
+                                            <TableRow key={payment.id}>
+                                                <TableCell>
+                                                    {formatDate(
+                                                        payment.payment_date,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {currencySymbol}{' '}
+                                                    {formatNumber(
+                                                        payment.amount,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {payment.method ?? (
+                                                        <span>&mdash;</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {payment.recorded_by
+                                                        ?.name ?? (
+                                                        <span>&mdash;</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                            >
+                                                                <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent>
+                                                            <DialogTitle>
+                                                                Remove this
+                                                                payment?
+                                                            </DialogTitle>
+                                                            <DialogDescription>
+                                                                This will
+                                                                recalculate the
+                                                                invoice&apos;s
+                                                                payment status.
+                                                                This action
+                                                                cannot be
+                                                                undone.
+                                                            </DialogDescription>
+
+                                                            <Form
+                                                                {...destroyPayment.form(
+                                                                    {
+                                                                        invoice,
+                                                                        payment,
+                                                                    },
+                                                                )}
+                                                                options={{
+                                                                    preserveScroll: true,
+                                                                }}
+                                                            >
+                                                                {({
+                                                                    processing,
+                                                                }) => (
+                                                                    <DialogFooter className="gap-2">
+                                                                        <DialogClose
+                                                                            asChild
+                                                                        >
+                                                                            <Button variant="secondary">
+                                                                                Cancel
+                                                                            </Button>
+                                                                        </DialogClose>
+                                                                        <Button
+                                                                            type="submit"
+                                                                            variant="destructive"
+                                                                            disabled={
+                                                                                processing
+                                                                            }
+                                                                        >
+                                                                            {processing && (
+                                                                                <Spinner />
+                                                                            )}
+                                                                            Remove
+                                                                        </Button>
+                                                                    </DialogFooter>
+                                                                )}
+                                                            </Form>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+
+                        <Form
+                            {...storePayment.form(invoice)}
+                            options={{ preserveScroll: true }}
+                            resetOnSuccess
+                        >
+                            {({ processing, errors }) => (
+                                <div className="grid gap-4 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="amount">
+                                                Amount
+                                            </Label>
+                                            <Input
+                                                id="amount"
+                                                type="number"
+                                                step="0.01"
+                                                min="0.01"
+                                                name="amount"
+                                            />
+                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                {errors.amount}
+                                            </p>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="payment_date">
+                                                Payment date
+                                            </Label>
+                                            <Input
+                                                id="payment_date"
+                                                type="date"
+                                                name="payment_date"
+                                                defaultValue={new Date()
+                                                    .toISOString()
+                                                    .slice(0, 10)}
+                                            />
+                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                {errors.payment_date}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="method">
+                                                Method
+                                            </Label>
+                                            <Input
+                                                id="method"
+                                                name="method"
+                                                placeholder="Optional, e.g. Bank Transfer"
+                                            />
+                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                {errors.method}
+                                            </p>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="remarks">
+                                                Remarks
+                                            </Label>
+                                            <Textarea
+                                                id="remarks"
+                                                name="remarks"
+                                                placeholder="Optional"
+                                                rows={1}
+                                            />
+                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                {errors.remarks}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Button
+                                            type="submit"
+                                            disabled={processing}
+                                        >
+                                            {processing && <Spinner />}
+                                            Record Payment
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </Form>
+                    </div>
+                )}
+
+                {invoice.status === 'draft' && (
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this invoice
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this invoice cannot be
+                                    restored.
+                                </p>
+                            </div>
+
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button>Issue</Button>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Invoice
+                                    </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogTitle>
-                                        Issue this invoice?
+                                        Delete &quot;
+                                        {invoice.invoice_code}&quot;?
                                     </DialogTitle>
                                     <DialogDescription>
-                                        This locks the invoice from further
-                                        edits and makes it ready to receive
-                                        payments.
+                                        This action cannot be undone. This
+                                        invoice will be permanently deleted.
                                     </DialogDescription>
 
                                     <Form
-                                        {...issue.form(invoice)}
+                                        {...destroy.form(invoice)}
                                         options={{ preserveScroll: true }}
                                     >
                                         {({ processing }) => (
@@ -379,304 +618,26 @@ export default function InvoicesShow({ invoice }: Props) {
                                                         Cancel
                                                     </Button>
                                                 </DialogClose>
+
                                                 <Button
-                                                    type="submit"
+                                                    variant="destructive"
                                                     disabled={processing}
+                                                    asChild
                                                 >
-                                                    {processing && <Spinner />}
-                                                    Issue
+                                                    <button type="submit">
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Delete Invoice
+                                                    </button>
                                                 </Button>
                                             </DialogFooter>
                                         )}
                                     </Form>
                                 </DialogContent>
                             </Dialog>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {invoice.status === 'issued' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Payments</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {invoice.payments.length > 0 && (
-                                <div className="overflow-hidden rounded-xl border border-border/50">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Date</TableHead>
-                                                <TableHead>Amount</TableHead>
-                                                <TableHead>Method</TableHead>
-                                                <TableHead>
-                                                    Recorded by
-                                                </TableHead>
-                                                <TableHead />
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {invoice.payments.map((payment) => (
-                                                <TableRow key={payment.id}>
-                                                    <TableCell>
-                                                        {formatDate(
-                                                            payment.payment_date,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium">
-                                                        {currencySymbol}{' '}
-                                                        {formatNumber(
-                                                            payment.amount,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground">
-                                                        {payment.method ?? (
-                                                            <span>&mdash;</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-muted-foreground">
-                                                        {payment.recorded_by
-                                                            ?.name ?? (
-                                                            <span>&mdash;</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Dialog>
-                                                            <DialogTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                >
-                                                                    <Trash2 className="text-destructive" />
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent>
-                                                                <DialogTitle>
-                                                                    Remove this
-                                                                    payment?
-                                                                </DialogTitle>
-                                                                <DialogDescription>
-                                                                    This will
-                                                                    recalculate
-                                                                    the
-                                                                    invoice&apos;s
-                                                                    payment
-                                                                    status. This
-                                                                    action
-                                                                    cannot be
-                                                                    undone.
-                                                                </DialogDescription>
-
-                                                                <Form
-                                                                    {...destroyPayment.form(
-                                                                        {
-                                                                            invoice,
-                                                                            payment,
-                                                                        },
-                                                                    )}
-                                                                    options={{
-                                                                        preserveScroll: true,
-                                                                    }}
-                                                                >
-                                                                    {({
-                                                                        processing,
-                                                                    }) => (
-                                                                        <DialogFooter className="gap-2">
-                                                                            <DialogClose
-                                                                                asChild
-                                                                            >
-                                                                                <Button variant="secondary">
-                                                                                    Cancel
-                                                                                </Button>
-                                                                            </DialogClose>
-                                                                            <Button
-                                                                                type="submit"
-                                                                                variant="destructive"
-                                                                                disabled={
-                                                                                    processing
-                                                                                }
-                                                                            >
-                                                                                {processing && (
-                                                                                    <Spinner />
-                                                                                )}
-                                                                                Remove
-                                                                            </Button>
-                                                                        </DialogFooter>
-                                                                    )}
-                                                                </Form>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            )}
-
-                            <Form
-                                {...storePayment.form(invoice)}
-                                options={{ preserveScroll: true }}
-                                resetOnSuccess
-                            >
-                                {({ processing, errors }) => (
-                                    <div className="grid gap-4 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
-                                        <div className="grid gap-2 sm:grid-cols-2">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="amount">
-                                                    Amount
-                                                </Label>
-                                                <Input
-                                                    id="amount"
-                                                    type="number"
-                                                    step="0.01"
-                                                    min="0.01"
-                                                    name="amount"
-                                                />
-                                                <p className="text-sm text-destructive">
-                                                    {errors.amount}
-                                                </p>
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="payment_date">
-                                                    Payment date
-                                                </Label>
-                                                <Input
-                                                    id="payment_date"
-                                                    type="date"
-                                                    name="payment_date"
-                                                    defaultValue={new Date()
-                                                        .toISOString()
-                                                        .slice(0, 10)}
-                                                />
-                                                <p className="text-sm text-destructive">
-                                                    {errors.payment_date}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="method">
-                                                    Method
-                                                </Label>
-                                                <Input
-                                                    id="method"
-                                                    name="method"
-                                                    placeholder="Optional, e.g. Bank Transfer"
-                                                />
-                                                <p className="text-sm text-destructive">
-                                                    {errors.method}
-                                                </p>
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="remarks">
-                                                    Remarks
-                                                </Label>
-                                                <Textarea
-                                                    id="remarks"
-                                                    name="remarks"
-                                                    placeholder="Optional"
-                                                    rows={1}
-                                                />
-                                                <p className="text-sm text-destructive">
-                                                    {errors.remarks}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <Button
-                                                type="submit"
-                                                disabled={processing}
-                                            >
-                                                {processing && <Spinner />}
-                                                Record Payment
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </Form>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {invoice.status === 'draft' && (
-                    <Card className="border-destructive/50">
-                        <CardHeader>
-                            <CardTitle className="text-destructive">
-                                Danger Zone
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                    <p className="font-medium">
-                                        Delete this invoice
-                                    </p>
-                                    <p className="text-sm">
-                                        Once deleted, this invoice cannot be
-                                        restored.
-                                    </p>
-                                </div>
-
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Trash2 />
-                                            Delete Invoice
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Delete &quot;
-                                            {invoice.invoice_code}&quot;?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This action cannot be undone. This
-                                            invoice will be permanently deleted.
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...destroy.form(invoice)}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-
-                                                    <Button
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                        asChild
-                                                    >
-                                                        <button type="submit">
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Delete Invoice
-                                                        </button>
-                                                    </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

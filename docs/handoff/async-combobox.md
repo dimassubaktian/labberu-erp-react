@@ -63,3 +63,8 @@ these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
 `docs/handoff/history.md` item 30) — additive to the existing name/`product_code` `LIKE` match,
 same three-way `orWhere` clause. Every `AsyncCombobox<ProductOption>` call site's
 `getOptionLabel` shows the reference number in parentheses when present.
+
+**Product pickers also show a goods/service type badge** (see `docs/handoff/history.md` item
+40) — `renderOption` (already part of `AsyncCombobox`'s API, previously unused) renders the
+label plus a capitalized `Badge` for `product.type`. `ProductController::search()`'s selected
+columns and `QuotationController::bomItems()`'s eager-loads both had to add `type` for this.

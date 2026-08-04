@@ -3,7 +3,6 @@ import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -94,167 +93,148 @@ export default function RolesShow({ role, users }: Props) {
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Permissions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {role.permissions.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                This role has no permissions.
-                            </p>
-                        ) : (
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {Object.entries(permissionsByModule).map(
-                                    ([module, permissions]) => (
-                                        <div key={module}>
-                                            <p className="mb-2 text-sm font-medium">
-                                                {moduleLabel(module)}
-                                            </p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {permissions.map(
-                                                    (permission) => (
-                                                        <Badge
-                                                            key={permission.id}
-                                                            variant="outline"
-                                                            className="capitalize"
-                                                        >
-                                                            {permission.name
-                                                                .slice(
-                                                                    module.length +
-                                                                        1,
-                                                                )
-                                                                .replaceAll(
-                                                                    '.',
-                                                                    ' ',
-                                                                )
-                                                                .replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                        </Badge>
-                                                    ),
-                                                )}
-                                            </div>
-                                        </div>
-                                    ),
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Users with this role</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {users.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No users are assigned to this role.
-                            </p>
-                        ) : (
-                            <div className="space-y-3">
-                                {users.map((user) => (
-                                    <Link
-                                        key={user.id}
-                                        href={showUser(user)}
-                                        className="block rounded-lg border border-sidebar-border/70 p-4 transition-colors hover:bg-accent dark:border-sidebar-border"
-                                    >
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <div>
-                                                <p className="font-medium">
-                                                    {user.name}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {user.email}
-                                                </p>
-                                            </div>
-
-                                            <Badge
-                                                variant={
-                                                    user.status === 'active'
-                                                        ? 'secondary'
-                                                        : 'outline'
-                                                }
-                                                className="w-fit capitalize"
-                                            >
-                                                {user.status}
-                                            </Badge>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="border-destructive/50">
-                    <CardHeader>
-                        <CardTitle className="text-destructive">
-                            Danger Zone
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                <p className="font-medium">Delete this role</p>
-                                <p className="text-sm">
-                                    Once deleted, this role cannot be restored.
-                                </p>
-                            </div>
-
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button
-                                        variant="destructive"
-                                        className="w-full sm:w-auto"
-                                    >
-                                        <Trash2 />
-                                        Delete Role
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogTitle>
-                                        Delete &quot;{role.name}&quot;?
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        This action cannot be undone. This role
-                                        will be permanently deleted.
-                                    </DialogDescription>
-
-                                    <Form
-                                        {...destroy.form(role)}
-                                        options={{ preserveScroll: true }}
-                                    >
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
-                                                    </Button>
-                                                </DialogClose>
-
-                                                <Button
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                    asChild
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">
+                        Permissions
+                    </h2>
+                    {role.permissions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            This role has no permissions.
+                        </p>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {Object.entries(permissionsByModule).map(
+                                ([module, permissions]) => (
+                                    <div key={module}>
+                                        <p className="mb-2 text-sm font-medium">
+                                            {moduleLabel(module)}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1">
+                                            {permissions.map((permission) => (
+                                                <Badge
+                                                    key={permission.id}
+                                                    variant="outline"
+                                                    className="capitalize"
                                                 >
-                                                    <button type="submit">
-                                                        {processing && (
-                                                            <Spinner />
-                                                        )}
-                                                        Delete Role
-                                                    </button>
-                                                </Button>
-                                            </DialogFooter>
-                                        )}
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
+                                                    {permission.name
+                                                        .slice(
+                                                            module.length + 1,
+                                                        )
+                                                        .replaceAll('.', ' ')
+                                                        .replaceAll('_', ' ')}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ),
+                            )}
                         </div>
-                    </CardContent>
-                </Card>
+                    )}
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">
+                        Users with this role
+                    </h2>
+                    {users.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            No users are assigned to this role.
+                        </p>
+                    ) : (
+                        <div className="space-y-3">
+                            {users.map((user) => (
+                                <Link
+                                    key={user.id}
+                                    href={showUser(user)}
+                                    className="block rounded-lg border border-sidebar-border/70 p-4 transition-colors hover:bg-accent dark:border-sidebar-border"
+                                >
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="font-medium">
+                                                {user.name}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {user.email}
+                                            </p>
+                                        </div>
+
+                                        <Badge
+                                            variant={
+                                                user.status === 'active'
+                                                    ? 'secondary'
+                                                    : 'outline'
+                                            }
+                                            className="w-fit capitalize"
+                                        >
+                                            {user.status}
+                                        </Badge>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                    <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                        Danger Zone
+                    </h2>
+                    <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                        <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                            <p className="font-medium">Delete this role</p>
+                            <p className="text-sm">
+                                Once deleted, this role cannot be restored.
+                            </p>
+                        </div>
+
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    className="w-full sm:w-auto"
+                                >
+                                    <Trash2 />
+                                    Delete Role
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>
+                                    Delete &quot;{role.name}&quot;?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    This action cannot be undone. This role will
+                                    be permanently deleted.
+                                </DialogDescription>
+
+                                <Form
+                                    {...destroy.form(role)}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing }) => (
+                                        <DialogFooter className="gap-2">
+                                            <DialogClose asChild>
+                                                <Button variant="secondary">
+                                                    Cancel
+                                                </Button>
+                                            </DialogClose>
+
+                                            <Button
+                                                variant="destructive"
+                                                disabled={processing}
+                                                asChild
+                                            >
+                                                <button type="submit">
+                                                    {processing && <Spinner />}
+                                                    Delete Role
+                                                </button>
+                                            </Button>
+                                        </DialogFooter>
+                                    )}
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </div>
             </div>
         </>
     );

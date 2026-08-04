@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -162,293 +161,269 @@ export default function GoodsReceiptNotesShow({
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Status
-                                </dt>
-                                <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {goodsReceiptNote.status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
-                                </dd>
-                            </div>
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Details</h2>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Status
+                            </dt>
+                            <dd>
+                                <Badge
+                                    variant="secondary"
+                                    className="capitalize"
+                                >
+                                    {goodsReceiptNote.status.replaceAll(
+                                        '_',
+                                        ' ',
+                                    )}
+                                </Badge>
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Purchase order
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link
-                                        href={showPurchaseOrder(
-                                            goodsReceiptNote.purchase_order,
-                                        )}
-                                    >
-                                        {
-                                            goodsReceiptNote.purchase_order
-                                                .purchase_order_code
-                                        }
-                                    </Link>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Vendor
-                                </dt>
-                                <dd className="font-medium">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Purchase order
+                            </dt>
+                            <dd className="font-medium">
+                                <Link
+                                    href={showPurchaseOrder(
+                                        goodsReceiptNote.purchase_order,
+                                    )}
+                                >
                                     {
-                                        goodsReceiptNote.purchase_order.vendor
-                                            .name
+                                        goodsReceiptNote.purchase_order
+                                            .purchase_order_code
                                     }
-                                </dd>
-                            </div>
+                                </Link>
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Received date
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDate(goodsReceiptNote.received_date)}
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Vendor
+                            </dt>
+                            <dd className="font-medium">
+                                {goodsReceiptNote.purchase_order.vendor.name}
+                            </dd>
+                        </div>
 
-                            {goodsReceiptNote.received_by &&
-                                goodsReceiptNote.received_at && (
-                                    <div>
-                                        <dt className="text-sm text-muted-foreground">
-                                            Received by
-                                        </dt>
-                                        <dd className="font-medium">
-                                            {
-                                                goodsReceiptNote.received_by
-                                                    .full_name
-                                            }{' '}
-                                            &mdash;{' '}
-                                            {formatDateTime(
-                                                goodsReceiptNote.received_at,
-                                            )}
-                                        </dd>
-                                    </div>
-                                )}
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Received date
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDate(goodsReceiptNote.received_date)}
+                            </dd>
+                        </div>
 
-                            {goodsReceiptNote.remarks && (
-                                <div className="sm:col-span-2">
+                        {goodsReceiptNote.received_by &&
+                            goodsReceiptNote.received_at && (
+                                <div>
                                     <dt className="text-sm text-muted-foreground">
-                                        Remarks
+                                        Received by
                                     </dt>
-                                    <dd className="font-medium whitespace-pre-line">
-                                        {goodsReceiptNote.remarks}
+                                    <dd className="font-medium">
+                                        {goodsReceiptNote.received_by.full_name}{' '}
+                                        &mdash;{' '}
+                                        {formatDateTime(
+                                            goodsReceiptNote.received_at,
+                                        )}
                                     </dd>
                                 </div>
                             )}
-                        </dl>
-                    </CardContent>
-                </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-hidden rounded-xl border border-border/50">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>No</TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Ordered</TableHead>
-                                        <TableHead>Accepted</TableHead>
-                                        <TableHead>Rejected</TableHead>
-                                        <TableHead>Rejection reason</TableHead>
+                        {goodsReceiptNote.remarks && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Remarks
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {goodsReceiptNote.remarks}
+                                </dd>
+                            </div>
+                        )}
+                    </dl>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Items</h2>
+                    <div className="overflow-hidden rounded-xl border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>No</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Ordered</TableHead>
+                                    <TableHead>Accepted</TableHead>
+                                    <TableHead>Rejected</TableHead>
+                                    <TableHead>Rejection reason</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {goodsReceiptNote.items.map((item, idx) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="text-muted-foreground">
+                                            {idx + 1}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {item.product.product_code} &mdash;{' '}
+                                            {item.product.name}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                item.quantity_ordered,
+                                            )}{' '}
+                                            {item.unit}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                item.quantity_accepted,
+                                            )}{' '}
+                                            {item.unit}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                item.quantity_rejected,
+                                            )}{' '}
+                                            {item.unit}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {item.rejection_reason ?? (
+                                                <span>&mdash;</span>
+                                            )}
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {goodsReceiptNote.items.map((item, idx) => (
-                                        <TableRow key={item.id}>
-                                            <TableCell className="text-muted-foreground">
-                                                {idx + 1}
-                                            </TableCell>
-                                            <TableCell className="font-medium">
-                                                {item.product.product_code}{' '}
-                                                &mdash; {item.product.name}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(
-                                                    item.quantity_ordered,
-                                                )}{' '}
-                                                {item.unit}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(
-                                                    item.quantity_accepted,
-                                                )}{' '}
-                                                {item.unit}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(
-                                                    item.quantity_rejected,
-                                                )}{' '}
-                                                {item.unit}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {item.rejection_reason ?? (
-                                                    <span>&mdash;</span>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
 
                 {goodsReceiptNote.status === 'draft' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Confirm Receipt</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Confirm Receipt
+                        </h2>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button>Confirm</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>
+                                    Confirm this goods receipt note?
+                                </DialogTitle>
+                                <DialogDescription>
+                                    This locks the note and updates the linked
+                                    purchase order&apos;s fulfillment progress.
+                                    This action cannot be undone.
+                                </DialogDescription>
+
+                                <Form
+                                    {...confirm.form(goodsReceiptNote)}
+                                    options={{ preserveScroll: true }}
+                                >
+                                    {({ processing }) => (
+                                        <>
+                                            <WorkforceSelect
+                                                id="received_by_id"
+                                                name="received_by_id"
+                                                value={receivedById}
+                                                onValueChange={setReceivedById}
+                                                workforces={workforces}
+                                            />
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Confirm
+                                                </Button>
+                                            </DialogFooter>
+                                        </>
+                                    )}
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                )}
+
+                {goodsReceiptNote.status === 'draft' && (
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this goods receipt note
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this goods receipt note cannot
+                                    be restored.
+                                </p>
+                            </div>
+
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button>Confirm</Button>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Goods Receipt Note
+                                    </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogTitle>
-                                        Confirm this goods receipt note?
+                                        Delete &quot;
+                                        {goodsReceiptNote.grn_code}
+                                        &quot;?
                                     </DialogTitle>
                                     <DialogDescription>
-                                        This locks the note and updates the
-                                        linked purchase order&apos;s fulfillment
-                                        progress. This action cannot be undone.
+                                        This action cannot be undone. This goods
+                                        receipt note will be permanently
+                                        deleted.
                                     </DialogDescription>
 
                                     <Form
-                                        {...confirm.form(goodsReceiptNote)}
+                                        {...destroy.form(goodsReceiptNote)}
                                         options={{ preserveScroll: true }}
                                     >
                                         {({ processing }) => (
-                                            <>
-                                                <WorkforceSelect
-                                                    id="received_by_id"
-                                                    name="received_by_id"
-                                                    value={receivedById}
-                                                    onValueChange={
-                                                        setReceivedById
-                                                    }
-                                                    workforces={workforces}
-                                                />
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-                                                    <Button
-                                                        type="submit"
-                                                        disabled={processing}
-                                                    >
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    asChild
+                                                >
+                                                    <button type="submit">
                                                         {processing && (
                                                             <Spinner />
                                                         )}
-                                                        Confirm
-                                                    </Button>
-                                                </DialogFooter>
-                                            </>
+                                                        Delete Goods Receipt
+                                                        Note
+                                                    </button>
+                                                </Button>
+                                            </DialogFooter>
                                         )}
                                     </Form>
                                 </DialogContent>
                             </Dialog>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {goodsReceiptNote.status === 'draft' && (
-                    <Card className="border-destructive/50">
-                        <CardHeader>
-                            <CardTitle className="text-destructive">
-                                Danger Zone
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                    <p className="font-medium">
-                                        Delete this goods receipt note
-                                    </p>
-                                    <p className="text-sm">
-                                        Once deleted, this goods receipt note
-                                        cannot be restored.
-                                    </p>
-                                </div>
-
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Trash2 />
-                                            Delete Goods Receipt Note
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Delete &quot;
-                                            {goodsReceiptNote.grn_code}
-                                            &quot;?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This action cannot be undone. This
-                                            goods receipt note will be
-                                            permanently deleted.
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...destroy.form(goodsReceiptNote)}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-
-                                                    <Button
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                        asChild
-                                                    >
-                                                        <button type="submit">
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Delete Goods Receipt
-                                                            Note
-                                                        </button>
-                                                    </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

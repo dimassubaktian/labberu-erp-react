@@ -38,7 +38,7 @@ test('project can be created', function () {
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('projects.index'));
+    $response->assertRedirect(route('projects.show', Project::sole()));
 
     $this->assertDatabaseHas('projects', [
         'name' => 'Panel Retrofit',
@@ -98,7 +98,7 @@ test('only required fields are needed', function () {
         ]);
 
     $response->assertSessionHasNoErrors();
-    $response->assertRedirect(route('projects.index'));
+    $response->assertRedirect(route('projects.show', Project::sole()));
 
     $this->assertDatabaseHas('projects', ['name' => 'Minimal Project']);
 });

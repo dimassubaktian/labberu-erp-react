@@ -4,7 +4,6 @@ import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -173,236 +172,219 @@ export default function DeliveryOrdersCreate({ initialQuotation }: Props) {
                 <Form {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Details</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
+                            <div className="space-y-6">
+                                <h2 className="text-base font-semibold">
+                                    Details
+                                </h2>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="quotation_id">
+                                        Quotation
+                                    </Label>
+                                    <input
+                                        type="hidden"
+                                        name="quotation_id"
+                                        value={quotationId}
+                                    />
+                                    <AsyncCombobox<QuotationOption>
+                                        id="quotation_id"
+                                        value={quotationId}
+                                        onValueChange={handleQuotationChange}
+                                        searchUrl={searchQuotations().url}
+                                        getOptionId={(quotation) =>
+                                            String(quotation.id)
+                                        }
+                                        getOptionLabel={(quotation) =>
+                                            `${quotation.quotation_code} v${quotation.version_major}.${quotation.version_minor} — ${quotation.project.customer.name}`
+                                        }
+                                        initialOption={initialQuotation}
+                                        placeholder="Select an approved quotation"
+                                    />
+                                    <InputError message={errors.quotation_id} />
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="quotation_id">
-                                            Quotation
+                                        <Label htmlFor="delivery_date">
+                                            Delivery date
                                         </Label>
-                                        <input
-                                            type="hidden"
-                                            name="quotation_id"
-                                            value={quotationId}
-                                        />
-                                        <AsyncCombobox<QuotationOption>
-                                            id="quotation_id"
-                                            value={quotationId}
-                                            onValueChange={
-                                                handleQuotationChange
-                                            }
-                                            searchUrl={searchQuotations().url}
-                                            getOptionId={(quotation) =>
-                                                String(quotation.id)
-                                            }
-                                            getOptionLabel={(quotation) =>
-                                                `${quotation.quotation_code} v${quotation.version_major}.${quotation.version_minor} — ${quotation.project.customer.name}`
-                                            }
-                                            initialOption={initialQuotation}
-                                            placeholder="Select an approved quotation"
+                                        <Input
+                                            id="delivery_date"
+                                            type="date"
+                                            name="delivery_date"
+                                            defaultValue={todayDate()}
                                         />
                                         <InputError
-                                            message={errors.quotation_id}
+                                            message={errors.delivery_date}
                                         />
                                     </div>
+                                </div>
 
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="delivery_date">
-                                                Delivery date
-                                            </Label>
-                                            <Input
-                                                id="delivery_date"
-                                                type="date"
-                                                name="delivery_date"
-                                                defaultValue={todayDate()}
-                                            />
-                                            <InputError
-                                                message={errors.delivery_date}
-                                            />
-                                        </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="remarks">Remarks</Label>
+                                    <Textarea
+                                        id="remarks"
+                                        name="remarks"
+                                        placeholder="Optional"
+                                        rows={3}
+                                    />
+                                    <InputError message={errors.remarks} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <h2 className="mb-4 text-base font-semibold">
+                                    Items
+                                </h2>
+                                <InputError message={errors.items} />
+
+                                {!quotationUuid && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Select a quotation to list its line
+                                        items.
+                                    </p>
+                                )}
+
+                                {quotationUuid && loadingItems && (
+                                    <div className="flex items-center justify-center py-10">
+                                        <Spinner />
                                     </div>
+                                )}
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="remarks">Remarks</Label>
-                                        <Textarea
-                                            id="remarks"
-                                            name="remarks"
-                                            placeholder="Optional"
-                                            rows={3}
-                                        />
-                                        <InputError message={errors.remarks} />
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Items</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <InputError message={errors.items} />
-
-                                    {!quotationUuid && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Select a quotation to list its line
-                                            items.
-                                        </p>
-                                    )}
-
-                                    {quotationUuid && loadingItems && (
-                                        <div className="flex items-center justify-center py-10">
-                                            <Spinner />
-                                        </div>
-                                    )}
-
-                                    {quotationUuid &&
-                                        !loadingItems &&
-                                        items.length > 0 && (
-                                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>
-                                                                Product
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Ordered
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Delivered so far
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Remaining
-                                                            </TableHead>
-                                                            <TableHead>
-                                                                Delivered qty
-                                                            </TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {items.map((item) => {
-                                                            const state =
-                                                                itemStates[
-                                                                    item.id
-                                                                ] ??
-                                                                emptyItemState();
-                                                            const submittableIndex =
-                                                                submittableIndexByItemId.get(
-                                                                    item.id,
-                                                                );
-                                                            const errorPrefix =
-                                                                submittableIndex !==
-                                                                undefined
-                                                                    ? `items.${submittableIndex}`
-                                                                    : null;
-
-                                                            return (
-                                                                <TableRow
-                                                                    key={
-                                                                        item.id
-                                                                    }
-                                                                >
-                                                                    <TableCell className="font-medium">
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                .product_code
-                                                                        }{' '}
-                                                                        &mdash;{' '}
-                                                                        {
-                                                                            item
-                                                                                .product
-                                                                                .name
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.quantity,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.delivered,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        {formatNumber(
-                                                                            item.remaining,
-                                                                        )}{' '}
-                                                                        {
-                                                                            item.unit
-                                                                        }
-                                                                    </TableCell>
-                                                                    <TableCell>
-                                                                        <Input
-                                                                            type="number"
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            className="w-24"
-                                                                            value={
-                                                                                state.quantity_delivered
-                                                                            }
-                                                                            onChange={(
-                                                                                e,
-                                                                            ) =>
-                                                                                updateItemState(
-                                                                                    item.id,
-                                                                                    {
-                                                                                        quantity_delivered:
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                    },
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        <InputError
-                                                                            message={
-                                                                                errorPrefix
-                                                                                    ? errors[
-                                                                                          `${errorPrefix}.quantity_delivered`
-                                                                                      ]
-                                                                                    : undefined
-                                                                            }
-                                                                        />
-                                                                    </TableCell>
-                                                                </TableRow>
+                                {quotationUuid &&
+                                    !loadingItems &&
+                                    items.length > 0 && (
+                                        <div className="overflow-hidden rounded-xl border border-border/50">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>
+                                                            Product
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Ordered
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Delivered so far
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Remaining
+                                                        </TableHead>
+                                                        <TableHead>
+                                                            Delivered qty
+                                                        </TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {items.map((item) => {
+                                                        const state =
+                                                            itemStates[
+                                                                item.id
+                                                            ] ??
+                                                            emptyItemState();
+                                                        const submittableIndex =
+                                                            submittableIndexByItemId.get(
+                                                                item.id,
                                                             );
-                                                        })}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                        )}
+                                                        const errorPrefix =
+                                                            submittableIndex !==
+                                                            undefined
+                                                                ? `items.${submittableIndex}`
+                                                                : null;
 
-                                    {submittableItems.map((item, idx) => (
-                                        <div key={item.id}>
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][quotation_item_id]`}
-                                                value={item.id}
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name={`items[${idx}][quantity_delivered]`}
-                                                value={
-                                                    itemStates[item.id]
-                                                        ?.quantity_delivered ??
-                                                    '0'
-                                                }
-                                            />
+                                                        return (
+                                                            <TableRow
+                                                                key={item.id}
+                                                            >
+                                                                <TableCell className="font-medium">
+                                                                    {
+                                                                        item
+                                                                            .product
+                                                                            .product_code
+                                                                    }{' '}
+                                                                    &mdash;{' '}
+                                                                    {
+                                                                        item
+                                                                            .product
+                                                                            .name
+                                                                    }
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.quantity,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.delivered,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    {formatNumber(
+                                                                        item.remaining,
+                                                                    )}{' '}
+                                                                    {item.unit}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        min="0"
+                                                                        className="w-24"
+                                                                        value={
+                                                                            state.quantity_delivered
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateItemState(
+                                                                                item.id,
+                                                                                {
+                                                                                    quantity_delivered:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <InputError
+                                                                        message={
+                                                                            errorPrefix
+                                                                                ? errors[
+                                                                                      `${errorPrefix}.quantity_delivered`
+                                                                                  ]
+                                                                                : undefined
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    })}
+                                                </TableBody>
+                                            </Table>
                                         </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
+                                    )}
+
+                                {submittableItems.map((item, idx) => (
+                                    <div key={item.id}>
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][quotation_item_id]`}
+                                            value={item.id}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name={`items[${idx}][quantity_delivered]`}
+                                            value={
+                                                itemStates[item.id]
+                                                    ?.quantity_delivered ?? '0'
+                                            }
+                                        />
+                                    </div>
+                                ))}
+                            </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

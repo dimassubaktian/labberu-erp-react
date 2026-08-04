@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -315,426 +314,398 @@ export default function PurchaseOrdersShow({
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Details</h2>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Status
+                            </dt>
+                            <dd>
+                                <Badge
+                                    variant="secondary"
+                                    className="capitalize"
+                                >
+                                    {purchaseOrder.status.replaceAll('_', ' ')}
+                                </Badge>
+                            </dd>
+                        </div>
+
+                        {purchaseOrder.progress && (
                             <div>
                                 <dt className="text-sm text-muted-foreground">
-                                    Status
+                                    Progress
                                 </dt>
                                 <dd>
                                     <Badge
                                         variant="secondary"
                                         className="capitalize"
                                     >
-                                        {purchaseOrder.status.replaceAll(
+                                        {purchaseOrder.progress.replaceAll(
                                             '_',
                                             ' ',
                                         )}
                                     </Badge>
                                 </dd>
                             </div>
+                        )}
 
-                            {purchaseOrder.progress && (
-                                <div>
-                                    <dt className="text-sm text-muted-foreground">
-                                        Progress
-                                    </dt>
-                                    <dd>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {purchaseOrder.progress.replaceAll(
-                                                '_',
-                                                ' ',
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Project
+                            </dt>
+                            <dd className="font-medium">
+                                <Link href={showProject(purchaseOrder.project)}>
+                                    {purchaseOrder.project.project_code} &mdash;{' '}
+                                    {purchaseOrder.project.name}
+                                </Link>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Quotation
+                            </dt>
+                            <dd className="font-medium">
+                                <Link
+                                    href={showQuotation(
+                                        purchaseOrder.quotation,
+                                    )}
+                                >
+                                    {purchaseOrder.quotation.quotation_code} v
+                                    {purchaseOrder.quotation.version_major}.
+                                    {purchaseOrder.quotation.version_minor}
+                                </Link>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Customer
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.customer.name}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Vendor
+                            </dt>
+                            <dd className="font-medium">
+                                <Link href={showVendor(purchaseOrder.vendor)}>
+                                    {purchaseOrder.vendor.vendor_code} &mdash;{' '}
+                                    {purchaseOrder.vendor.name}
+                                </Link>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Currency
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.currency.iso_code} &mdash;{' '}
+                                {purchaseOrder.currency.name}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Vendor address
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.address ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Attn
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.attention ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Phone / Fax
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.phone ?? '—'} /{' '}
+                                {purchaseOrder.fax ?? '—'}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Vendor quotation no.
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.quotation_no ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Vendor quotation date
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.quotation_date ? (
+                                    formatDate(purchaseOrder.quotation_date)
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Date
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDate(purchaseOrder.date)}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Delivery date
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.delivery_date ? (
+                                    formatDate(purchaseOrder.delivery_date)
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Shipping method
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.shipping_method ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Shipping terms
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.shipping_terms ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Created at
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDateTime(purchaseOrder.created_at)}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Last updated
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDateTime(purchaseOrder.updated_at)}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Line Items</h2>
+                    <div className="overflow-hidden rounded-xl border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>No</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Qty</TableHead>
+                                    <TableHead>Unit</TableHead>
+                                    <TableHead>Unit price</TableHead>
+                                    <TableHead>Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {purchaseOrder.items.map((item, idx) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="text-muted-foreground">
+                                            {idx + 1}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            <div>
+                                                {item.product.product_code}{' '}
+                                                &mdash; {item.product.name}
+                                            </div>
+                                            {item.reference_number && (
+                                                <div className="text-sm font-normal text-muted-foreground">
+                                                    Ref: {item.reference_number}
+                                                </div>
                                             )}
-                                        </Badge>
-                                    </dd>
-                                </div>
-                            )}
+                                            {item.description && (
+                                                <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
+                                                    {item.description}
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(item.quantity)}
+                                        </TableCell>
+                                        <TableCell>{item.unit}</TableCell>
+                                        <TableCell>
+                                            {formatNumber(item.unit_price)}
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(item.total)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Project
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link
-                                        href={showProject(
-                                            purchaseOrder.project,
-                                        )}
-                                    >
-                                        {purchaseOrder.project.project_code}{' '}
-                                        &mdash; {purchaseOrder.project.name}
-                                    </Link>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Quotation
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link
-                                        href={showQuotation(
-                                            purchaseOrder.quotation,
-                                        )}
-                                    >
-                                        {purchaseOrder.quotation.quotation_code}{' '}
-                                        v{purchaseOrder.quotation.version_major}
-                                        .{purchaseOrder.quotation.version_minor}
-                                    </Link>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Customer
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.customer.name}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Vendor
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link
-                                        href={showVendor(purchaseOrder.vendor)}
-                                    >
-                                        {purchaseOrder.vendor.vendor_code}{' '}
-                                        &mdash; {purchaseOrder.vendor.name}
-                                    </Link>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Currency
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.currency.iso_code} &mdash;{' '}
-                                    {purchaseOrder.currency.name}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Vendor address
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.address ?? (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Attn
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.attention ?? (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Phone / Fax
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.phone ?? '—'} /{' '}
-                                    {purchaseOrder.fax ?? '—'}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Vendor quotation no.
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.quotation_no ?? (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Vendor quotation date
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.quotation_date ? (
-                                        formatDate(purchaseOrder.quotation_date)
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Date
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDate(purchaseOrder.date)}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Delivery date
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.delivery_date ? (
-                                        formatDate(purchaseOrder.delivery_date)
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Shipping method
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.shipping_method ?? (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Shipping terms
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.shipping_terms ?? (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Created at
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDateTime(purchaseOrder.created_at)}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Last updated
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDateTime(purchaseOrder.updated_at)}
-                                </dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Line Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                {purchaseOrder.discounts.length > 0 && (
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Discounts
+                        </h2>
                         <div className="overflow-hidden rounded-xl border border-border/50">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>No</TableHead>
-                                        <TableHead>Product</TableHead>
-                                        <TableHead>Qty</TableHead>
-                                        <TableHead>Unit</TableHead>
-                                        <TableHead>Unit price</TableHead>
-                                        <TableHead>Total</TableHead>
+                                        <TableHead>Label</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Value</TableHead>
+                                        <TableHead>Applied to</TableHead>
+                                        <TableHead>Amount</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {purchaseOrder.items.map((item, idx) => (
-                                        <TableRow key={item.id}>
+                                    {purchaseOrder.discounts.map((discount) => (
+                                        <TableRow key={discount.id}>
                                             <TableCell className="text-muted-foreground">
-                                                {idx + 1}
+                                                {discount.sequence}
                                             </TableCell>
                                             <TableCell className="font-medium">
-                                                <div>
-                                                    {item.product.product_code}{' '}
-                                                    &mdash; {item.product.name}
-                                                </div>
-                                                {item.reference_number && (
-                                                    <div className="text-sm font-normal text-muted-foreground">
-                                                        Ref:{' '}
-                                                        {item.reference_number}
-                                                    </div>
+                                                {discount.label}
+                                            </TableCell>
+                                            <TableCell className="capitalize">
+                                                {discount.discount_type}
+                                            </TableCell>
+                                            <TableCell>
+                                                {discount.discount_type ===
+                                                'percentage'
+                                                    ? `${discount.discount_value}%`
+                                                    : formatNumber(
+                                                          discount.discount_value,
+                                                      )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(
+                                                    discount.base_amount,
                                                 )}
-                                                {item.description && (
-                                                    <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
-                                                        {item.description}
-                                                    </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(
+                                                    discount.discount_amount,
                                                 )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.quantity)}
-                                            </TableCell>
-                                            <TableCell>{item.unit}</TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.unit_price)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatNumber(item.total)}
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {purchaseOrder.discounts.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Discounts</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>No</TableHead>
-                                            <TableHead>Label</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Value</TableHead>
-                                            <TableHead>Applied to</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {purchaseOrder.discounts.map(
-                                            (discount) => (
-                                                <TableRow key={discount.id}>
-                                                    <TableCell className="text-muted-foreground">
-                                                        {discount.sequence}
-                                                    </TableCell>
-                                                    <TableCell className="font-medium">
-                                                        {discount.label}
-                                                    </TableCell>
-                                                    <TableCell className="capitalize">
-                                                        {discount.discount_type}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {discount.discount_type ===
-                                                        'percentage'
-                                                            ? `${discount.discount_value}%`
-                                                            : formatNumber(
-                                                                  discount.discount_value,
-                                                              )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {formatNumber(
-                                                            discount.base_amount,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {formatNumber(
-                                                            discount.discount_amount,
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ),
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    </div>
                 )}
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="space-y-2">
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Subtotal
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(purchaseOrder.subtotal)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Discount total
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(purchaseOrder.discount_total)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Net after discount
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(
-                                        purchaseOrder.net_after_discount,
-                                    )}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Tax
-                                    {purchaseOrder.tax &&
-                                        ` (${purchaseOrder.tax.name})`}
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(purchaseOrder.tax_amount)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                <dt>Grand total</dt>
-                                <dd>
-                                    {currencySymbol}{' '}
-                                    {formatNumber(purchaseOrder.grand_total)}
-                                </dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Summary</h2>
+                    <dl className="space-y-2">
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Subtotal</dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(purchaseOrder.subtotal)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Discount total
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(purchaseOrder.discount_total)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Net after discount
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(purchaseOrder.net_after_discount)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">
+                                Tax
+                                {purchaseOrder.tax &&
+                                    ` (${purchaseOrder.tax.name})`}
+                            </dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(purchaseOrder.tax_amount)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                            <dt>Grand total</dt>
+                            <dd>
+                                {currencySymbol}{' '}
+                                {formatNumber(purchaseOrder.grand_total)}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between gap-2">
-                        <CardTitle>Goods Receipt Notes</CardTitle>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                        <h2 className="text-base font-semibold">
+                            Goods Receipt Notes
+                        </h2>
                         {purchaseOrder.status === 'approved' && (
                             <Button size="sm" asChild>
                                 <Link
@@ -748,162 +719,217 @@ export default function PurchaseOrdersShow({
                                 </Link>
                             </Button>
                         )}
-                    </CardHeader>
-                    <CardContent>
-                        {purchaseOrder.goods_receipt_notes.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                                No goods receipt notes have been raised against
-                                this purchase order yet.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {purchaseOrder.goods_receipt_notes.map(
-                                    (goodsReceiptNote) => (
-                                        <Link
-                                            key={goodsReceiptNote.id}
-                                            href={showGoodsReceiptNote(
-                                                goodsReceiptNote,
-                                            )}
-                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div className="space-y-0.5">
-                                                <p className="font-medium">
-                                                    {goodsReceiptNote.grn_code}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {formatDate(
-                                                        goodsReceiptNote.received_date,
-                                                    )}
-                                                </p>
-                                            </div>
-
-                                            <Badge
-                                                variant="secondary"
-                                                className="w-fit capitalize"
-                                            >
-                                                {goodsReceiptNote.status.replaceAll(
-                                                    '_',
-                                                    ' ',
+                    </div>
+                    {purchaseOrder.goods_receipt_notes.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            No goods receipt notes have been raised against this
+                            purchase order yet.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {purchaseOrder.goods_receipt_notes.map(
+                                (goodsReceiptNote) => (
+                                    <Link
+                                        key={goodsReceiptNote.id}
+                                        href={showGoodsReceiptNote(
+                                            goodsReceiptNote,
+                                        )}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {goodsReceiptNote.grn_code}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(
+                                                    goodsReceiptNote.received_date,
                                                 )}
-                                            </Badge>
-                                        </Link>
-                                    ),
+                                            </p>
+                                        </div>
+
+                                        <Badge
+                                            variant="secondary"
+                                            className="w-fit capitalize"
+                                        >
+                                            {goodsReceiptNote.status.replaceAll(
+                                                '_',
+                                                ' ',
+                                            )}
+                                        </Badge>
+                                    </Link>
+                                ),
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-6">
+                    <h2 className="text-base font-semibold">Workflow</h2>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Issued
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.issued_by &&
+                                purchaseOrder.issued_at ? (
+                                    `${purchaseOrder.issued_by.full_name} — ${formatDateTime(purchaseOrder.issued_at)}`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
                                 )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Checked (1)
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.checked_by_first &&
+                                purchaseOrder.checked_by_1_at ? (
+                                    `${purchaseOrder.checked_by_first.full_name} — ${formatDateTime(purchaseOrder.checked_by_1_at)}`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Checked (2)
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.checked_by_second &&
+                                purchaseOrder.checked_by_2_at ? (
+                                    `${purchaseOrder.checked_by_second.full_name} — ${formatDateTime(purchaseOrder.checked_by_2_at)}`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Approved
+                            </dt>
+                            <dd className="font-medium">
+                                {purchaseOrder.approved_by &&
+                                purchaseOrder.approved_at ? (
+                                    `${purchaseOrder.approved_by.full_name} — ${formatDateTime(purchaseOrder.approved_at)}`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        {purchaseOrder.rejection_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Last rejection reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {purchaseOrder.rejection_reason}
+                                </dd>
                             </div>
                         )}
-                    </CardContent>
-                </Card>
+                    </dl>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Workflow</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <dl className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Issued
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.issued_by &&
-                                    purchaseOrder.issued_at ? (
-                                        `${purchaseOrder.issued_by.full_name} — ${formatDateTime(purchaseOrder.issued_at)}`
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                    <div className="flex flex-wrap gap-3">
+                        {purchaseOrder.status === 'draft' && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button>Issue</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Issue this purchase order?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        The purchase order will move to
+                                        &quot;issued&quot; and become available
+                                        for checking.
+                                    </DialogDescription>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Checked (1)
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.checked_by_first &&
-                                    purchaseOrder.checked_by_1_at ? (
-                                        `${purchaseOrder.checked_by_first.full_name} — ${formatDateTime(purchaseOrder.checked_by_1_at)}`
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                                    <Form
+                                        {...issue.form(purchaseOrder)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <>
+                                                <WorkforceSelect
+                                                    id="issued_by_id"
+                                                    name="issued_by_id"
+                                                    value={issuedById}
+                                                    onValueChange={
+                                                        setIssuedById
+                                                    }
+                                                    workforces={workforces}
+                                                />
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Cancel
+                                                        </Button>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Issue
+                                                    </Button>
+                                                </DialogFooter>
+                                            </>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Checked (2)
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.checked_by_second &&
-                                    purchaseOrder.checked_by_2_at ? (
-                                        `${purchaseOrder.checked_by_second.full_name} — ${formatDateTime(purchaseOrder.checked_by_2_at)}`
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Approved
-                                </dt>
-                                <dd className="font-medium">
-                                    {purchaseOrder.approved_by &&
-                                    purchaseOrder.approved_at ? (
-                                        `${purchaseOrder.approved_by.full_name} — ${formatDateTime(purchaseOrder.approved_at)}`
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            {purchaseOrder.rejection_reason && (
-                                <div className="sm:col-span-2">
-                                    <dt className="text-sm text-muted-foreground">
-                                        Last rejection reason
-                                    </dt>
-                                    <dd className="font-medium whitespace-pre-line">
-                                        {purchaseOrder.rejection_reason}
-                                    </dd>
-                                </div>
-                            )}
-                        </dl>
-
-                        <div className="flex flex-wrap gap-3">
-                            {purchaseOrder.status === 'draft' && (
+                        {purchaseOrder.status === 'issued' &&
+                            !purchaseOrder.checked_by_first && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button>Issue</Button>
+                                        <Button>Sign as Checker 1</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
-                                            Issue this purchase order?
+                                            Sign off as Checker 1?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            The purchase order will move to
-                                            &quot;issued&quot; and become
-                                            available for checking.
+                                            This records your sign-off on this
+                                            purchase order.
                                         </DialogDescription>
 
                                         <Form
-                                            {...issue.form(purchaseOrder)}
-                                            options={{ preserveScroll: true }}
+                                            {...check.form(purchaseOrder)}
+                                            options={{
+                                                preserveScroll: true,
+                                            }}
                                         >
                                             {({ processing }) => (
                                                 <>
+                                                    <input
+                                                        type="hidden"
+                                                        name="slot"
+                                                        value="1"
+                                                    />
                                                     <WorkforceSelect
-                                                        id="issued_by_id"
-                                                        name="issued_by_id"
-                                                        value={issuedById}
+                                                        id="checked_by_id_1"
+                                                        name="checked_by_id"
+                                                        value={checkedById1}
                                                         onValueChange={
-                                                            setIssuedById
+                                                            setCheckedById1
                                                         }
                                                         workforces={workforces}
                                                     />
@@ -922,7 +948,7 @@ export default function PurchaseOrdersShow({
                                                             {processing && (
                                                                 <Spinner />
                                                             )}
-                                                            Issue
+                                                            Sign off
                                                         </Button>
                                                     </DialogFooter>
                                                 </>
@@ -932,240 +958,43 @@ export default function PurchaseOrdersShow({
                                 </Dialog>
                             )}
 
-                            {purchaseOrder.status === 'issued' &&
-                                !purchaseOrder.checked_by_first && (
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button>Sign as Checker 1</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogTitle>
-                                                Sign off as Checker 1?
-                                            </DialogTitle>
-                                            <DialogDescription>
-                                                This records your sign-off on
-                                                this purchase order.
-                                            </DialogDescription>
-
-                                            <Form
-                                                {...check.form(purchaseOrder)}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
-                                            >
-                                                {({ processing }) => (
-                                                    <>
-                                                        <input
-                                                            type="hidden"
-                                                            name="slot"
-                                                            value="1"
-                                                        />
-                                                        <WorkforceSelect
-                                                            id="checked_by_id_1"
-                                                            name="checked_by_id"
-                                                            value={checkedById1}
-                                                            onValueChange={
-                                                                setCheckedById1
-                                                            }
-                                                            workforces={
-                                                                workforces
-                                                            }
-                                                        />
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose
-                                                                asChild
-                                                            >
-                                                                <Button variant="secondary">
-                                                                    Cancel
-                                                                </Button>
-                                                            </DialogClose>
-                                                            <Button
-                                                                type="submit"
-                                                                disabled={
-                                                                    processing
-                                                                }
-                                                            >
-                                                                {processing && (
-                                                                    <Spinner />
-                                                                )}
-                                                                Sign off
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </>
-                                                )}
-                                            </Form>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
-
-                            {purchaseOrder.status === 'issued' &&
-                                !purchaseOrder.checked_by_second && (
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button>Sign as Checker 2</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogTitle>
-                                                Sign off as Checker 2?
-                                            </DialogTitle>
-                                            <DialogDescription>
-                                                This records your sign-off on
-                                                this purchase order.
-                                            </DialogDescription>
-
-                                            <Form
-                                                {...check.form(purchaseOrder)}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
-                                            >
-                                                {({ processing }) => (
-                                                    <>
-                                                        <input
-                                                            type="hidden"
-                                                            name="slot"
-                                                            value="2"
-                                                        />
-                                                        <WorkforceSelect
-                                                            id="checked_by_id_2"
-                                                            name="checked_by_id"
-                                                            value={checkedById2}
-                                                            onValueChange={
-                                                                setCheckedById2
-                                                            }
-                                                            workforces={
-                                                                workforces
-                                                            }
-                                                        />
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose
-                                                                asChild
-                                                            >
-                                                                <Button variant="secondary">
-                                                                    Cancel
-                                                                </Button>
-                                                            </DialogClose>
-                                                            <Button
-                                                                type="submit"
-                                                                disabled={
-                                                                    processing
-                                                                }
-                                                            >
-                                                                {processing && (
-                                                                    <Spinner />
-                                                                )}
-                                                                Sign off
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </>
-                                                )}
-                                            </Form>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
-
-                            {purchaseOrder.status === 'issued' &&
-                                bothCheckersSigned && (
-                                    <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button>Approve</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogTitle>
-                                                Approve this purchase order?
-                                            </DialogTitle>
-                                            <DialogDescription>
-                                                This marks the purchase order as
-                                                approved.
-                                            </DialogDescription>
-
-                                            <Form
-                                                {...approve.form(purchaseOrder)}
-                                                options={{
-                                                    preserveScroll: true,
-                                                }}
-                                            >
-                                                {({ processing }) => (
-                                                    <>
-                                                        <WorkforceSelect
-                                                            id="approved_by_id"
-                                                            name="approved_by_id"
-                                                            value={approvedById}
-                                                            onValueChange={
-                                                                setApprovedById
-                                                            }
-                                                            workforces={
-                                                                workforces
-                                                            }
-                                                        />
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose
-                                                                asChild
-                                                            >
-                                                                <Button variant="secondary">
-                                                                    Cancel
-                                                                </Button>
-                                                            </DialogClose>
-                                                            <Button
-                                                                type="submit"
-                                                                disabled={
-                                                                    processing
-                                                                }
-                                                            >
-                                                                {processing && (
-                                                                    <Spinner />
-                                                                )}
-                                                                Approve
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    </>
-                                                )}
-                                            </Form>
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
-
-                            {purchaseOrder.status === 'issued' && (
+                        {purchaseOrder.status === 'issued' &&
+                            !purchaseOrder.checked_by_second && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button variant="destructive">
-                                            Reject
-                                        </Button>
+                                        <Button>Sign as Checker 2</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
-                                            Reject this purchase order?
+                                            Sign off as Checker 2?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            This reverts the purchase order to
-                                            draft and clears its sign-offs.
+                                            This records your sign-off on this
+                                            purchase order.
                                         </DialogDescription>
 
                                         <Form
-                                            {...reject.form(purchaseOrder)}
-                                            options={{ preserveScroll: true }}
+                                            {...check.form(purchaseOrder)}
+                                            options={{
+                                                preserveScroll: true,
+                                            }}
                                         >
                                             {({ processing }) => (
                                                 <>
-                                                    <div className="grid gap-2 py-2">
-                                                        <Label htmlFor="rejection_reason">
-                                                            Rejection reason
-                                                        </Label>
-                                                        <Textarea
-                                                            id="rejection_reason"
-                                                            name="rejection_reason"
-                                                            value={
-                                                                rejectionReason
-                                                            }
-                                                            onChange={(e) =>
-                                                                setRejectionReason(
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            rows={3}
-                                                        />
-                                                    </div>
+                                                    <input
+                                                        type="hidden"
+                                                        name="slot"
+                                                        value="2"
+                                                    />
+                                                    <WorkforceSelect
+                                                        id="checked_by_id_2"
+                                                        name="checked_by_id"
+                                                        value={checkedById2}
+                                                        onValueChange={
+                                                            setCheckedById2
+                                                        }
+                                                        workforces={workforces}
+                                                    />
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
                                                             <Button variant="secondary">
@@ -1174,7 +1003,6 @@ export default function PurchaseOrdersShow({
                                                         </DialogClose>
                                                         <Button
                                                             type="submit"
-                                                            variant="destructive"
                                                             disabled={
                                                                 processing
                                                             }
@@ -1182,7 +1010,7 @@ export default function PurchaseOrdersShow({
                                                             {processing && (
                                                                 <Spinner />
                                                             )}
-                                                            Reject
+                                                            Sign off
                                                         </Button>
                                                     </DialogFooter>
                                                 </>
@@ -1192,33 +1020,105 @@ export default function PurchaseOrdersShow({
                                 </Dialog>
                             )}
 
-                            {(purchaseOrder.status === 'draft' ||
-                                purchaseOrder.status === 'issued') && (
+                        {purchaseOrder.status === 'issued' &&
+                            bothCheckersSigned && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button variant="destructive">
-                                            Cancel Purchase Order
-                                        </Button>
+                                        <Button>Approve</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
-                                            Cancel this purchase order?
+                                            Approve this purchase order?
                                         </DialogTitle>
                                         <DialogDescription>
                                             This marks the purchase order as
-                                            cancelled. This action cannot be
-                                            undone.
+                                            approved.
                                         </DialogDescription>
 
                                         <Form
-                                            {...cancel.form(purchaseOrder)}
-                                            options={{ preserveScroll: true }}
+                                            {...approve.form(purchaseOrder)}
+                                            options={{
+                                                preserveScroll: true,
+                                            }}
                                         >
                                             {({ processing }) => (
+                                                <>
+                                                    <WorkforceSelect
+                                                        id="approved_by_id"
+                                                        name="approved_by_id"
+                                                        value={approvedById}
+                                                        onValueChange={
+                                                            setApprovedById
+                                                        }
+                                                        workforces={workforces}
+                                                    />
+                                                    <DialogFooter className="gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button variant="secondary">
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+                                                        <Button
+                                                            type="submit"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            Approve
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+
+                        {purchaseOrder.status === 'issued' && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        Reject
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Reject this purchase order?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This reverts the purchase order to draft
+                                        and clears its sign-offs.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...reject.form(purchaseOrder)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <>
+                                                <div className="grid gap-2 py-2">
+                                                    <Label htmlFor="rejection_reason">
+                                                        Rejection reason
+                                                    </Label>
+                                                    <Textarea
+                                                        id="rejection_reason"
+                                                        name="rejection_reason"
+                                                        value={rejectionReason}
+                                                        onChange={(e) =>
+                                                            setRejectionReason(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        rows={3}
+                                                    />
+                                                </div>
                                                 <DialogFooter className="gap-2">
                                                     <DialogClose asChild>
                                                         <Button variant="secondary">
-                                                            Keep
+                                                            Cancel
                                                         </Button>
                                                     </DialogClose>
                                                     <Button
@@ -1229,71 +1129,111 @@ export default function PurchaseOrdersShow({
                                                         {processing && (
                                                             <Spinner />
                                                         )}
-                                                        Cancel Purchase Order
+                                                        Reject
                                                     </Button>
                                                 </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            )}
+                                            </>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
 
-                            {purchaseOrder.status === 'approved' && (
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="destructive">
-                                            Void Purchase Order
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Void this purchase order?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This marks the approved purchase
-                                            order as voided. This action cannot
-                                            be undone.
-                                        </DialogDescription>
+                        {(purchaseOrder.status === 'draft' ||
+                            purchaseOrder.status === 'issued') && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        Cancel Purchase Order
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Cancel this purchase order?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This marks the purchase order as
+                                        cancelled. This action cannot be undone.
+                                    </DialogDescription>
 
-                                        <Form
-                                            {...voidPurchaseOrder.form(
-                                                purchaseOrder,
-                                            )}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Keep
-                                                        </Button>
-                                                    </DialogClose>
-                                                    <Button
-                                                        type="submit"
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                    >
-                                                        {processing && (
-                                                            <Spinner />
-                                                        )}
-                                                        Void Purchase Order
+                                    <Form
+                                        {...cancel.form(purchaseOrder)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Keep
                                                     </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Cancel Purchase Order
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+
+                        {purchaseOrder.status === 'approved' && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        Void Purchase Order
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Void this purchase order?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This marks the approved purchase order
+                                        as voided. This action cannot be undone.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...voidPurchaseOrder.form(
+                                            purchaseOrder,
+                                        )}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Keep
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Void Purchase Order
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </div>
+                </div>
 
                 {progressActionsList.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Progress</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-3">
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Progress
+                        </h2>
+                        <div className="flex flex-wrap gap-3">
                             {progressActionsList.map((action) => (
                                 <Dialog key={action.progress}>
                                     <DialogTrigger asChild>
@@ -1347,84 +1287,79 @@ export default function PurchaseOrdersShow({
                                     </DialogContent>
                                 </Dialog>
                             ))}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
 
                 {purchaseOrder.status === 'draft' && (
-                    <Card className="border-destructive/50">
-                        <CardHeader>
-                            <CardTitle className="text-destructive">
-                                Danger Zone
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                    <p className="font-medium">
-                                        Delete this purchase order
-                                    </p>
-                                    <p className="text-sm">
-                                        Once deleted, this purchase order cannot
-                                        be restored.
-                                    </p>
-                                </div>
-
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Trash2 />
-                                            Delete Purchase Order
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Delete &quot;
-                                            {purchaseOrder.purchase_order_code}
-                                            &quot;?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This action cannot be undone. This
-                                            purchase order will be permanently
-                                            deleted.
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...destroy.form(purchaseOrder)}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-
-                                                    <Button
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                        asChild
-                                                    >
-                                                        <button type="submit">
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Delete Purchase
-                                                            Order
-                                                        </button>
-                                                    </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this purchase order
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this purchase order cannot be
+                                    restored.
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Purchase Order
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Delete &quot;
+                                        {purchaseOrder.purchase_order_code}
+                                        &quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This action cannot be undone. This
+                                        purchase order will be permanently
+                                        deleted.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...destroy.form(purchaseOrder)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    asChild
+                                                >
+                                                    <button type="submit">
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Delete Purchase Order
+                                                    </button>
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

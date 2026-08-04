@@ -287,10 +287,10 @@ class QuotationController extends Controller
     {
         $bom = $quotation->bom()
             ->with([
-                'groups.items.product:id,product_code,name,reference_number',
-                'groups.subgroups.items.product:id,product_code,name,reference_number',
-                'subgroups.items.product:id,product_code,name,reference_number',
-                'items' => fn ($query) => $query->whereNull('bom_group_id')->whereNull('bom_subgroup_id')->with('product:id,product_code,name,reference_number'),
+                'groups.items.product:id,product_code,name,reference_number,type',
+                'groups.subgroups.items.product:id,product_code,name,reference_number,type',
+                'subgroups.items.product:id,product_code,name,reference_number,type',
+                'items' => fn ($query) => $query->whereNull('bom_group_id')->whereNull('bom_subgroup_id')->with('product:id,product_code,name,reference_number,type'),
             ])
             ->first();
 

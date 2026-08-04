@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -477,187 +476,181 @@ export default function QuotationsShow({ quotation, history }: Props) {
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Details</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Details</h2>
+                    <dl className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Status
+                            </dt>
+                            <dd>
+                                <Badge
+                                    variant="secondary"
+                                    className="capitalize"
+                                >
+                                    {quotation.status.replaceAll('_', ' ')}
+                                </Badge>
+                            </dd>
+                        </div>
+
+                        {quotation.progress && (
                             <div>
                                 <dt className="text-sm text-muted-foreground">
-                                    Status
+                                    Progress
                                 </dt>
                                 <dd>
                                     <Badge
                                         variant="secondary"
                                         className="capitalize"
                                     >
-                                        {quotation.status.replaceAll('_', ' ')}
+                                        {quotation.progress.replaceAll(
+                                            '_',
+                                            ' ',
+                                        )}
                                     </Badge>
                                 </dd>
                             </div>
+                        )}
 
-                            {quotation.progress && (
-                                <div>
-                                    <dt className="text-sm text-muted-foreground">
-                                        Progress
-                                    </dt>
-                                    <dd>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {quotation.progress.replaceAll(
-                                                '_',
-                                                ' ',
-                                            )}
-                                        </Badge>
-                                    </dd>
-                                </div>
-                            )}
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Project
+                            </dt>
+                            <dd className="font-medium">
+                                <Link href={showProject(quotation.project)}>
+                                    {quotation.project.project_code} &mdash;{' '}
+                                    {quotation.project.name}
+                                </Link>
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Project
-                                </dt>
-                                <dd className="font-medium">
-                                    <Link href={showProject(quotation.project)}>
-                                        {quotation.project.project_code} &mdash;{' '}
-                                        {quotation.project.name}
-                                    </Link>
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Customer
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.project.customer.name}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Customer
-                                </dt>
-                                <dd className="font-medium">
-                                    {quotation.project.customer.name}
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Currency
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.currency.iso_code} &mdash;{' '}
+                                {quotation.currency.name}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Currency
-                                </dt>
-                                <dd className="font-medium">
-                                    {quotation.currency.iso_code} &mdash;{' '}
-                                    {quotation.currency.name}
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Valid until
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.valid_until ? (
+                                    formatDate(quotation.valid_until)
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Valid until
-                                </dt>
-                                <dd className="font-medium">
-                                    {quotation.valid_until ? (
-                                        formatDate(quotation.valid_until)
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Overall tax
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.tax ? (
+                                    `${quotation.tax.name} (${
+                                        quotation.tax.type === 'percentage'
+                                            ? `${quotation.tax.rate}%`
+                                            : quotation.tax.rate
+                                    })`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Overall discount
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.discount_type &&
+                                quotation.discount_value ? (
+                                    quotation.discount_type === 'percentage' ? (
+                                        `${quotation.discount_value}%`
                                     ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                                        `${currencySymbol} ${formatNumber(quotation.discount_value)}`
+                                    )
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Overall tax
-                                </dt>
-                                <dd className="font-medium">
-                                    {quotation.tax ? (
-                                        `${quotation.tax.name} (${
-                                            quotation.tax.type === 'percentage'
-                                                ? `${quotation.tax.rate}%`
-                                                : quotation.tax.rate
-                                        })`
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Approved
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.approver && quotation.approved_at ? (
+                                    `${quotation.approver.name} — ${formatDateTime(quotation.approved_at)}`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Overall discount
-                                </dt>
-                                <dd className="font-medium">
-                                    {quotation.discount_type &&
-                                    quotation.discount_value ? (
-                                        quotation.discount_type ===
-                                        'percentage' ? (
-                                            `${quotation.discount_value}%`
-                                        ) : (
-                                            `${currencySymbol} ${formatNumber(quotation.discount_value)}`
-                                        )
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                        <div className="sm:col-span-2">
+                            <dt className="text-sm text-muted-foreground">
+                                Remarks
+                            </dt>
+                            <dd className="font-medium whitespace-pre-line">
+                                {quotation.remarks ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
 
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Approved
-                                </dt>
-                                <dd className="font-medium">
-                                    {quotation.approver &&
-                                    quotation.approved_at ? (
-                                        `${quotation.approver.name} — ${formatDateTime(quotation.approved_at)}`
-                                    ) : (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Created at
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDateTime(quotation.created_at)}
+                            </dd>
+                        </div>
 
-                            <div className="sm:col-span-2">
-                                <dt className="text-sm text-muted-foreground">
-                                    Remarks
-                                </dt>
-                                <dd className="font-medium whitespace-pre-line">
-                                    {quotation.remarks ?? (
-                                        <span className="text-muted-foreground">
-                                            &mdash;
-                                        </span>
-                                    )}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Created at
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDateTime(quotation.created_at)}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    Last updated
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatDateTime(quotation.updated_at)}
-                                </dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Last updated
+                            </dt>
+                            <dd className="font-medium">
+                                {formatDateTime(quotation.updated_at)}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
 
                 {actions.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Workflow</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-3">
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Workflow
+                        </h2>
+                        <div className="flex flex-wrap gap-3">
                             {actions.map((action) => (
                                 <Dialog key={action.status}>
                                     <DialogTrigger asChild>
@@ -719,16 +712,16 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                     </DialogContent>
                                 </Dialog>
                             ))}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
 
                 {progressActionsList.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Progress</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-wrap gap-3">
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Progress
+                        </h2>
+                        <div className="flex flex-wrap gap-3">
                             {progressActionsList.map((action) => (
                                 <Dialog key={action.progress}>
                                     <DialogTrigger asChild>
@@ -780,252 +773,188 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                     </DialogContent>
                                 </Dialog>
                             ))}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
 
                 {quotation.groups.map((group) => (
-                    <Card key={group.id}>
-                        <CardHeader>
-                            <CardTitle>{group.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>No</TableHead>
-                                            <TableHead>Product</TableHead>
-                                            <TableHead>Qty</TableHead>
-                                            <TableHead>Unit</TableHead>
-                                            <TableHead>Unit price</TableHead>
-                                            <TableHead>Unit cost</TableHead>
-                                            <TableHead>Total price</TableHead>
-                                            <TableHead>Total cost</TableHead>
-                                            <TableHead>Margin</TableHead>
-                                            <TableHead>Margin %</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {group.items.map((item, index) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="text-muted-foreground">
-                                                    {index + 1}
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    <div>
-                                                        {
-                                                            item.product
-                                                                .product_code
-                                                        }{' '}
-                                                        &mdash;{' '}
-                                                        {item.product.name}
+                    <div key={group.id} className="space-y-6">
+                        <h2 className="text-base font-semibold">
+                            {group.name}
+                        </h2>
+                        <div className="overflow-hidden rounded-xl border border-border/50">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>No</TableHead>
+                                        <TableHead>Product</TableHead>
+                                        <TableHead>Qty</TableHead>
+                                        <TableHead>Unit</TableHead>
+                                        <TableHead>Unit price</TableHead>
+                                        <TableHead>Unit cost</TableHead>
+                                        <TableHead>Total price</TableHead>
+                                        <TableHead>Total cost</TableHead>
+                                        <TableHead>Margin</TableHead>
+                                        <TableHead>Margin %</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {group.items.map((item, index) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="text-muted-foreground">
+                                                {index + 1}
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                                <div>
+                                                    {item.product.product_code}{' '}
+                                                    &mdash; {item.product.name}
+                                                </div>
+                                                {item.description && (
+                                                    <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
+                                                        {item.description}
                                                     </div>
-                                                    {item.description && (
-                                                        <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
-                                                            {item.description}
-                                                        </div>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.quantity,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.unit}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.unit_price,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.unit_cost,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.total_price,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.total_cost,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(item.margin)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.margin_percent}%
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.quantity)}
+                                            </TableCell>
+                                            <TableCell>{item.unit}</TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.unit_price)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.unit_cost)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.total_price)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.total_cost)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.margin)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {item.margin_percent}%
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
 
-                            <dl className="space-y-2">
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">
-                                        Group subtotal
-                                    </dt>
-                                    <dd className="font-medium">
-                                        {currencySymbol}{' '}
-                                        {formatNumber(group.subtotal)}
-                                    </dd>
-                                </div>
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">
-                                        Group discount
-                                        {group.discount_type &&
-                                            group.discount_value &&
-                                            ` (${
-                                                group.discount_type ===
-                                                'percentage'
-                                                    ? `${group.discount_value}%`
-                                                    : `${currencySymbol} ${formatNumber(group.discount_value)}`
-                                            })`}
-                                    </dt>
-                                    <dd className="font-medium">
-                                        {currencySymbol}{' '}
-                                        {formatNumber(group.discount_amount)}
-                                    </dd>
-                                </div>
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">
-                                        Group tax
-                                        {group.tax && ` (${group.tax.name})`}
-                                    </dt>
-                                    <dd className="font-medium">
-                                        {currencySymbol}{' '}
-                                        {formatNumber(group.tax_amount)}
-                                    </dd>
-                                </div>
-                                <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                    <dt>Group total</dt>
-                                    <dd>
-                                        {currencySymbol}{' '}
-                                        {formatNumber(group.total)}
-                                    </dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
+                        <dl className="space-y-2">
+                            <div className="flex justify-between">
+                                <dt className="text-muted-foreground">
+                                    Group subtotal
+                                </dt>
+                                <dd className="font-medium">
+                                    {currencySymbol}{' '}
+                                    {formatNumber(group.subtotal)}
+                                </dd>
+                            </div>
+                            <div className="flex justify-between">
+                                <dt className="text-muted-foreground">
+                                    Group discount
+                                    {group.discount_type &&
+                                        group.discount_value &&
+                                        ` (${
+                                            group.discount_type === 'percentage'
+                                                ? `${group.discount_value}%`
+                                                : `${currencySymbol} ${formatNumber(group.discount_value)}`
+                                        })`}
+                                </dt>
+                                <dd className="font-medium">
+                                    {currencySymbol}{' '}
+                                    {formatNumber(group.discount_amount)}
+                                </dd>
+                            </div>
+                            <div className="flex justify-between">
+                                <dt className="text-muted-foreground">
+                                    Group tax
+                                    {group.tax && ` (${group.tax.name})`}
+                                </dt>
+                                <dd className="font-medium">
+                                    {currencySymbol}{' '}
+                                    {formatNumber(group.tax_amount)}
+                                </dd>
+                            </div>
+                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                <dt>Group total</dt>
+                                <dd>
+                                    {currencySymbol} {formatNumber(group.total)}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
                 ))}
 
                 {quotation.items.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Ungrouped items</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>No</TableHead>
-                                            <TableHead>Product</TableHead>
-                                            <TableHead>Qty</TableHead>
-                                            <TableHead>Unit</TableHead>
-                                            <TableHead>Unit price</TableHead>
-                                            <TableHead>Unit cost</TableHead>
-                                            <TableHead>Total price</TableHead>
-                                            <TableHead>Total cost</TableHead>
-                                            <TableHead>Margin</TableHead>
-                                            <TableHead>Margin %</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {quotation.items.map((item, index) => (
-                                            <TableRow key={item.id}>
-                                                <TableCell className="text-muted-foreground">
-                                                    {index + 1}
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    <div>
-                                                        {
-                                                            item.product
-                                                                .product_code
-                                                        }{' '}
-                                                        &mdash;{' '}
-                                                        {item.product.name}
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Ungrouped items
+                        </h2>
+                        <div className="overflow-hidden rounded-xl border border-border/50">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>No</TableHead>
+                                        <TableHead>Product</TableHead>
+                                        <TableHead>Qty</TableHead>
+                                        <TableHead>Unit</TableHead>
+                                        <TableHead>Unit price</TableHead>
+                                        <TableHead>Unit cost</TableHead>
+                                        <TableHead>Total price</TableHead>
+                                        <TableHead>Total cost</TableHead>
+                                        <TableHead>Margin</TableHead>
+                                        <TableHead>Margin %</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {quotation.items.map((item, index) => (
+                                        <TableRow key={item.id}>
+                                            <TableCell className="text-muted-foreground">
+                                                {index + 1}
+                                            </TableCell>
+                                            <TableCell className="font-medium">
+                                                <div>
+                                                    {item.product.product_code}{' '}
+                                                    &mdash; {item.product.name}
+                                                </div>
+                                                {item.description && (
+                                                    <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
+                                                        {item.description}
                                                     </div>
-                                                    {item.description && (
-                                                        <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
-                                                            {item.description}
-                                                        </div>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.quantity,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.unit}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.unit_price,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.unit_cost,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.total_price,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(
-                                                        item.total_cost,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {formatNumber(item.margin)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {item.margin_percent}%
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.quantity)}
+                                            </TableCell>
+                                            <TableCell>{item.unit}</TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.unit_price)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.unit_cost)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.total_price)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.total_cost)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(item.margin)}
+                                            </TableCell>
+                                            <TableCell>
+                                                {item.margin_percent}%
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
 
-                            <dl className="space-y-2">
-                                <div className="flex justify-between">
-                                    <dt className="text-muted-foreground">
-                                        Subtotal
-                                    </dt>
-                                    <dd className="font-medium">
-                                        {currencySymbol}{' '}
-                                        {formatNumber(
-                                            quotation.items.reduce(
-                                                (sum, item) =>
-                                                    sum +
-                                                    Number(item.total_price),
-                                                0,
-                                            ),
-                                        )}
-                                    </dd>
-                                </div>
-                            </dl>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Overall Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
                         <dl className="space-y-2">
                             <div className="flex justify-between">
                                 <dt className="text-muted-foreground">
@@ -1033,520 +962,491 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                 </dt>
                                 <dd className="font-medium">
                                     {currencySymbol}{' '}
-                                    {formatNumber(quotation.subtotal)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">
-                                    Discount
-                                </dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(quotation.discount_amount)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between">
-                                <dt className="text-muted-foreground">Tax</dt>
-                                <dd className="font-medium">
-                                    {currencySymbol}{' '}
-                                    {formatNumber(quotation.tax_amount)}
-                                </dd>
-                            </div>
-                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
-                                <dt>Total</dt>
-                                <dd>
-                                    {currencySymbol}{' '}
-                                    {formatNumber(quotation.total)}
+                                    {formatNumber(
+                                        quotation.items.reduce(
+                                            (sum, item) =>
+                                                sum + Number(item.total_price),
+                                            0,
+                                        ),
+                                    )}
                                 </dd>
                             </div>
                         </dl>
-                    </CardContent>
-                </Card>
+                    </div>
+                )}
 
-                <Card>
-                    <CardContent>
-                        <Tabs defaultValue="bom">
-                            <TabsList className="w-full flex-nowrap justify-start overflow-x-auto">
-                                <TabsTrigger value="bom">
-                                    Bill of Materials
-                                </TabsTrigger>
-                                <TabsTrigger value="purchase-orders">
-                                    Purchase Orders
-                                </TabsTrigger>
-                                <TabsTrigger value="delivery-orders">
-                                    Delivery Orders
-                                </TabsTrigger>
-                                <TabsTrigger value="invoices">
-                                    Invoices
-                                </TabsTrigger>
-                            </TabsList>
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">
+                        Overall Summary
+                    </h2>
+                    <dl className="space-y-2">
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Subtotal</dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(quotation.subtotal)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Discount</dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(quotation.discount_amount)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Tax</dt>
+                            <dd className="font-medium">
+                                {currencySymbol}{' '}
+                                {formatNumber(quotation.tax_amount)}
+                            </dd>
+                        </div>
+                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                            <dt>Total</dt>
+                            <dd>
+                                {currencySymbol} {formatNumber(quotation.total)}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
 
-                            <TabsContent value="bom" className="space-y-4">
-                                {quotation.status === 'draft' &&
-                                    !quotation.bom && (
-                                        <div className="flex justify-end">
-                                            <Button size="sm" asChild>
-                                                <Link href={createBom(quotation)}>
-                                                    Create BOM
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    )}
+                <Tabs defaultValue="bom">
+                    <TabsList className="w-full flex-nowrap justify-start overflow-x-auto">
+                        <TabsTrigger value="bom">Bill of Materials</TabsTrigger>
+                        <TabsTrigger value="purchase-orders">
+                            Purchase Orders
+                        </TabsTrigger>
+                        <TabsTrigger value="delivery-orders">
+                            Delivery Orders
+                        </TabsTrigger>
+                        <TabsTrigger value="invoices">Invoices</TabsTrigger>
+                    </TabsList>
 
-                                {quotation.bom ? (
-                                    <div className="space-y-4">
-                                        <dl className="space-y-2">
-                                            <div className="flex justify-between">
-                                                <dt className="text-muted-foreground">
-                                                    Main cost
-                                                </dt>
-                                                <dd className="font-medium">
-                                                    {currencySymbol}{' '}
-                                                    {formatNumber(
-                                                        quotation.bom
-                                                            .main_cost,
-                                                    )}
-                                                </dd>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <dt className="text-muted-foreground">
-                                                    Overhead cost
-                                                    {quotation.bom
-                                                        .overhead_percentage &&
-                                                        ` (${quotation.bom.overhead_percentage}%)`}
-                                                </dt>
-                                                <dd className="font-medium">
-                                                    {currencySymbol}{' '}
-                                                    {formatNumber(
-                                                        quotation.bom
-                                                            .overhead_cost,
-                                                    )}
-                                                </dd>
-                                            </div>
-                                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
-                                                <dt>Total cost</dt>
-                                                <dd>
-                                                    {currencySymbol}{' '}
-                                                    {formatNumber(
-                                                        quotation.bom
-                                                            .total_cost,
-                                                    )}
-                                                </dd>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <dt className="text-muted-foreground">
-                                                    Selling cost
-                                                    {quotation.bom
-                                                        .selling_percentage &&
-                                                        ` (${quotation.bom.selling_percentage}%)`}
-                                                </dt>
-                                                <dd className="font-medium">
-                                                    {currencySymbol}{' '}
-                                                    {formatNumber(
-                                                        quotation.bom
-                                                            .selling_cost,
-                                                    )}
-                                                </dd>
-                                            </div>
-                                        </dl>
+                    <TabsContent value="bom" className="space-y-4">
+                        {quotation.status === 'draft' && !quotation.bom && (
+                            <div className="flex justify-end">
+                                <Button size="sm" asChild>
+                                    <Link href={createBom(quotation)}>
+                                        Create BOM
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
 
-                                        <div className="flex flex-col gap-2 sm:flex-row">
-                                            <Button
-                                                variant="outline"
-                                                className="w-full sm:w-auto"
-                                                asChild
-                                            >
-                                                <Link href={showBom(quotation)}>
-                                                    View Bill of Materials
-                                                </Link>
-                                            </Button>
-
-                                            {quotation.status === 'draft' && (
-                                                <Button
-                                                    className="w-full sm:w-auto"
-                                                    asChild
-                                                >
-                                                    <Link
-                                                        href={editBom(
-                                                            quotation,
-                                                        )}
-                                                    >
-                                                        Edit Bill of Materials
-                                                    </Link>
-                                                </Button>
+                        {quotation.bom ? (
+                            <div className="space-y-4">
+                                <dl className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Main cost
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.main_cost,
                                             )}
-                                        </div>
+                                        </dd>
                                     </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">
-                                        No bill of materials has been created
-                                        for this quotation yet.
-                                    </p>
-                                )}
-                            </TabsContent>
-
-                            <TabsContent
-                                value="purchase-orders"
-                                className="space-y-4"
-                            >
-                                {quotation.purchase_orders.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        No purchase orders have been raised
-                                        against this quotation yet.
-                                    </p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {quotation.purchase_orders.map(
-                                            (purchaseOrder) => (
-                                                <Link
-                                                    key={purchaseOrder.id}
-                                                    href={showPurchaseOrder(
-                                                        purchaseOrder,
-                                                    )}
-                                                    className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                                >
-                                                    <div className="space-y-0.5">
-                                                        <p className="font-medium">
-                                                            {
-                                                                purchaseOrder.purchase_order_code
-                                                            }
-                                                        </p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {
-                                                                purchaseOrder
-                                                                    .vendor
-                                                                    .name
-                                                            }
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-medium">
-                                                            {purchaseOrder
-                                                                .currency
-                                                                .symbol ??
-                                                                purchaseOrder
-                                                                    .currency
-                                                                    .iso_code}{' '}
-                                                            {formatNumber(
-                                                                purchaseOrder.grand_total,
-                                                            )}
-                                                        </span>
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="capitalize"
-                                                        >
-                                                            {purchaseOrder.status.replaceAll(
-                                                                '_',
-                                                                ' ',
-                                                            )}
-                                                        </Badge>
-                                                    </div>
-                                                </Link>
-                                            ),
-                                        )}
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Overhead cost
+                                            {quotation.bom
+                                                .overhead_percentage &&
+                                                ` (${quotation.bom.overhead_percentage}%)`}
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.overhead_cost,
+                                            )}
+                                        </dd>
                                     </div>
-                                )}
-                            </TabsContent>
-
-                            <TabsContent
-                                value="delivery-orders"
-                                className="space-y-4"
-                            >
-                                {quotation.status === 'approved' && (
-                                    <div className="flex justify-end">
-                                        <Button size="sm" asChild>
-                                            <Link
-                                                href={createDeliveryOrder({
-                                                    query: {
-                                                        quotation:
-                                                            quotation.uuid,
-                                                    },
-                                                })}
-                                            >
-                                                Create DO
-                                            </Link>
-                                        </Button>
+                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                        <dt>Total cost</dt>
+                                        <dd>
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.total_cost,
+                                            )}
+                                        </dd>
                                     </div>
-                                )}
-
-                                {quotation.delivery_orders.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        No delivery orders have been raised
-                                        against this quotation yet.
-                                    </p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {quotation.delivery_orders.map(
-                                            (deliveryOrder) => (
-                                                <Link
-                                                    key={deliveryOrder.id}
-                                                    href={showDeliveryOrder(
-                                                        deliveryOrder,
-                                                    )}
-                                                    className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                                >
-                                                    <div className="space-y-0.5">
-                                                        <p className="font-medium">
-                                                            {
-                                                                deliveryOrder.do_code
-                                                            }
-                                                        </p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {formatDate(
-                                                                deliveryOrder.delivery_date,
-                                                            )}
-                                                        </p>
-                                                    </div>
-
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="w-fit capitalize"
-                                                    >
-                                                        {deliveryOrder.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
-                                                </Link>
-                                            ),
-                                        )}
+                                    <div className="flex justify-between">
+                                        <dt className="text-muted-foreground">
+                                            Selling cost
+                                            {quotation.bom.selling_percentage &&
+                                                ` (${quotation.bom.selling_percentage}%)`}
+                                        </dt>
+                                        <dd className="font-medium">
+                                            {currencySymbol}{' '}
+                                            {formatNumber(
+                                                quotation.bom.selling_cost,
+                                            )}
+                                        </dd>
                                     </div>
-                                )}
-                            </TabsContent>
+                                </dl>
 
-                            <TabsContent value="invoices" className="space-y-4">
-                                {quotation.status === 'approved' && (
-                                    <div className="flex justify-end">
-                                        <Button size="sm" asChild>
-                                            <Link
-                                                href={createInvoice({
-                                                    query: {
-                                                        quotation:
-                                                            quotation.uuid,
-                                                    },
-                                                })}
-                                            >
-                                                Create Invoice
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                )}
-
-                                {quotation.invoices.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        No invoices have been raised against
-                                        this quotation yet.
-                                    </p>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {quotation.invoices.map((invoice) => (
-                                            <Link
-                                                key={invoice.id}
-                                                href={showInvoice(invoice)}
-                                                className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                            >
-                                                <div className="space-y-0.5">
-                                                    <p className="font-medium">
-                                                        {invoice.invoice_code}
-                                                    </p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {formatDate(
-                                                            invoice.invoice_date,
-                                                        )}
-                                                    </p>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    {invoice.payment_status && (
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="w-fit capitalize"
-                                                        >
-                                                            {invoice.payment_status.replaceAll(
-                                                                '_',
-                                                                ' ',
-                                                            )}
-                                                        </Badge>
-                                                    )}
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="w-fit capitalize"
-                                                    >
-                                                        {invoice.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
-                                                </div>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                </Card>
-
-                {history.length > 1 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Revision History</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {history.map((entry) =>
-                                entry.id === quotation.id ? (
-                                    <div
-                                        key={entry.id}
-                                        className="rounded-lg border border-primary bg-accent p-4"
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full sm:w-auto"
+                                        asChild
                                     >
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <div>
+                                        <Link href={showBom(quotation)}>
+                                            View Bill of Materials
+                                        </Link>
+                                    </Button>
+
+                                    {quotation.status === 'draft' && (
+                                        <Button
+                                            className="w-full sm:w-auto"
+                                            asChild
+                                        >
+                                            <Link href={editBom(quotation)}>
+                                                Edit Bill of Materials
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                No bill of materials has been created for this
+                                quotation yet.
+                            </p>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="purchase-orders" className="space-y-4">
+                        {quotation.purchase_orders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No purchase orders have been raised against this
+                                quotation yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotation.purchase_orders.map(
+                                    (purchaseOrder) => (
+                                        <Link
+                                            key={purchaseOrder.id}
+                                            href={showPurchaseOrder(
+                                                purchaseOrder,
+                                            )}
+                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            <div className="space-y-0.5">
                                                 <p className="font-medium">
-                                                    Version{' '}
-                                                    {entry.version_major}.
-                                                    {entry.version_minor}{' '}
-                                                    <span className="text-muted-foreground">
-                                                        (viewing)
-                                                    </span>
+                                                    {
+                                                        purchaseOrder.purchase_order_code
+                                                    }
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {formatDate(
-                                                        entry.created_at,
-                                                    )}
+                                                    {purchaseOrder.vendor.name}
                                                 </p>
                                             </div>
 
-                                            <div className="flex gap-2">
-                                                {entry.is_current && (
-                                                    <Badge>Current</Badge>
-                                                )}
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-medium">
+                                                    {purchaseOrder.currency
+                                                        .symbol ??
+                                                        purchaseOrder.currency
+                                                            .iso_code}{' '}
+                                                    {formatNumber(
+                                                        purchaseOrder.grand_total,
+                                                    )}
+                                                </span>
                                                 <Badge
                                                     variant="secondary"
                                                     className="capitalize"
                                                 >
-                                                    {entry.status.replaceAll(
+                                                    {purchaseOrder.status.replaceAll(
                                                         '_',
                                                         ' ',
                                                     )}
                                                 </Badge>
                                             </div>
-                                        </div>
-                                    </div>
-                                ) : (
+                                        </Link>
+                                    ),
+                                )}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="delivery-orders" className="space-y-4">
+                        {quotation.status === 'approved' && (
+                            <div className="flex justify-end">
+                                <Button size="sm" asChild>
                                     <Link
-                                        key={entry.id}
-                                        href={show(entry)}
-                                        className="block rounded-lg border border-sidebar-border/70 p-4 transition-colors hover:bg-accent dark:border-sidebar-border"
+                                        href={createDeliveryOrder({
+                                            query: {
+                                                quotation: quotation.uuid,
+                                            },
+                                        })}
                                     >
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                            <div>
+                                        Create DO
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
+
+                        {quotation.delivery_orders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No delivery orders have been raised against this
+                                quotation yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotation.delivery_orders.map(
+                                    (deliveryOrder) => (
+                                        <Link
+                                            key={deliveryOrder.id}
+                                            href={showDeliveryOrder(
+                                                deliveryOrder,
+                                            )}
+                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                        >
+                                            <div className="space-y-0.5">
                                                 <p className="font-medium">
-                                                    Version{' '}
-                                                    {entry.version_major}.
-                                                    {entry.version_minor}
+                                                    {deliveryOrder.do_code}
                                                 </p>
                                                 <p className="text-sm text-muted-foreground">
                                                     {formatDate(
-                                                        entry.created_at,
+                                                        deliveryOrder.delivery_date,
                                                     )}
                                                 </p>
                                             </div>
 
-                                            <div className="flex gap-2">
-                                                {entry.is_current && (
-                                                    <Badge>Current</Badge>
+                                            <Badge
+                                                variant="secondary"
+                                                className="w-fit capitalize"
+                                            >
+                                                {deliveryOrder.status.replaceAll(
+                                                    '_',
+                                                    ' ',
                                                 )}
+                                            </Badge>
+                                        </Link>
+                                    ),
+                                )}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="invoices" className="space-y-4">
+                        {quotation.status === 'approved' && (
+                            <div className="flex justify-end">
+                                <Button size="sm" asChild>
+                                    <Link
+                                        href={createInvoice({
+                                            query: {
+                                                quotation: quotation.uuid,
+                                            },
+                                        })}
+                                    >
+                                        Create Invoice
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
+
+                        {quotation.invoices.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No invoices have been raised against this
+                                quotation yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {quotation.invoices.map((invoice) => (
+                                    <Link
+                                        key={invoice.id}
+                                        href={showInvoice(invoice)}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {invoice.invoice_code}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(
+                                                    invoice.invoice_date,
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {invoice.payment_status && (
                                                 <Badge
                                                     variant="secondary"
-                                                    className="capitalize"
+                                                    className="w-fit capitalize"
                                                 >
-                                                    {entry.status.replaceAll(
+                                                    {invoice.payment_status.replaceAll(
                                                         '_',
                                                         ' ',
                                                     )}
                                                 </Badge>
-                                            </div>
+                                            )}
+                                            <Badge
+                                                variant="secondary"
+                                                className="w-fit capitalize"
+                                            >
+                                                {invoice.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
                                         </div>
                                     </Link>
-                                ),
-                            )}
-                        </CardContent>
-                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </TabsContent>
+                </Tabs>
+
+                {history.length > 1 && (
+                    <div className="space-y-3">
+                        <h2 className="text-base font-semibold">
+                            Revision History
+                        </h2>
+                        {history.map((entry) =>
+                            entry.id === quotation.id ? (
+                                <div
+                                    key={entry.id}
+                                    className="rounded-lg border border-primary bg-accent p-4"
+                                >
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="font-medium">
+                                                Version {entry.version_major}.
+                                                {entry.version_minor}{' '}
+                                                <span className="text-muted-foreground">
+                                                    (viewing)
+                                                </span>
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(entry.created_at)}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            {entry.is_current && (
+                                                <Badge>Current</Badge>
+                                            )}
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {entry.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Link
+                                    key={entry.id}
+                                    href={show(entry)}
+                                    className="block rounded-lg border border-sidebar-border/70 p-4 transition-colors hover:bg-accent dark:border-sidebar-border"
+                                >
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="font-medium">
+                                                Version {entry.version_major}.
+                                                {entry.version_minor}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(entry.created_at)}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            {entry.is_current && (
+                                                <Badge>Current</Badge>
+                                            )}
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {entry.status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ),
+                        )}
+                    </div>
                 )}
 
                 {quotation.status === 'draft' && history.length <= 1 && (
-                    <Card className="border-destructive/50">
-                        <CardHeader>
-                            <CardTitle className="text-destructive">
-                                Danger Zone
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                                <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                                    <p className="font-medium">
-                                        Delete this quotation
-                                    </p>
-                                    <p className="text-sm">
-                                        Once deleted, this quotation cannot be
-                                        restored.
-                                    </p>
-                                </div>
-
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant="destructive"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Trash2 />
-                                            Delete Quotation
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            Delete &quot;
-                                            {quotation.quotation_code}&quot;?
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            This action cannot be undone. This
-                                            quotation will be permanently
-                                            deleted.
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...destroy.form(quotation)}
-                                            options={{ preserveScroll: true }}
-                                        >
-                                            {({ processing }) => (
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-
-                                                    <Button
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                        asChild
-                                                    >
-                                                        <button type="submit">
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Delete Quotation
-                                                        </button>
-                                                    </Button>
-                                                </DialogFooter>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this quotation
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this quotation cannot be
+                                    restored.
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Quotation
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Delete &quot;
+                                        {quotation.quotation_code}&quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This action cannot be undone. This
+                                        quotation will be permanently deleted.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...destroy.form(quotation)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    asChild
+                                                >
+                                                    <button type="submit">
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Delete Quotation
+                                                    </button>
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
                 )}
             </div>
         </>

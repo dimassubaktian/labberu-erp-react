@@ -85,11 +85,11 @@ class ProjectController extends Controller
      */
     public function store(ProjectStoreRequest $request): RedirectResponse
     {
-        Project::create($request->validated());
+        $project = Project::create($request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project created.')]);
 
-        return to_route('projects.index');
+        return to_route('projects.show', $project);
     }
 
     /**

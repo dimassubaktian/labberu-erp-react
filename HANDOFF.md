@@ -18,7 +18,7 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 ## Detail docs (`docs/handoff/`)
 
 - [`history.md`](docs/handoff/history.md) — full chronological log of what's been done,
-  session by session (34 numbered items).
+  session by session (41 numbered items).
 - [`crud-pattern.md`](docs/handoff/crud-pattern.md) — the established CRUD pattern every
   simple module follows (migration/model/request/controller/routes/pages/tests shape).
 - [`quotations.md`](docs/handoff/quotations.md) — status workflow, revisioning, item groups,
@@ -45,6 +45,9 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 - [`rbac.md`](docs/handoff/rbac.md) — Users/Roles admin UI, permission naming scheme, route-level
   enforcement mechanism, self-lockout guards, sidebar gating, and the test-suite-wide changes
   needed to support it.
+- [`demo-seeder.md`](docs/handoff/demo-seeder.md) — client-demo dataset seeders (8 roles/users,
+  job titles, workforces, currencies, taxes, products, vendors, customers), the
+  `WithoutModelEvents` seeding gotcha it uncovered, and demo login credentials.
 
 ## Modules built so far (in this order)
 
@@ -90,9 +93,11 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
 - No customer-facing acceptance step or payment portal — Quotation's `progress = 'accepted'`
   (see `docs/handoff/progress-tracking.md`) is still an internal staff member manually
   recording it, not something the customer does themselves.
-- Workforce pickers (Project PIC, PO issuer/checker/approver, GRN/DO received/delivered-by)
-  still use a plain full-list `Select`, not `AsyncCombobox` — deliberately deferred, worth
-  revisiting if headcount grows into the hundreds.
+- Workforce pickers still use a plain full-list `Select` in most places (PO
+  issuer/checker/approver, GRN/DO received/delivered-by) — deliberately deferred, worth
+  revisiting if headcount grows into the hundreds. Project's Person in Charge field is the one
+  exception, now a local-filtering `Combobox` (see item 38 in `docs/handoff/history.md`);
+  worth extending the same component to the others if this keeps coming up.
 - Stock Movements/Adjustments only track quantity, not cost — no valuation layer
   (FIFO/weighted-average/standard cost), no low-stock alerting/reorder-point concept.
 
@@ -112,3 +117,8 @@ workflow/revision-like, follow `docs/handoff/quotations.md`; for nested grouping
 now closed, PDF/print export is probably the single highest-leverage next pick — it cuts across
 every document module already built (Quotation, PO, GRN, DO, Invoice), none of which can
 currently produce a document to hand to a customer or vendor.
+
+A full client-demo dataset now exists — see `docs/handoff/demo-seeder.md`. Run
+`php artisan migrate:fresh --seed --no-interaction` and log in as `superadmin@labberu.test`
+(password `password`, or any of the other 7 role-specific demo logins listed there) to demo the
+app with realistic data already in place.
