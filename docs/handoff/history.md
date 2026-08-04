@@ -331,3 +331,126 @@ Roughly in order:
     defaults to `'0'`, unused in the PO flow). Verified with `tsc --noEmit`, `eslint`, `prettier
     --check`, and `npm run build` (all clean) after each revision; no backend or test changes
     needed since the label is pure frontend display logic.
+43. **Quotation line-item table containers matched to the `border-border/50` convention** — the
+    two `<Table>`-wrapping `<div>`s on `quotations/create.tsx`/`edit.tsx` (ungrouped items table,
+    per-group items table) were still on the older `border-sidebar-border/70
+    dark:border-sidebar-border` convention that item 39 had already migrated other elements away
+    from. Swapped to `border-border/50` in all 4 spots (2 per file); `rounded-lg` and everything
+    else in the className left untouched — pure Tailwind class change, no test needed.
+44. **Currency field disabled on Quotation create/edit, auto-selection kept** — the `currency_id`
+    `Select` on both pages is now `disabled`; the pre-existing hidden `<input name="currency_id">`
+    still carries the value (base-currency default on create, the quotation's existing currency
+    on edit) into form submission unchanged, so the field still auto-selects and submits, it's
+    just no longer user-editable.
+45. **Searchable "Overall tax" picker on Quotation create/edit** — replaced the quotation-level
+    `tax_id` `Select` (label "Overall tax"; the per-group "Tax" selects inside item groups were
+    left alone, out of scope) with the existing local-filtering `Combobox` component
+    (`resources/js/components/combobox.tsx`, previously only used for Project's Person in Charge
+    field — see item 38). `docs/handoff/async-combobox.md` explicitly keeps small bounded
+    reference data like Taxes on a full-list picker with no server round-trip; `Combobox` adds
+    typeahead search on top of the already-loaded `taxes` prop without turning it into a
+    server-searching `AsyncCombobox`, which stays reserved for genuinely high-cardinality data.
+    A small derived `taxOptions` array (`{ id: 'none', label: 'No tax' }` prepended to the mapped
+    tax list) preserves the existing `'none'` sentinel the hidden `tax_id` input already relied
+    on — no controller/backend change needed.
+46. **New `quotations.approval` permission gates Quotation approve/reject specifically** —
+    previously all quotation status transitions (submit, approve, reject, cancel, void) shared
+    one blanket `quotations.status.update` permission via the single generic `PATCH quotations/
+    {quotation}/status` route, with no way to let someone submit/cancel without also being able
+    to approve/reject. Added `'approval'` to the `quotations` list in `database/data/
+    permissions.php` (auto-flows through `PermissionSeeder` and the Roles admin UI, no frontend
+    change needed there), then extended `QuotationStatusUpdateRequest::authorize()` — previously
+    a blanket `return true;` — to require `quotations.approval` specifically when the submitted
+    `status` is `approved` or `rejected`, leaving every other transition governed by the existing
+    route-level `quotations.status.update` middleware alone. Kept as a single shared route/request
+    rather than splitting into dedicated `approve`/`reject` routes (the way Purchase Order does
+    with two separate permissions) since the user wanted one shared permission for both, and
+    `show.tsx`'s `statusActions()` already submits every transition through one generic `Form` —
+    splitting the route would have meant restructuring that loop for no benefit. This is the same
+    "business-rule guard inside `authorize()`" escape hatch `docs/handoff/rbac.md` already
+    documents for `UserUpdateRequest`'s self-lockout check, and that
+    `tests/Feature/Permissions/EnforcementTest.php` explicitly calls out `status.update` as
+    relying on rather than the generic per-route pass/fail check. 4 new tests added to
+    `tests/Feature/Quotations/StatusUpdateTest.php` (denied without the permission on both
+    approve and reject, unaffected on a non-approval transition, succeeds once granted). See
+    `docs/handoff/rbac.md`.
+47. **Tax option display reordered to "(rate) name"** — every tax `<SelectItem>`/`Combobox`
+    option across `invoices/create.tsx`/`edit.tsx`, `purchase-orders/create.tsx`/`edit.tsx`,
+    and `quotations/create.tsx`/`edit.tsx` (both the per-group `Select` and the header-level
+    `taxOptions` array feeding the "Overall tax" `Combobox` from item 45) previously read
+    `{tax.name} ({rate}%)`, e.g. "PPN (11%)". Flipped to `({rate}%) {tax.name}` so the rate is
+    the leading, scannable part. Pure display-string change, no prop/type/backend changes.
+48. **Quotation & BOM line-item "Unit" field converted from free text to a fixed `Select`** —
+    to cut down on typos (`pcs` vs `Pcs` vs `PC`), the `unit` `<Input>` inside `LineItemForm`
+    on `quotations/create.tsx`/`edit.tsx` and `boms/create.tsx`/`edit.tsx` was replaced with a
+    `<Select>` bound to the same hardcoded `units` list already used on
+    `products/create.tsx`/`edit.tsx` (`Pcs, Unit, Set, Box, Roll, Meter, Kg, Liter, Pack,
+    Other`). Backend validation tightened to match: `items.*.unit`/`groups.*.items.*.unit` in
+    `QuotationStoreRequest`/`QuotationUpdateRequest`, and the shared `itemRules()` helper's
+    `unit` rule in `BomStoreRequest`/`BomUpdateRequest`, changed from `['required', 'string',
+    'max:50']` to `['required', 'string', 'in:Pcs,Unit,Set,Box,Roll,Meter,Kg,Liter,Pack,Other']`
+    — the same plain-string `in:` format `ProductStoreRequest`/`ProductUpdateRequest` already
+    used for `unit`. Confirmed safe before tightening: both `quotation_items` and `bom_items`
+    had zero rows, and every existing factory/test already hardcoded `unit => 'Pcs'`.
+49. **Workflow/Progress action sections moved above Details on the Quotation detail page** —
+    on `quotations/show.tsx`, the "Workflow" (status transition buttons) and "Progress"
+    (progress-advance buttons) blocks previously rendered *after* the "Details" card. Moved
+    both (in the same order) to sit directly under the page heading/action-button row and
+    above Details, so available actions are visible without scrolling. Pure JSX reordering —
+    no logic, prop, or styling changes to either block.
+50. **Approve/Reject buttons hidden from users without `quotations.approval`** — bug: the
+    backend was already correctly gated (`QuotationStatusUpdateRequest::authorize()` requires
+    `quotations.approval` for `approved`/`rejected`, see item 46), but `show.tsx`'s
+    `statusActions()` decided which buttons to render purely from the quotation's `status`,
+    with no awareness of the viewer's permissions — so Approve/Reject rendered for everyone
+    and clicking dead-ended in a 403. Fixed by reading `usePage().props.auth.permissions` in
+    `QuotationsShow` (the same `auth.permissions` share already used by
+    `app-sidebar.tsx` for nav-item gating, see `docs/handoff/rbac.md`'s "Sidebar gating"
+    section) and filtering the `approved`/`rejected` entries out of `actions` when the
+    permission is absent. UI-only defense-in-depth, matching the sidebar's documented pattern
+    — the route/request-level gate remains the real enforcement.
+51. **New "Cancel Request Approval" transition (Request for Approval → Draft)** — previously
+    `Quotation::TRANSITIONS['request_for_approval']` allowed a direct `cancelled` transition
+    (same "Cancel Quotation" button shown in `draft`). Per the user's requested workflow, a
+    pending-approval quotation can no longer be cancelled outright: `cancelled` was removed
+    from that transition list and replaced with `draft`, surfaced in `show.tsx`'s
+    `statusActions()` as a new **red/`destructive`** "Cancel Request Approval" button (no
+    extra permission — same as every other non-approval transition, gated only by the base
+    `quotations.status.update` route permission). "Cancel Quotation" still shows in `draft`
+    only now. 2 new tests added to `tests/Feature/Quotations/StatusUpdateTest.php` (RFA→draft
+    succeeds; RFA→cancelled now rejected). `docs/handoff/quotations.md`'s workflow line updated
+    to match.
+52. **Read-only relation display fields restyled to match adjacent form controls** — the
+    locked "Project"/"Quotation"/"Purchase order" `<p>` boxes shown instead of an editable
+    field on 5 edit pages (`quotations/edit.tsx`, `purchase-orders/edit.tsx`,
+    `invoices/edit.tsx`, `delivery-orders/edit.tsx`, `goods-receipt-notes/edit.tsx`) used
+    `border-sidebar-border/70 dark:border-sidebar-border` (this app's divider/panel-border
+    color) instead of `border-input` (the actual `Select`/`Input`/`Textarea` border token),
+    which stood out next to sibling form fields — fixed by swapping the className on all 5.
+    Separately, on the two pages where that box sits beside a `Select` in the same
+    `sm:grid-cols-2` row (`quotations/edit.tsx`'s Project+Currency row,
+    `purchase-orders/edit.tsx`'s Project+Quotation row), CSS Grid's default `align-items:
+    stretch` made the `Select` column stretch to match whenever a long project/customer name
+    wrapped the `<p>` to two lines — added `items-start` to those two row `<div>`s so each
+    column sizes independently and both stay top-aligned instead. Both are pure Tailwind
+    class changes, no test impact.
+53. **Quotation progress: "accepted" renamed to "signed"; "converted" removed, manual
+    progress capped at Signed** — two related changes to `Quotation::PROGRESS_TRANSITIONS`
+    (`sent → accepted → converted → partially_delivered/fully_delivered`) and `show.tsx`'s
+    `progressActions()`. First, `accepted` was renamed to `signed` throughout (model map,
+    button label "Mark as Signed", confirm dialog text, `ProgressUpdateTest.php`,
+    `progress-tracking.md`, `HANDOFF.md`) — no other code depended on the literal string, and
+    no existing quotation had `progress = 'accepted'` in the database, so this was a clean
+    rename. Second, after clarifying that `converted` had **no automatic trigger anywhere**
+    (a manual-only note that nothing read or gated on) while `partially_delivered`/
+    `fully_delivered` were **already** auto-derived by
+    `DeliveryOrderController::updateQuotationProgress()` on every DO confirmation (bypassing
+    the manual-gate validation entirely) yet *also* manually clickable, the user opted to
+    remove `converted` outright and make the two delivery stages automatic-only.
+    `PROGRESS_TRANSITIONS` was trimmed to `'' => ['sent'], 'sent' => ['signed'], 'signed' =>
+    []`, and `progressActions()` now only returns actions for `null`/`sent` — the manual
+    chain terminates at Signed, while DO confirmation can still push progress straight to
+    `partially_delivered`/`fully_delivered` since that code path never consulted the
+    transitions map. `docs/handoff/progress-tracking.md` and `docs/handoff/delivery-orders.md`
+    updated to describe the new automatic-only shape; `ProgressUpdateTest.php`'s
+    sent→accepted→converted test rewritten to assert `signed → converted` is now rejected.

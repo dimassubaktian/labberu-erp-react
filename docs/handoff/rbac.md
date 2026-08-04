@@ -44,6 +44,18 @@ ahead of later static ones (`create`), reintroducing the exact static-before-wil
 classes for a pure "does this user have permission X" check would have been pure boilerplate
 next to route middleware, especially since these aren't resource controllers.
 
+**Exception: a sub-action sharing a route can be gated by a second permission inside
+`authorize()`.** Quotation's approve/reject both go through the same generic
+`quotations.status.update`-gated route as every other status transition (submit/cancel/void) —
+there's no dedicated `approve`/`reject` route to hang separate middleware off, and the user
+wanted one shared `quotations.approval` permission for both anyway (unlike Purchase Order's two
+separate `approve`/`reject` permissions on their own dedicated routes). Fixed in
+`QuotationStatusUpdateRequest::authorize()`: `return true` for every transition *except* when
+the submitted `status` is `approved`/`rejected`, which additionally requires
+`$this->user()?->can('quotations.approval')`. Same escape hatch as the self-lockout guard below
+— a route's blanket permission is necessary but not always sufficient once one route covers
+several logically-distinct actions. See `docs/handoff/history.md` item 46.
+
 ## Self-lockout guards
 
 `UserUpdateRequest::authorize()` blocks deactivating your own account or submitting an empty

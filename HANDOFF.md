@@ -90,7 +90,7 @@ SQLite for the database. Laravel Boost MCP is configured — prefer its tools (`
   Project can say `completed` while its only quotation is still `draft`. A real derived
   rollup (never a synced field — see `docs/handoff/progress-tracking.md` for why) is more
   feasible now that DO/GRN/Invoice all exist, but still not requested/built.
-- No customer-facing acceptance step or payment portal — Quotation's `progress = 'accepted'`
+- No customer-facing acceptance step or payment portal — Quotation's `progress = 'signed'`
   (see `docs/handoff/progress-tracking.md`) is still an internal staff member manually
   recording it, not something the customer does themselves.
 - Workforce pickers still use a plain full-list `Select` in most places (PO

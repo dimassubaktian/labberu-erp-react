@@ -61,11 +61,16 @@ in `Quotation::booted()`'s `creating()` hook. All revisions in a thread share th
 `quotation_code` and `thread_number`.
 
 **Status workflow**: `draft` → `request_for_approval` → `approved`/`rejected`, plus
-`cancelled` (from `draft` or `request_for_approval`) and `voided` (from `approved`). Modeled
+`cancelled` (from `draft` only) and `voided` (from `approved`). A `request_for_approval`
+quotation can no longer be cancelled directly — it can only go back to `draft` ("Cancel
+Request Approval"), from where it can then be cancelled or resubmitted. Modeled
 via `Quotation::TRANSITIONS` (private const array) and `Quotation::allowedNextStatuses(
 string $status): array`, mirrored on the frontend in `show.tsx`'s `statusActions()` for
 button rendering — backend (`QuotationStatusUpdateRequest` + `Rule::in()`) is authoritative.
-Approving sets `approved_by`/`approved_at` to the acting user/now.
+Approving sets `approved_by`/`approved_at` to the acting user/now. Transitioning specifically to
+`approved`/`rejected` additionally requires the `quotations.approval` permission (checked in
+`QuotationStatusUpdateRequest::authorize()`, on top of the blanket `quotations.status.update`
+route permission every transition needs) — see `docs/handoff/rbac.md`.
 
 **Revisioning**: `root_quotation_id` (self-FK, null on the root), `version_major`/
 `version_minor` (user picks "major" — customer-requested — or "minor" — internal — when

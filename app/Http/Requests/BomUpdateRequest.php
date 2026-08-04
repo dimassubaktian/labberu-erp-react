@@ -63,7 +63,7 @@ class BomUpdateRequest extends FormRequest
             "{$prefix}.description" => ['nullable', 'string', 'max:2000'],
             "{$prefix}.brand" => ['required', 'string', 'max:255'],
             "{$prefix}.quantity" => ['required', 'numeric', 'min:0.01'],
-            "{$prefix}.unit" => ['required', 'string', 'max:50'],
+            "{$prefix}.unit" => ['required', 'string', 'in:Pcs,Unit,Set,Box,Roll,Meter,Kg,Liter,Pack,Other'],
             "{$prefix}.unit_cost" => ['required', 'numeric', 'min:0'],
             "{$prefix}.discount_type" => ['nullable', 'string', 'in:percentage,fixed'],
             "{$prefix}.discount_value" => ['nullable', 'numeric', 'min:0', "required_with:{$prefix}.discount_type"],

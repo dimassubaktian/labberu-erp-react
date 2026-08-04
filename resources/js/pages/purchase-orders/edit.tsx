@@ -652,7 +652,7 @@ export default function PurchaseOrdersEdit({
                                 <h2 className="text-base font-semibold">
                                     Details
                                 </h2>
-                                <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="grid items-start gap-2 sm:grid-cols-2">
                                     <div className="grid gap-2">
                                         <Label>Project</Label>
                                         <input
@@ -660,7 +660,7 @@ export default function PurchaseOrdersEdit({
                                             name="project_id"
                                             value={projectId}
                                         />
-                                        <p className="rounded-md border border-sidebar-border/70 px-3 py-2 text-sm text-muted-foreground dark:border-sidebar-border">
+                                        <p className="rounded-md border border-input px-3 py-2 text-sm text-muted-foreground">
                                             {purchaseOrder.project.project_code}{' '}
                                             &mdash; {purchaseOrder.project.name}{' '}
                                             (
@@ -1153,12 +1153,12 @@ export default function PurchaseOrdersEdit({
                                                     value={String(tax.id)}
                                                 >
                                                     <span className="block truncate">
-                                                        {tax.name} (
+                                                        (
                                                         {tax.type ===
                                                         'percentage'
                                                             ? `${tax.rate}%`
                                                             : tax.rate}
-                                                        )
+                                                        ) {tax.name}
                                                     </span>
                                                 </SelectItem>
                                             ))}

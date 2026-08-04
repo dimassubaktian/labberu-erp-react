@@ -52,16 +52,35 @@ class ProjectController extends Controller
     /**
      * Display a listing of the projects.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = $request->string('search')->trim()->toString();
+        $status = $request->string('status')->toString();
+        $priority = $request->string('priority')->toString();
+        $sort = $request->string('sort', 'desc')->toString() === 'asc' ? 'asc' : 'desc';
+
         $projects = Project::query()
             ->with('customer')
-            ->orderByDesc('request_date')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('project_code', 'like', "%{$search}%");
+                });
+            })
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->when($priority !== '', fn ($query) => $query->where('priority', $priority))
+            ->orderBy('request_date', $sort)
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('projects/index', [
             'projects' => $projects,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'priority' => $priority,
+                'sort' => $sort,
+            ],
         ]);
     }
 

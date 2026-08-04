@@ -11,13 +11,15 @@ is a delivery-note signature block, not a digital approval). `delivery_order_ite
 (goods arriving damaged is a receiving concern; nothing analogous was asked for delivery), so
 don't copy GRN's shape wholesale onto DO just because it looks symmetric.
 
-**`Quotation::PROGRESS_TRANSITIONS` extended** (`docs/handoff/progress-tracking.md`) with
-`partially_delivered`/`fully_delivered` after `converted` (previously terminal) — confirming a
-DO derives and writes `Quotation.progress` the same per-item-not-aggregate way GRN does for PO,
-via `DeliveryOrderController::updateQuotationProgress()`, also bypassing the manual gate. These
-two new stages are also reachable as **manual buttons** in `quotations/show.tsx`'s
-`progressActions()`, same as how PO kept `partially_received`/`fully_received` manually
-clickable even after GRN could derive them.
+**`partially_delivered`/`fully_delivered` progress values**, confirming a DO derives and
+writes `Quotation.progress` the same per-item-not-aggregate way GRN does for PO, via
+`DeliveryOrderController::updateQuotationProgress()` — which writes directly and bypasses
+`Quotation::PROGRESS_TRANSITIONS`/the manual-gate validation entirely. Unlike PO's
+`partially_received`/`fully_received` (still manually clickable even though GRN can derive
+them), Quotation's manual progress chain was deliberately capped at `signed` — these two
+stages are **automatic-only**, reachable only through a real DO confirmation, not as manual
+buttons in `quotations/show.tsx`'s `progressActions()` (see
+`docs/handoff/progress-tracking.md`).
 
 **`QuotationController::search()`/`::items()`** (new, mirroring the PO ones GRN needed) power
 the DO create/edit form — same fixed-row-table shape, driven by the quotation's own items

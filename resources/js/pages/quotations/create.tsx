@@ -2,6 +2,7 @@ import { Form, Head, Link } from '@inertiajs/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
+import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,19 @@ import { formatNumber } from '@/lib/utils';
 import { search as searchProducts } from '@/routes/products';
 import { search as searchProjects } from '@/routes/projects';
 import { create, index, store } from '@/routes/quotations';
+
+const units = [
+    'Pcs',
+    'Unit',
+    'Set',
+    'Box',
+    'Roll',
+    'Meter',
+    'Kg',
+    'Liter',
+    'Pack',
+    'Other',
+];
 
 type ProjectOption = {
     id: number;
@@ -285,13 +299,26 @@ function LineItemForm({
 
                 <div className="grid gap-2">
                     <Label htmlFor={`${idPrefix}-unit`}>Unit</Label>
-                    <Input
-                        id={`${idPrefix}-unit`}
+                    <Select
                         value={draft.unit}
-                        onChange={(e) =>
-                            onDraftChange({ unit: e.target.value })
+                        onValueChange={(value) =>
+                            onDraftChange({ unit: value })
                         }
-                    />
+                    >
+                        <SelectTrigger
+                            id={`${idPrefix}-unit`}
+                            className="w-full"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {units.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <InputError message={fieldError('unit')} />
                 </div>
 
@@ -764,6 +791,13 @@ export default function QuotationsCreate({
     const total = discountedSubtotal + taxAmount;
     const currencySymbol =
         currencies.find((c) => String(c.id) === currencyId)?.symbol ?? '';
+    const taxOptions = [
+        { id: 'none', label: 'No tax' },
+        ...taxes.map((tax) => ({
+            id: String(tax.id),
+            label: `(${tax.type === 'percentage' ? `${tax.rate}%` : tax.rate}) ${tax.name}`,
+        })),
+    ];
 
     return (
         <>
@@ -823,6 +857,7 @@ export default function QuotationsCreate({
                                         <Select
                                             value={currencyId}
                                             onValueChange={setCurrencyId}
+                                            disabled
                                         >
                                             <SelectTrigger
                                                 id="currency_id"
@@ -1075,12 +1110,12 @@ export default function QuotationsCreate({
                                                                 )}
                                                             >
                                                                 <span className="block truncate">
-                                                                    {tax.name} (
+                                                                    (
                                                                     {tax.type ===
                                                                     'percentage'
                                                                         ? `${tax.rate}%`
                                                                         : tax.rate}
-                                                                    )
+                                                                    ) {tax.name}
                                                                 </span>
                                                             </SelectItem>
                                                         ))}
@@ -1139,7 +1174,7 @@ export default function QuotationsCreate({
                                             />
 
                                             {group.items.length > 0 && (
-                                                <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                                                <div className="overflow-hidden rounded-lg border border-border/50">
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow>
@@ -1280,7 +1315,7 @@ export default function QuotationsCreate({
                                 )}
 
                                 {items.length > 0 && (
-                                    <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                                    <div className="overflow-hidden rounded-lg border border-border/50">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
@@ -1359,37 +1394,16 @@ export default function QuotationsCreate({
                                                 taxId === 'none' ? '' : taxId
                                             }
                                         />
-                                        <Select
+                                        <Combobox
+                                            id="tax_id"
                                             value={taxId}
                                             onValueChange={setTaxId}
-                                        >
-                                            <SelectTrigger
-                                                id="tax_id"
-                                                className="w-full min-w-0"
-                                            >
-                                                <SelectValue className="truncate" />
-                                            </SelectTrigger>
-                                            <SelectContent className="max-w-(--radix-select-trigger-width)">
-                                                <SelectItem value="none">
-                                                    No tax
-                                                </SelectItem>
-                                                {taxes.map((tax) => (
-                                                    <SelectItem
-                                                        key={tax.id}
-                                                        value={String(tax.id)}
-                                                    >
-                                                        <span className="block truncate">
-                                                            {tax.name} (
-                                                            {tax.type ===
-                                                            'percentage'
-                                                                ? `${tax.rate}%`
-                                                                : tax.rate}
-                                                            )
-                                                        </span>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            options={taxOptions}
+                                            getOptionId={(option) => option.id}
+                                            getOptionLabel={(option) =>
+                                                option.label
+                                            }
+                                        />
                                         <InputError message={errors.tax_id} />
                                     </div>
 

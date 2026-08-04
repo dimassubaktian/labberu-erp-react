@@ -63,6 +63,13 @@ these are JSON endpoints hit via `useHttp`, not full-page Inertia visits).
 `docs/handoff/history.md` item 30) — additive to the existing name/`product_code` `LIKE` match,
 same three-way `orWhere` clause.
 
+**The plain local-filtering `Combobox` (not `AsyncCombobox`) has since been extended past
+Person in Charge** — Quotation's "Overall tax" field (`quotations/create.tsx`/`edit.tsx`) now
+uses it too (see `docs/handoff/history.md` item 45), adding typeahead search over the already-
+loaded `taxes` prop. This doesn't contradict the "Taxes stay a full-list picker" guidance above
+— `Combobox` still has no server round-trip, it's a UX layer on top of the same bounded list,
+distinct from `AsyncCombobox`'s server-searched high-cardinality use case.
+
 **Product label format and shared helper** (see `docs/handoff/history.md` items 40 and 42) — all
 7 `AsyncCombobox<ProductOption>` product pickers (Quotations/Purchase Orders/BOMs create+edit,
 Stock Adjustments create) now import a single `ProductOption` type and `productLabel()` function

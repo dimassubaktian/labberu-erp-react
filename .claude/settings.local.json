@@ -1,5 +1,6 @@
 {
   "enabledMcpjsonServers": [
-    "laravel-boost"
+    "laravel-boost",
+    "codegraph"
   ]
 }

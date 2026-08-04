@@ -14,6 +14,10 @@ class QuotationStatusUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        if (in_array($this->input('status'), ['approved', 'rejected'], true)) {
+            return $this->user()?->can('quotations.approval') ?? false;
+        }
+
         return true;
     }
 

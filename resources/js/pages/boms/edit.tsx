@@ -40,6 +40,19 @@ import { search as searchProducts } from '@/routes/products';
 import { index, show as showQuotation } from '@/routes/quotations';
 import { edit, show as showBom, update } from '@/routes/quotations/bom';
 
+const units = [
+    'Pcs',
+    'Unit',
+    'Set',
+    'Box',
+    'Roll',
+    'Meter',
+    'Kg',
+    'Liter',
+    'Pack',
+    'Other',
+];
+
 type QuotationOption = {
     id: number;
     uuid: string;
@@ -312,13 +325,26 @@ function LineItemForm({
 
                 <div className="grid gap-2">
                     <Label htmlFor={`${idPrefix}-unit`}>Unit</Label>
-                    <Input
-                        id={`${idPrefix}-unit`}
+                    <Select
                         value={draft.unit}
-                        onChange={(e) =>
-                            onDraftChange({ unit: e.target.value })
+                        onValueChange={(value) =>
+                            onDraftChange({ unit: value })
                         }
-                    />
+                    >
+                        <SelectTrigger
+                            id={`${idPrefix}-unit`}
+                            className="w-full"
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {units.map((option) => (
+                                <SelectItem key={option} value={option}>
+                                    {option}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <InputError message={fieldError('unit')} />
                 </div>
 

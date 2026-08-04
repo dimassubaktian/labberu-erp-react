@@ -17,8 +17,11 @@ incident (`docs/handoff/bugs-fixed.md`).
 **Stages** (`Quotation::PROGRESS_TRANSITIONS`/`PurchaseOrder::PROGRESS_TRANSITIONS`, mirroring
 the existing `TRANSITIONS`/`allowedNextStatuses()` pattern via a parallel
 `allowedNextProgress(?string $progress): array`):
-- Quotation: `sent → accepted → converted` (later extended with
-  `partially_delivered`/`fully_delivered`, see `docs/handoff/delivery-orders.md`).
+- Quotation: `sent → signed` is the manual chain (staff-clickable, ends at `signed`).
+  `partially_delivered`/`fully_delivered` exist as progress values too, but are
+  **automatic-only** — derived from real Delivery Order confirmations, never manually
+  triggered (see `docs/handoff/delivery-orders.md`). There is no `converted` stage; it was
+  removed as a manual-only milestone nothing else read or depended on.
 - PO: `sent → partially_received/fully_received → closed` (partially_received can be skipped
   and gone straight to fully_received; see `docs/handoff/grn.md` for how these get derived).
 

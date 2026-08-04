@@ -1,4 +1,4 @@
-import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
+import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
 import { ArrowLeft, GitBranch, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
@@ -98,12 +98,12 @@ function statusActions(status: string): StatusAction[] {
                         'This marks the quotation as rejected. This action cannot be undone.',
                 },
                 {
-                    status: 'cancelled',
-                    label: 'Cancel Quotation',
+                    status: 'draft',
+                    label: 'Cancel Request Approval',
                     variant: 'destructive',
-                    confirmTitle: 'Cancel this quotation?',
+                    confirmTitle: 'Cancel this approval request?',
                     confirmDescription:
-                        'This marks the quotation as cancelled. This action cannot be undone.',
+                        'The quotation will return to Draft status and can be edited again.',
                 },
             ];
         case 'approved':
@@ -144,48 +144,11 @@ function progressActions(progress: string | null): ProgressAction[] {
         case 'sent':
             return [
                 {
-                    progress: 'accepted',
-                    label: 'Mark as Accepted',
-                    confirmTitle: 'Mark this quotation as accepted?',
+                    progress: 'signed',
+                    label: 'Mark as Signed',
+                    confirmTitle: 'Mark this quotation as signed?',
                     confirmDescription:
-                        'This records that the customer has accepted the quotation.',
-                },
-            ];
-        case 'accepted':
-            return [
-                {
-                    progress: 'converted',
-                    label: 'Mark as Converted',
-                    confirmTitle: 'Mark this quotation as converted?',
-                    confirmDescription:
-                        'This records that the quotation has been converted into further work, e.g. a purchase order.',
-                },
-            ];
-        case 'converted':
-            return [
-                {
-                    progress: 'partially_delivered',
-                    label: 'Mark as Partially Delivered',
-                    confirmTitle: 'Mark this quotation as partially delivered?',
-                    confirmDescription:
-                        'This records that some, but not all, of the goods have been delivered.',
-                },
-                {
-                    progress: 'fully_delivered',
-                    label: 'Mark as Fully Delivered',
-                    confirmTitle: 'Mark this quotation as fully delivered?',
-                    confirmDescription:
-                        'This records that all goods on the quotation have been delivered.',
-                },
-            ];
-        case 'partially_delivered':
-            return [
-                {
-                    progress: 'fully_delivered',
-                    label: 'Mark as Fully Delivered',
-                    confirmTitle: 'Mark this quotation as fully delivered?',
-                    confirmDescription:
-                        'This records that all goods on the quotation have been delivered.',
+                        'This confirms the customer has signed the quotation, so the project can continue to the next step.',
                 },
             ];
         default:
@@ -340,9 +303,15 @@ export default function QuotationsShow({ quotation, history }: Props) {
 
     const [versionType, setVersionType] = useState('minor');
 
+    const { auth } = usePage().props;
+    const canApprove = auth.permissions.includes('quotations.approval');
+
     const currencySymbol =
         quotation.currency.symbol ?? quotation.currency.iso_code;
-    const actions = statusActions(quotation.status);
+    const actions = statusActions(quotation.status).filter(
+        (action) =>
+            canApprove || !['approved', 'rejected'].includes(action.status),
+    );
     const progressActionsList =
         quotation.status === 'approved'
             ? progressActions(quotation.progress)
@@ -475,6 +444,138 @@ export default function QuotationsShow({ quotation, history }: Props) {
                             )}
                     </div>
                 </div>
+
+                {actions.length > 0 && (
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Workflow
+                        </h2>
+                        <div className="flex flex-wrap gap-3">
+                            {actions.map((action) => (
+                                <Dialog key={action.status}>
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            variant={
+                                                action.variant ?? 'default'
+                                            }
+                                        >
+                                            {action.label}
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>
+                                            {action.confirmTitle}
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            {action.confirmDescription}
+                                        </DialogDescription>
+
+                                        <Form
+                                            {...updateStatus.form(quotation)}
+                                            options={{
+                                                preserveScroll: true,
+                                            }}
+                                        >
+                                            {({ processing }) => (
+                                                <>
+                                                    <input
+                                                        type="hidden"
+                                                        name="status"
+                                                        value={action.status}
+                                                    />
+                                                    <DialogFooter className="gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button variant="secondary">
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+
+                                                        <Button
+                                                            type="submit"
+                                                            variant={
+                                                                action.variant ??
+                                                                'default'
+                                                            }
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            {action.label}
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {progressActionsList.length > 0 && (
+                    <div>
+                        <h2 className="mb-4 text-base font-semibold">
+                            Progress
+                        </h2>
+                        <div className="flex flex-wrap gap-3">
+                            {progressActionsList.map((action) => (
+                                <Dialog key={action.progress}>
+                                    <DialogTrigger asChild>
+                                        <Button>{action.label}</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>
+                                            {action.confirmTitle}
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            {action.confirmDescription}
+                                        </DialogDescription>
+
+                                        <Form
+                                            {...updateProgress.form(quotation)}
+                                            options={{
+                                                preserveScroll: true,
+                                            }}
+                                        >
+                                            {({ processing }) => (
+                                                <>
+                                                    <input
+                                                        type="hidden"
+                                                        name="progress"
+                                                        value={action.progress}
+                                                    />
+                                                    <DialogFooter className="gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button variant="secondary">
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogClose>
+
+                                                        <Button
+                                                            type="submit"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            {action.label}
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div>
                     <h2 className="mb-4 text-base font-semibold">Details</h2>
@@ -644,138 +745,6 @@ export default function QuotationsShow({ quotation, history }: Props) {
                         </div>
                     </dl>
                 </div>
-
-                {actions.length > 0 && (
-                    <div>
-                        <h2 className="mb-4 text-base font-semibold">
-                            Workflow
-                        </h2>
-                        <div className="flex flex-wrap gap-3">
-                            {actions.map((action) => (
-                                <Dialog key={action.status}>
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            variant={
-                                                action.variant ?? 'default'
-                                            }
-                                        >
-                                            {action.label}
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            {action.confirmTitle}
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            {action.confirmDescription}
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...updateStatus.form(quotation)}
-                                            options={{
-                                                preserveScroll: true,
-                                            }}
-                                        >
-                                            {({ processing }) => (
-                                                <>
-                                                    <input
-                                                        type="hidden"
-                                                        name="status"
-                                                        value={action.status}
-                                                    />
-                                                    <DialogFooter className="gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button variant="secondary">
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
-
-                                                        <Button
-                                                            type="submit"
-                                                            variant={
-                                                                action.variant ??
-                                                                'default'
-                                                            }
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                        >
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            {action.label}
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {progressActionsList.length > 0 && (
-                    <div>
-                        <h2 className="mb-4 text-base font-semibold">
-                            Progress
-                        </h2>
-                        <div className="flex flex-wrap gap-3">
-                            {progressActionsList.map((action) => (
-                                <Dialog key={action.progress}>
-                                    <DialogTrigger asChild>
-                                        <Button>{action.label}</Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>
-                                            {action.confirmTitle}
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            {action.confirmDescription}
-                                        </DialogDescription>
-
-                                        <Form
-                                            {...updateProgress.form(quotation)}
-                                            options={{
-                                                preserveScroll: true,
-                                            }}
-                                        >
-                                            {({ processing }) => (
-                                                <>
-                                                    <input
-                                                        type="hidden"
-                                                        name="progress"
-                                                        value={action.progress}
-                                                    />
-                                                    <DialogFooter className="gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button variant="secondary">
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
-
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                        >
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            {action.label}
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </>
-                                            )}
-                                        </Form>
-                                    </DialogContent>
-                                </Dialog>
-                            ))}
-                        </div>
-                    </div>
-                )}
 
                 {quotation.groups.map((group) => (
                     <div key={group.id} className="space-y-6">

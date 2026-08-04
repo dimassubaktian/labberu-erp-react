@@ -74,7 +74,7 @@ class Quotation extends Model
      */
     private const array TRANSITIONS = [
         'draft' => ['request_for_approval', 'cancelled'],
-        'request_for_approval' => ['approved', 'rejected', 'cancelled'],
+        'request_for_approval' => ['approved', 'rejected', 'draft'],
         'approved' => ['voided'],
         'rejected' => [],
         'voided' => [],
@@ -100,11 +100,8 @@ class Quotation extends Model
      */
     private const array PROGRESS_TRANSITIONS = [
         '' => ['sent'],
-        'sent' => ['accepted'],
-        'accepted' => ['converted'],
-        'converted' => ['partially_delivered', 'fully_delivered'],
-        'partially_delivered' => ['fully_delivered'],
-        'fully_delivered' => [],
+        'sent' => ['signed'],
+        'signed' => [],
     ];
 
     /**

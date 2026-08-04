@@ -256,7 +256,7 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
                                         name="quotation_id"
                                         value={invoice.quotation.id}
                                     />
-                                    <p className="rounded-md border border-sidebar-border/70 px-3 py-2 text-sm text-muted-foreground dark:border-sidebar-border">
+                                    <p className="rounded-md border border-input px-3 py-2 text-sm text-muted-foreground">
                                         {invoice.quotation.quotation_code} v
                                         {invoice.quotation.version_major}.
                                         {invoice.quotation.version_minor}{' '}
@@ -511,12 +511,12 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
                                                         value={String(tax.id)}
                                                     >
                                                         <span className="block truncate">
-                                                            {tax.name} (
+                                                            (
                                                             {tax.type ===
                                                             'percentage'
                                                                 ? `${tax.rate}%`
                                                                 : tax.rate}
-                                                            )
+                                                            ) {tax.name}
                                                         </span>
                                                     </SelectItem>
                                                 ))}

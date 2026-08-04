@@ -183,7 +183,7 @@ export default function DeliveryOrdersEdit({ deliveryOrder }: Props) {
                                         name="quotation_id"
                                         value={deliveryOrder.quotation.id}
                                     />
-                                    <p className="rounded-md border border-sidebar-border/70 px-3 py-2 text-sm text-muted-foreground dark:border-sidebar-border">
+                                    <p className="rounded-md border border-input px-3 py-2 text-sm text-muted-foreground">
                                         {deliveryOrder.quotation.quotation_code}{' '}
                                         v{deliveryOrder.quotation.version_major}
                                         .{deliveryOrder.quotation.version_minor}{' '}

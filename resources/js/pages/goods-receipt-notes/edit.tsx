@@ -201,7 +201,7 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                                             goodsReceiptNote.purchase_order.id
                                         }
                                     />
-                                    <p className="rounded-md border border-sidebar-border/70 px-3 py-2 text-sm text-muted-foreground dark:border-sidebar-border">
+                                    <p className="rounded-md border border-input px-3 py-2 text-sm text-muted-foreground">
                                         {
                                             goodsReceiptNote.purchase_order
                                                 .purchase_order_code

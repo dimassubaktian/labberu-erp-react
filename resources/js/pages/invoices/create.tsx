@@ -531,12 +531,12 @@ export default function InvoicesCreate({ initialQuotation, taxes }: Props) {
                                                         value={String(tax.id)}
                                                     >
                                                         <span className="block truncate">
-                                                            {tax.name} (
+                                                            (
                                                             {tax.type ===
                                                             'percentage'
                                                                 ? `${tax.rate}%`
                                                                 : tax.rate}
-                                                            )
+                                                            ) {tax.name}
                                                         </span>
                                                     </SelectItem>
                                                 ))}

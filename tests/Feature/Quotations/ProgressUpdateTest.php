@@ -16,21 +16,21 @@ test('an approved quotation can be marked as sent', function () {
     expect($quotation->refresh()->progress)->toBe('sent');
 });
 
-test('progress advances from sent to accepted to converted in order', function () {
+test('progress advances from sent to signed, with no further manual transitions', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create(['status' => 'approved', 'progress' => 'sent']);
 
     $this->actingAs($user)
-        ->patch(route('quotations.progress.update', $quotation), ['progress' => 'accepted'])
+        ->patch(route('quotations.progress.update', $quotation), ['progress' => 'signed'])
         ->assertSessionHasNoErrors();
 
-    expect($quotation->refresh()->progress)->toBe('accepted');
+    expect($quotation->refresh()->progress)->toBe('signed');
 
     $this->actingAs($user)
         ->patch(route('quotations.progress.update', $quotation), ['progress' => 'converted'])
-        ->assertSessionHasNoErrors();
+        ->assertSessionHasErrors(['progress']);
 
-    expect($quotation->refresh()->progress)->toBe('converted');
+    expect($quotation->refresh()->progress)->toBe('signed');
 });
 
 test('progress stages cannot be skipped', function () {
@@ -38,7 +38,7 @@ test('progress stages cannot be skipped', function () {
     $quotation = Quotation::factory()->create(['status' => 'approved']);
 
     $this->actingAs($user)
-        ->patch(route('quotations.progress.update', $quotation), ['progress' => 'accepted'])
+        ->patch(route('quotations.progress.update', $quotation), ['progress' => 'signed'])
         ->assertSessionHasErrors(['progress']);
 
     expect($quotation->refresh()->progress)->toBeNull();
