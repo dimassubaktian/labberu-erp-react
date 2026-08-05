@@ -206,6 +206,20 @@ export default function InvoicesCreate({ initialQuotation, taxes }: Props) {
         }));
     }
 
+    function fillAllRemaining(): void {
+        setItemStates((current) =>
+            Object.fromEntries(
+                items.map((item) => [
+                    item.id,
+                    {
+                        ...(current[item.id] ?? emptyItemState()),
+                        quantity_invoiced: String(item.remaining_to_invoice),
+                    },
+                ]),
+            ),
+        );
+    }
+
     const submittableItems = items.filter((item) => {
         const state = itemStates[item.id];
 
@@ -324,9 +338,20 @@ export default function InvoicesCreate({ initialQuotation, taxes }: Props) {
                             </div>
 
                             <div>
-                                <h2 className="mb-4 text-base font-semibold">
-                                    Items
-                                </h2>
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-base font-semibold">
+                                        Items
+                                    </h2>
+                                    {!loadingItems && items.length > 0 && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={fillAllRemaining}
+                                        >
+                                            Invoice all remaining
+                                        </Button>
+                                    )}
+                                </div>
                                 <InputError message={errors.items} />
 
                                 {!quotationUuid && (

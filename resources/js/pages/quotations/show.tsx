@@ -228,9 +228,6 @@ type Quotation = {
     items: QuotationItem[];
     groups: QuotationGroup[];
     bom: Bom | null;
-    purchase_orders: PurchaseOrder[];
-    delivery_orders: DeliveryOrder[];
-    invoices: Invoice[];
 };
 
 type Bom = {
@@ -259,6 +256,7 @@ type PurchaseOrder = {
         id: number;
         name: string;
     };
+    quotation: { version_major: number; version_minor: number };
 };
 
 type DeliveryOrder = {
@@ -267,6 +265,7 @@ type DeliveryOrder = {
     do_code: string;
     status: string;
     delivery_date: string;
+    quotation: { version_major: number; version_minor: number };
 };
 
 type Invoice = {
@@ -276,6 +275,7 @@ type Invoice = {
     status: string;
     payment_status: string | null;
     invoice_date: string;
+    quotation: { version_major: number; version_minor: number };
 };
 
 type HistoryEntry = {
@@ -291,9 +291,12 @@ type HistoryEntry = {
 type Props = {
     quotation: Quotation;
     history: HistoryEntry[];
+    purchaseOrders: PurchaseOrder[];
+    deliveryOrders: DeliveryOrder[];
+    invoices: Invoice[];
 };
 
-export default function QuotationsShow({ quotation, history }: Props) {
+export default function QuotationsShow({ quotation, history, purchaseOrders, deliveryOrders, invoices }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Quotations', href: index() },
@@ -1086,76 +1089,69 @@ export default function QuotationsShow({ quotation, history }: Props) {
                     </TabsContent>
 
                     <TabsContent value="purchase-orders" className="space-y-4">
-                        <div className="flex justify-end">
-                            <Button size="sm" asChild>
-                                <Link
-                                    href={createPurchaseOrder({
-                                        query: {
-                                            quotation: quotation.uuid,
-                                        },
-                                    })}
-                                >
-                                    Create PO
-                                </Link>
-                            </Button>
-                        </div>
+                        {['signed', 'partially_delivered', 'fully_delivered'].includes(quotation.progress ?? '') && (
+                            <div className="flex justify-end">
+                                <Button size="sm" asChild>
+                                    <Link
+                                        href={createPurchaseOrder({
+                                            query: {
+                                                quotation: quotation.uuid,
+                                            },
+                                        })}
+                                    >
+                                        Create PO
+                                    </Link>
+                                </Button>
+                            </div>
+                        )}
 
-                        {quotation.purchase_orders.length === 0 ? (
+                        {purchaseOrders.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 No purchase orders have been raised against this
                                 quotation yet.
                             </p>
                         ) : (
                             <div className="space-y-2">
-                                {quotation.purchase_orders.map(
-                                    (purchaseOrder) => (
-                                        <Link
-                                            key={purchaseOrder.id}
-                                            href={showPurchaseOrder(
-                                                purchaseOrder,
-                                            )}
-                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div className="space-y-0.5">
-                                                <p className="font-medium">
-                                                    {
-                                                        purchaseOrder.purchase_order_code
-                                                    }
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {purchaseOrder.vendor.name}
-                                                </p>
-                                            </div>
+                                {purchaseOrders.map((purchaseOrder) => (
+                                    <Link
+                                        key={purchaseOrder.id}
+                                        href={showPurchaseOrder(purchaseOrder)}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {purchaseOrder.purchase_order_code}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {purchaseOrder.vendor.name}
+                                            </p>
+                                        </div>
 
-                                            <div className="flex items-center gap-3">
-                                                <span className="font-medium">
-                                                    {purchaseOrder.currency
-                                                        .symbol ??
-                                                        purchaseOrder.currency
-                                                            .iso_code}{' '}
-                                                    {formatNumber(
-                                                        purchaseOrder.grand_total,
-                                                    )}
-                                                </span>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="capitalize"
-                                                >
-                                                    {purchaseOrder.status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
-                                            </div>
-                                        </Link>
-                                    ),
-                                )}
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-medium">
+                                                {purchaseOrder.currency.symbol ??
+                                                    purchaseOrder.currency.iso_code}{' '}
+                                                {formatNumber(purchaseOrder.grand_total)}
+                                            </span>
+                                            <Badge variant="outline">
+                                                v{purchaseOrder.quotation.version_major}.{purchaseOrder.quotation.version_minor}
+                                            </Badge>
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {purchaseOrder.status.replaceAll('_', ' ')}
+                                            </Badge>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         )}
                     </TabsContent>
 
                     <TabsContent value="delivery-orders" className="space-y-4">
-                        {quotation.status === 'approved' && (
+                        {quotation.status === 'approved' &&
+                            ['signed', 'partially_delivered', 'fully_delivered'].includes(quotation.progress ?? '') && (
                             <div className="flex justify-end">
                                 <Button size="sm" asChild>
                                     <Link
@@ -1171,51 +1167,48 @@ export default function QuotationsShow({ quotation, history }: Props) {
                             </div>
                         )}
 
-                        {quotation.delivery_orders.length === 0 ? (
+                        {deliveryOrders.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 No delivery orders have been raised against this
                                 quotation yet.
                             </p>
                         ) : (
                             <div className="space-y-2">
-                                {quotation.delivery_orders.map(
-                                    (deliveryOrder) => (
-                                        <Link
-                                            key={deliveryOrder.id}
-                                            href={showDeliveryOrder(
-                                                deliveryOrder,
-                                            )}
-                                            className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                        >
-                                            <div className="space-y-0.5">
-                                                <p className="font-medium">
-                                                    {deliveryOrder.do_code}
-                                                </p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {formatDate(
-                                                        deliveryOrder.delivery_date,
-                                                    )}
-                                                </p>
-                                            </div>
+                                {deliveryOrders.map((deliveryOrder) => (
+                                    <Link
+                                        key={deliveryOrder.id}
+                                        href={showDeliveryOrder(deliveryOrder)}
+                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {deliveryOrder.do_code}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatDate(deliveryOrder.delivery_date)}
+                                            </p>
+                                        </div>
 
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="outline">
+                                                v{deliveryOrder.quotation.version_major}.{deliveryOrder.quotation.version_minor}
+                                            </Badge>
                                             <Badge
                                                 variant="secondary"
                                                 className="w-fit capitalize"
                                             >
-                                                {deliveryOrder.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
+                                                {deliveryOrder.status.replaceAll('_', ' ')}
                                             </Badge>
-                                        </Link>
-                                    ),
-                                )}
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
                         )}
                     </TabsContent>
 
                     <TabsContent value="invoices" className="space-y-4">
-                        {quotation.status === 'approved' && (
+                        {quotation.status === 'approved' &&
+                            ['signed', 'partially_delivered', 'fully_delivered'].includes(quotation.progress ?? '') && (
                             <div className="flex justify-end">
                                 <Button size="sm" asChild>
                                     <Link
@@ -1231,14 +1224,14 @@ export default function QuotationsShow({ quotation, history }: Props) {
                             </div>
                         )}
 
-                        {quotation.invoices.length === 0 ? (
+                        {invoices.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
                                 No invoices have been raised against this
                                 quotation yet.
                             </p>
                         ) : (
                             <div className="space-y-2">
-                                {quotation.invoices.map((invoice) => (
+                                {invoices.map((invoice) => (
                                     <Link
                                         key={invoice.id}
                                         href={showInvoice(invoice)}
@@ -1249,32 +1242,27 @@ export default function QuotationsShow({ quotation, history }: Props) {
                                                 {invoice.invoice_code}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
-                                                {formatDate(
-                                                    invoice.invoice_date,
-                                                )}
+                                                {formatDate(invoice.invoice_date)}
                                             </p>
                                         </div>
 
                                         <div className="flex items-center gap-2">
+                                            <Badge variant="outline">
+                                                v{invoice.quotation.version_major}.{invoice.quotation.version_minor}
+                                            </Badge>
                                             {invoice.payment_status && (
                                                 <Badge
                                                     variant="secondary"
                                                     className="w-fit capitalize"
                                                 >
-                                                    {invoice.payment_status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
+                                                    {invoice.payment_status.replaceAll('_', ' ')}
                                                 </Badge>
                                             )}
                                             <Badge
                                                 variant="secondary"
                                                 className="w-fit capitalize"
                                             >
-                                                {invoice.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
+                                                {invoice.status.replaceAll('_', ' ')}
                                             </Badge>
                                         </div>
                                     </Link>

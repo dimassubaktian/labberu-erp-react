@@ -28,6 +28,8 @@ class InvoicePaymentController extends Controller
             ]);
 
             $this->recomputePaymentStatus($invoice);
+            $invoice->quotation->project->recomputeBillingStatus();
+            $invoice->quotation->project->recomputeStatus();
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment recorded.')]);
@@ -46,6 +48,8 @@ class InvoicePaymentController extends Controller
             $payment->delete();
 
             $this->recomputePaymentStatus($invoice);
+            $invoice->quotation->project->recomputeBillingStatus();
+            $invoice->quotation->project->recomputeStatus();
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment removed.')]);

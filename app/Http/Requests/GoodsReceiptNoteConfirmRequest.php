@@ -5,7 +5,6 @@ namespace App\Http\Requests;
 use App\Models\GoodsReceiptNote;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class GoodsReceiptNoteConfirmRequest extends FormRequest
 {
@@ -16,7 +15,9 @@ class GoodsReceiptNoteConfirmRequest extends FormRequest
     {
         $goodsReceiptNote = $this->route('goodsReceiptNote');
 
-        return $goodsReceiptNote instanceof GoodsReceiptNote && $goodsReceiptNote->status === 'draft';
+        return $goodsReceiptNote instanceof GoodsReceiptNote
+            && $goodsReceiptNote->status === 'draft'
+            && $this->user()?->workforce !== null;
     }
 
     /**
@@ -26,8 +27,6 @@ class GoodsReceiptNoteConfirmRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'received_by_id' => ['required', Rule::exists('workforces', 'id')->whereNull('deleted_at')],
-        ];
+        return [];
     }
 }

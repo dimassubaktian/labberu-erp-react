@@ -5,7 +5,6 @@ namespace App\Http\Requests;
 use App\Models\PurchaseOrder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class PurchaseOrderCheckRequest extends FormRequest
 {
@@ -21,6 +20,10 @@ class PurchaseOrderCheckRequest extends FormRequest
         }
 
         $slot = (int) $this->input('slot');
+
+        if ($this->user()?->workforce === null) {
+            return false;
+        }
 
         return match ($slot) {
             1 => $purchaseOrder->checked_by_1_id === null,
@@ -38,7 +41,6 @@ class PurchaseOrderCheckRequest extends FormRequest
     {
         return [
             'slot' => ['required', 'integer', 'in:1,2'],
-            'checked_by_id' => ['required', Rule::exists('workforces', 'id')->whereNull('deleted_at')],
         ];
     }
 }

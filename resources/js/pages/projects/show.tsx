@@ -56,6 +56,9 @@ type Project = {
     request_date: string;
     description: string | null;
     status: string;
+    sales_status: string | null;
+    po_status: string | null;
+    billing_status: string | null;
     priority: string;
     start_date: string | null;
     end_date: string | null;
@@ -223,6 +226,72 @@ export default function ProjectsShow({
                                 >
                                     {project.status.replace('_', ' ')}
                                 </Badge>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Sales status
+                            </dt>
+                            <dd>
+                                {project.sales_status ? (
+                                    <Badge
+                                        variant="secondary"
+                                        className="capitalize"
+                                    >
+                                        {project.sales_status.replaceAll(
+                                            '_',
+                                            ' ',
+                                        )}
+                                    </Badge>
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                PO status
+                            </dt>
+                            <dd>
+                                {project.po_status ? (
+                                    <Badge
+                                        variant="secondary"
+                                        className="capitalize"
+                                    >
+                                        {project.po_status.replaceAll('_', ' ')}
+                                    </Badge>
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Billing status
+                            </dt>
+                            <dd>
+                                {project.billing_status ? (
+                                    <Badge
+                                        variant="secondary"
+                                        className="capitalize"
+                                    >
+                                        {project.billing_status.replaceAll(
+                                            '_',
+                                            ' ',
+                                        )}
+                                    </Badge>
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
                             </dd>
                         </div>
 

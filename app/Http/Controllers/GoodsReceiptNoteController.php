@@ -10,7 +10,6 @@ use App\Models\GoodsReceiptNoteItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\StockMovement;
-use App\Models\Workforce;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,14 +89,8 @@ class GoodsReceiptNoteController extends Controller
             'receivedBy',
         ]);
 
-        $workforces = Workforce::query()
-            ->where('status', 'active')
-            ->orderBy('full_name')
-            ->get(['id', 'full_name']);
-
         return Inertia::render('goods-receipt-notes/show', [
             'goodsReceiptNote' => $goodsReceiptNote,
-            'workforces' => $workforces,
         ]);
     }
 
@@ -166,12 +159,13 @@ class GoodsReceiptNoteController extends Controller
         DB::transaction(function () use ($request, $goodsReceiptNote): void {
             $goodsReceiptNote->update([
                 'status' => 'confirmed',
-                'received_by_id' => $request->validated('received_by_id'),
+                'received_by_id' => $request->user()->workforce->id,
                 'received_at' => now(),
             ]);
 
             $this->createStockMovements($goodsReceiptNote);
             $this->updatePurchaseOrderProgress($goodsReceiptNote->purchaseOrder);
+            $goodsReceiptNote->purchaseOrder->project->recomputePoStatus();
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Goods receipt note confirmed.')]);
@@ -239,6 +233,10 @@ class GoodsReceiptNoteController extends Controller
      */
     private function updatePurchaseOrderProgress(PurchaseOrder $purchaseOrder): void
     {
+        if ($purchaseOrder->progress === 'closed') {
+            return;
+        }
+
         $items = $purchaseOrder->items;
 
         $accepted = GoodsReceiptNoteItem::query()

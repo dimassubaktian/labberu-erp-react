@@ -1,4 +1,4 @@
-import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
+import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
@@ -14,13 +14,6 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -52,6 +45,7 @@ import { update as updateProgress } from '@/routes/purchase-orders/progress';
 import { show as showQuotation } from '@/routes/quotations';
 import { show as showVendor } from '@/routes/vendors';
 
+
 type WorkforceOption = {
     id: number;
     full_name: string;
@@ -74,34 +68,6 @@ function progressActions(progress: string | null): ProgressAction[] {
                     confirmTitle: 'Mark this purchase order as sent?',
                     confirmDescription:
                         'This records that the purchase order has been sent to the vendor.',
-                },
-            ];
-        case 'sent':
-            return [
-                {
-                    progress: 'partially_received',
-                    label: 'Mark as Partially Received',
-                    confirmTitle:
-                        'Mark this purchase order as partially received?',
-                    confirmDescription:
-                        'This records that some, but not all, of the goods have been received.',
-                },
-                {
-                    progress: 'fully_received',
-                    label: 'Mark as Fully Received',
-                    confirmTitle: 'Mark this purchase order as fully received?',
-                    confirmDescription:
-                        'This records that all goods on the purchase order have been received.',
-                },
-            ];
-        case 'partially_received':
-            return [
-                {
-                    progress: 'fully_received',
-                    label: 'Mark as Fully Received',
-                    confirmTitle: 'Mark this purchase order as fully received?',
-                    confirmDescription:
-                        'This records that all goods on the purchase order have been received.',
                 },
             ];
         case 'fully_received':
@@ -210,49 +176,9 @@ type PurchaseOrder = {
 
 type Props = {
     purchaseOrder: PurchaseOrder;
-    workforces: WorkforceOption[];
 };
 
-function WorkforceSelect({
-    id,
-    name,
-    value,
-    onValueChange,
-    workforces,
-}: {
-    id: string;
-    name: string;
-    value: string;
-    onValueChange: (value: string) => void;
-    workforces: WorkforceOption[];
-}) {
-    return (
-        <div className="grid gap-2 py-2">
-            <Label htmlFor={id}>Workforce member</Label>
-            <input type="hidden" name={name} value={value} />
-            <Select value={value} onValueChange={onValueChange}>
-                <SelectTrigger id={id} className="w-full">
-                    <SelectValue placeholder="Select a workforce member" />
-                </SelectTrigger>
-                <SelectContent>
-                    {workforces.map((workforce) => (
-                        <SelectItem
-                            key={workforce.id}
-                            value={String(workforce.id)}
-                        >
-                            {workforce.full_name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-    );
-}
-
-export default function PurchaseOrdersShow({
-    purchaseOrder,
-    workforces,
-}: Props) {
+export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Purchase Orders', href: index() },
@@ -263,10 +189,6 @@ export default function PurchaseOrdersShow({
         ],
     });
 
-    const [issuedById, setIssuedById] = useState('');
-    const [checkedById1, setCheckedById1] = useState('');
-    const [checkedById2, setCheckedById2] = useState('');
-    const [approvedById, setApprovedById] = useState('');
     const [rejectionReason, setRejectionReason] = useState('');
 
     const currencySymbol =
@@ -274,6 +196,16 @@ export default function PurchaseOrdersShow({
     const bothCheckersSigned =
         purchaseOrder.checked_by_first !== null &&
         purchaseOrder.checked_by_second !== null;
+
+    const { auth } = usePage().props;
+    const hasWorkforce = auth.workforce_id !== null;
+    const canIssue   = hasWorkforce && auth.permissions.includes('purchase-orders.issue');
+    const canCheck   = hasWorkforce && auth.permissions.includes('purchase-orders.check');
+    const canApprove = hasWorkforce && auth.permissions.includes('purchase-orders.approve');
+    const canReject  = auth.permissions.includes('purchase-orders.reject');
+    const canCancel  = auth.permissions.includes('purchase-orders.cancel');
+    const canVoid    = auth.permissions.includes('purchase-orders.void');
+
     const progressActionsList =
         purchaseOrder.status === 'approved'
             ? progressActions(purchaseOrder.progress)
@@ -843,7 +775,7 @@ export default function PurchaseOrdersShow({
                     </dl>
 
                     <div className="flex flex-wrap gap-3">
-                        {purchaseOrder.status === 'draft' && (
+                        {canIssue && purchaseOrder.status === 'draft' && (
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button>Issue</Button>
@@ -853,9 +785,9 @@ export default function PurchaseOrdersShow({
                                         Issue this purchase order?
                                     </DialogTitle>
                                     <DialogDescription>
-                                        The purchase order will move to
-                                        &quot;issued&quot; and become available
-                                        for checking.
+                                        You will be recorded as the issuer and
+                                        the purchase order will move to
+                                        &quot;issued&quot;.
                                     </DialogDescription>
 
                                     <Form
@@ -863,40 +795,28 @@ export default function PurchaseOrdersShow({
                                         options={{ preserveScroll: true }}
                                     >
                                         {({ processing }) => (
-                                            <>
-                                                <WorkforceSelect
-                                                    id="issued_by_id"
-                                                    name="issued_by_id"
-                                                    value={issuedById}
-                                                    onValueChange={
-                                                        setIssuedById
-                                                    }
-                                                    workforces={workforces}
-                                                />
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
-                                                        </Button>
-                                                    </DialogClose>
-                                                    <Button
-                                                        type="submit"
-                                                        disabled={processing}
-                                                    >
-                                                        {processing && (
-                                                            <Spinner />
-                                                        )}
-                                                        Issue
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
                                                     </Button>
-                                                </DialogFooter>
-                                            </>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Issue
+                                                </Button>
+                                            </DialogFooter>
                                         )}
                                     </Form>
                                 </DialogContent>
                             </Dialog>
                         )}
 
-                        {purchaseOrder.status === 'issued' &&
+                        {canCheck &&
+                            purchaseOrder.status === 'issued' &&
                             !purchaseOrder.checked_by_first && (
                                 <Dialog>
                                     <DialogTrigger asChild>
@@ -907,15 +827,13 @@ export default function PurchaseOrdersShow({
                                             Sign off as Checker 1?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            This records your sign-off on this
-                                            purchase order.
+                                            You will be recorded as Checker 1
+                                            on this purchase order.
                                         </DialogDescription>
 
                                         <Form
                                             {...check.form(purchaseOrder)}
-                                            options={{
-                                                preserveScroll: true,
-                                            }}
+                                            options={{ preserveScroll: true }}
                                         >
                                             {({ processing }) => (
                                                 <>
@@ -923,15 +841,6 @@ export default function PurchaseOrdersShow({
                                                         type="hidden"
                                                         name="slot"
                                                         value="1"
-                                                    />
-                                                    <WorkforceSelect
-                                                        id="checked_by_id_1"
-                                                        name="checked_by_id"
-                                                        value={checkedById1}
-                                                        onValueChange={
-                                                            setCheckedById1
-                                                        }
-                                                        workforces={workforces}
                                                     />
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
@@ -941,13 +850,9 @@ export default function PurchaseOrdersShow({
                                                         </DialogClose>
                                                         <Button
                                                             type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
+                                                            disabled={processing}
                                                         >
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
+                                                            {processing && <Spinner />}
                                                             Sign off
                                                         </Button>
                                                     </DialogFooter>
@@ -958,7 +863,8 @@ export default function PurchaseOrdersShow({
                                 </Dialog>
                             )}
 
-                        {purchaseOrder.status === 'issued' &&
+                        {canCheck &&
+                            purchaseOrder.status === 'issued' &&
                             !purchaseOrder.checked_by_second && (
                                 <Dialog>
                                     <DialogTrigger asChild>
@@ -969,15 +875,13 @@ export default function PurchaseOrdersShow({
                                             Sign off as Checker 2?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            This records your sign-off on this
-                                            purchase order.
+                                            You will be recorded as Checker 2
+                                            on this purchase order.
                                         </DialogDescription>
 
                                         <Form
                                             {...check.form(purchaseOrder)}
-                                            options={{
-                                                preserveScroll: true,
-                                            }}
+                                            options={{ preserveScroll: true }}
                                         >
                                             {({ processing }) => (
                                                 <>
@@ -985,15 +889,6 @@ export default function PurchaseOrdersShow({
                                                         type="hidden"
                                                         name="slot"
                                                         value="2"
-                                                    />
-                                                    <WorkforceSelect
-                                                        id="checked_by_id_2"
-                                                        name="checked_by_id"
-                                                        value={checkedById2}
-                                                        onValueChange={
-                                                            setCheckedById2
-                                                        }
-                                                        workforces={workforces}
                                                     />
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
@@ -1003,13 +898,9 @@ export default function PurchaseOrdersShow({
                                                         </DialogClose>
                                                         <Button
                                                             type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
+                                                            disabled={processing}
                                                         >
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
+                                                            {processing && <Spinner />}
                                                             Sign off
                                                         </Button>
                                                     </DialogFooter>
@@ -1020,7 +911,8 @@ export default function PurchaseOrdersShow({
                                 </Dialog>
                             )}
 
-                        {purchaseOrder.status === 'issued' &&
+                        {canApprove &&
+                            purchaseOrder.status === 'issued' &&
                             bothCheckersSigned && (
                                 <Dialog>
                                     <DialogTrigger asChild>
@@ -1031,53 +923,37 @@ export default function PurchaseOrdersShow({
                                             Approve this purchase order?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            This marks the purchase order as
+                                            You will be recorded as the approver
+                                            and the purchase order will be marked
                                             approved.
                                         </DialogDescription>
 
                                         <Form
                                             {...approve.form(purchaseOrder)}
-                                            options={{
-                                                preserveScroll: true,
-                                            }}
+                                            options={{ preserveScroll: true }}
                                         >
                                             {({ processing }) => (
-                                                <>
-                                                    <WorkforceSelect
-                                                        id="approved_by_id"
-                                                        name="approved_by_id"
-                                                        value={approvedById}
-                                                        onValueChange={
-                                                            setApprovedById
-                                                        }
-                                                        workforces={workforces}
-                                                    />
-                                                    <DialogFooter className="gap-2">
-                                                        <DialogClose asChild>
-                                                            <Button variant="secondary">
-                                                                Cancel
-                                                            </Button>
-                                                        </DialogClose>
-                                                        <Button
-                                                            type="submit"
-                                                            disabled={
-                                                                processing
-                                                            }
-                                                        >
-                                                            {processing && (
-                                                                <Spinner />
-                                                            )}
-                                                            Approve
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Cancel
                                                         </Button>
-                                                    </DialogFooter>
-                                                </>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="submit"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && <Spinner />}
+                                                        Approve
+                                                    </Button>
+                                                </DialogFooter>
                                             )}
                                         </Form>
                                     </DialogContent>
                                 </Dialog>
                             )}
 
-                        {purchaseOrder.status === 'issued' && (
+                        {canReject && purchaseOrder.status === 'issued' && (
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
@@ -1139,8 +1015,9 @@ export default function PurchaseOrdersShow({
                             </Dialog>
                         )}
 
-                        {(purchaseOrder.status === 'draft' ||
-                            purchaseOrder.status === 'issued') && (
+                        {canCancel &&
+                            (purchaseOrder.status === 'draft' ||
+                                purchaseOrder.status === 'issued') && (
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
@@ -1182,7 +1059,7 @@ export default function PurchaseOrdersShow({
                             </Dialog>
                         )}
 
-                        {purchaseOrder.status === 'approved' && (
+                        {canVoid && purchaseOrder.status === 'approved' && (
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">

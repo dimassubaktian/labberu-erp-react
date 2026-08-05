@@ -156,6 +156,20 @@ export default function GoodsReceiptNotesCreate({
         }));
     }
 
+    function fillAllRemaining(): void {
+        setItemStates((current) =>
+            Object.fromEntries(
+                poItems.map((item) => [
+                    item.id,
+                    {
+                        ...(current[item.id] ?? emptyItemState()),
+                        quantity_accepted: String(item.remaining),
+                    },
+                ]),
+            ),
+        );
+    }
+
     const submittableItems = poItems.filter((item) => {
         const state = itemStates[item.id];
 
@@ -246,9 +260,21 @@ export default function GoodsReceiptNotesCreate({
                             </div>
 
                             <div>
-                                <h2 className="mb-4 text-base font-semibold">
-                                    Items
-                                </h2>
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-base font-semibold">
+                                        Items
+                                    </h2>
+                                    {!loadingItems && poItems.length > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="default"
+                                            size="sm"
+                                            onClick={fillAllRemaining}
+                                        >
+                                            Accept all remaining
+                                        </Button>
+                                    )}
+                                </div>
                                 <InputError message={errors.items} />
 
                                 {!purchaseOrderUuid && (

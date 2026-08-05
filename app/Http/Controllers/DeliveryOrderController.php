@@ -10,7 +10,6 @@ use App\Models\DeliveryOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\StockMovement;
-use App\Models\Workforce;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,14 +89,8 @@ class DeliveryOrderController extends Controller
             'deliveredBy',
         ]);
 
-        $workforces = Workforce::query()
-            ->where('status', 'active')
-            ->orderBy('full_name')
-            ->get(['id', 'full_name']);
-
         return Inertia::render('delivery-orders/show', [
             'deliveryOrder' => $deliveryOrder,
-            'workforces' => $workforces,
         ]);
     }
 
@@ -166,12 +159,13 @@ class DeliveryOrderController extends Controller
         DB::transaction(function () use ($request, $deliveryOrder): void {
             $deliveryOrder->update([
                 'status' => 'confirmed',
-                'delivered_by_id' => $request->validated('delivered_by_id'),
+                'delivered_by_id' => $request->user()->workforce->id,
                 'delivered_at' => now(),
             ]);
 
             $this->createStockMovements($deliveryOrder);
             $this->updateQuotationProgress($deliveryOrder->quotation);
+            $deliveryOrder->quotation->project->recomputeStatus();
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Delivery order confirmed.')]);

@@ -17,7 +17,6 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
 use App\Models\Tax;
-use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -185,14 +184,8 @@ class PurchaseOrderController extends Controller
             'approvedBy',
         ]);
 
-        $workforces = Workforce::query()
-            ->where('status', 'active')
-            ->orderBy('full_name')
-            ->get(['id', 'full_name']);
-
         return Inertia::render('purchase-orders/show', [
             'purchaseOrder' => $purchaseOrder,
-            'workforces' => $workforces,
         ]);
     }
 
@@ -307,7 +300,7 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->update([
             'status' => 'issued',
-            'issued_by_id' => $request->validated('issued_by_id'),
+            'issued_by_id' => $request->user()->workforce->id,
             'issued_at' => now(),
             'rejection_reason' => null,
         ]);
@@ -325,7 +318,7 @@ class PurchaseOrderController extends Controller
         $slot = (int) $request->validated('slot');
 
         $purchaseOrder->update([
-            "checked_by_{$slot}_id" => $request->validated('checked_by_id'),
+            "checked_by_{$slot}_id" => $request->user()->workforce->id,
             "checked_by_{$slot}_at" => now(),
         ]);
 
@@ -341,7 +334,7 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->update([
             'status' => 'approved',
-            'approved_by_id' => $request->validated('approved_by_id'),
+            'approved_by_id' => $request->user()->workforce->id,
             'approved_at' => now(),
         ]);
 
@@ -377,6 +370,8 @@ class PurchaseOrderController extends Controller
     public function updateProgress(PurchaseOrderProgressUpdateRequest $request, PurchaseOrder $purchaseOrder): RedirectResponse
     {
         $purchaseOrder->update(['progress' => $request->validated('progress')]);
+
+        $purchaseOrder->project->recomputePoStatus();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order progress updated.')]);
 

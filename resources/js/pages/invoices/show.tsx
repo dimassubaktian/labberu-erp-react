@@ -1,5 +1,6 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -92,6 +100,9 @@ export default function InvoicesShow({ invoice }: Props) {
             { title: invoice.invoice_code, href: index() },
         ],
     });
+
+    const [paymentMethod, setPaymentMethod] = useState('none');
+    const amountRef = useRef<HTMLInputElement>(null);
 
     const currencySymbol =
         invoice.quotation.currency.symbol ??
@@ -483,24 +494,41 @@ export default function InvoicesShow({ invoice }: Props) {
                             </div>
                         )}
 
-                        <Form
+                        {balanceDue > 0 && <Form
                             {...storePayment.form(invoice)}
                             options={{ preserveScroll: true }}
                             resetOnSuccess
                         >
                             {({ processing, errors }) => (
-                                <div className="grid gap-4 rounded-lg border border-sidebar-border/70 p-4 dark:border-sidebar-border">
+                                <div className="grid gap-4 rounded-lg border border-border/50 p-4">
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() => {
+                                                if (amountRef.current) {
+                                                    amountRef.current.value =
+                                                        String(balanceDue);
+                                                }
+                                            }}
+                                        >
+                                            Pay all remaining
+                                        </Button>
+                                    </div>
+
                                     <div className="grid gap-2 sm:grid-cols-2">
                                         <div className="grid gap-2">
                                             <Label htmlFor="amount">
                                                 Amount
                                             </Label>
                                             <Input
+                                                ref={amountRef}
                                                 id="amount"
                                                 type="number"
                                                 step="0.01"
-                                                min="0.01"
                                                 name="amount"
+                                                defaultValue="0"
                                             />
                                             <p className="text-sm text-destructive dark:text-destructive-foreground">
                                                 {errors.amount}
@@ -530,11 +558,43 @@ export default function InvoicesShow({ invoice }: Props) {
                                             <Label htmlFor="method">
                                                 Method
                                             </Label>
-                                            <Input
-                                                id="method"
+                                            <input
+                                                type="hidden"
                                                 name="method"
-                                                placeholder="Optional, e.g. Bank Transfer"
+                                                value={
+                                                    paymentMethod === 'none'
+                                                        ? ''
+                                                        : paymentMethod
+                                                }
                                             />
+                                            <Select
+                                                value={paymentMethod}
+                                                onValueChange={setPaymentMethod}
+                                            >
+                                                <SelectTrigger
+                                                    id="method"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">
+                                                        None
+                                                    </SelectItem>
+                                                    <SelectItem value="Bank Transfer">
+                                                        Bank Transfer
+                                                    </SelectItem>
+                                                    <SelectItem value="Card">
+                                                        Card
+                                                    </SelectItem>
+                                                    <SelectItem value="QRIS">
+                                                        QRIS
+                                                    </SelectItem>
+                                                    <SelectItem value="Cash">
+                                                        Cash
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                             <p className="text-sm text-destructive dark:text-destructive-foreground">
                                                 {errors.method}
                                             </p>
@@ -567,7 +627,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                     </div>
                                 </div>
                             )}
-                        </Form>
+                        </Form>}
                     </div>
                 )}
 

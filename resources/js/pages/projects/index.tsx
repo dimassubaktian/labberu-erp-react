@@ -30,6 +30,9 @@ type Project = {
     project_code: string;
     name: string;
     status: string;
+    sales_status: string | null;
+    po_status: string | null;
+    billing_status: string | null;
     priority: string;
     request_date: string;
     customer: {
@@ -239,6 +242,9 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                 <TableHead>Name</TableHead>
                                 <TableHead>Customer</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Sales</TableHead>
+                                <TableHead>PO</TableHead>
+                                <TableHead>Billing</TableHead>
                                 <TableHead>Priority</TableHead>
                                 <TableHead>
                                     <button
@@ -260,7 +266,7 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                             {projects.data.length === 0 && (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={6}
+                                        colSpan={9}
                                         className="h-24 text-center text-muted-foreground"
                                     >
                                         No projects found.
@@ -290,6 +296,57 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                         >
                                             {project.status.replace('_', ' ')}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {project.sales_status ? (
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {project.sales_status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                &mdash;
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {project.po_status ? (
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {project.po_status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                &mdash;
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {project.billing_status ? (
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {project.billing_status.replaceAll(
+                                                    '_',
+                                                    ' ',
+                                                )}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                &mdash;
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

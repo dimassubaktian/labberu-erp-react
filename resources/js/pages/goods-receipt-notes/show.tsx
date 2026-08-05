@@ -1,6 +1,5 @@
-import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
+import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,14 +12,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -73,57 +64,19 @@ type GoodsReceiptNote = {
 
 type Props = {
     goodsReceiptNote: GoodsReceiptNote;
-    workforces: WorkforceOption[];
 };
 
-function WorkforceSelect({
-    id,
-    name,
-    value,
-    onValueChange,
-    workforces,
-}: {
-    id: string;
-    name: string;
-    value: string;
-    onValueChange: (value: string) => void;
-    workforces: WorkforceOption[];
-}) {
-    return (
-        <div className="grid gap-2 py-2">
-            <Label htmlFor={id}>Received by</Label>
-            <input type="hidden" name={name} value={value} />
-            <Select value={value} onValueChange={onValueChange}>
-                <SelectTrigger id={id} className="w-full">
-                    <SelectValue placeholder="Select a workforce member" />
-                </SelectTrigger>
-                <SelectContent>
-                    {workforces.map((workforce) => (
-                        <SelectItem
-                            key={workforce.id}
-                            value={String(workforce.id)}
-                        >
-                            {workforce.full_name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-    );
-}
+export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
+    const { auth } = usePage().props;
+    const hasWorkforce = auth.workforce_id !== null;
+    const canConfirm = hasWorkforce && auth.permissions.includes('goods-receipt-notes.confirm');
 
-export default function GoodsReceiptNotesShow({
-    goodsReceiptNote,
-    workforces,
-}: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Goods Receipt Notes', href: index() },
             { title: goodsReceiptNote.grn_code, href: index() },
         ],
     });
-
-    const [receivedById, setReceivedById] = useState('');
 
     return (
         <>
@@ -300,7 +253,7 @@ export default function GoodsReceiptNotesShow({
                     </div>
                 </div>
 
-                {goodsReceiptNote.status === 'draft' && (
+                {goodsReceiptNote.status === 'draft' && canConfirm && (
                     <div>
                         <h2 className="mb-4 text-base font-semibold">
                             Confirm Receipt
@@ -314,7 +267,8 @@ export default function GoodsReceiptNotesShow({
                                     Confirm this goods receipt note?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    This locks the note and updates the linked
+                                    You will be recorded as the receiver. This
+                                    locks the note and updates the linked
                                     purchase order&apos;s fulfillment progress.
                                     This action cannot be undone.
                                 </DialogDescription>
@@ -324,29 +278,20 @@ export default function GoodsReceiptNotesShow({
                                     options={{ preserveScroll: true }}
                                 >
                                     {({ processing }) => (
-                                        <>
-                                            <WorkforceSelect
-                                                id="received_by_id"
-                                                name="received_by_id"
-                                                value={receivedById}
-                                                onValueChange={setReceivedById}
-                                                workforces={workforces}
-                                            />
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
-                                                    </Button>
-                                                </DialogClose>
-                                                <Button
-                                                    type="submit"
-                                                    disabled={processing}
-                                                >
-                                                    {processing && <Spinner />}
-                                                    Confirm
+                                        <DialogFooter className="gap-2">
+                                            <DialogClose asChild>
+                                                <Button variant="secondary">
+                                                    Cancel
                                                 </Button>
-                                            </DialogFooter>
-                                        </>
+                                            </DialogClose>
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                            >
+                                                {processing && <Spinner />}
+                                                Confirm
+                                            </Button>
+                                        </DialogFooter>
                                     )}
                                 </Form>
                             </DialogContent>

@@ -174,6 +174,9 @@ class InvoiceController extends Controller
             'issued_at' => now(),
         ]);
 
+        $invoice->quotation->project->recomputeBillingStatus();
+        $invoice->quotation->project->recomputeStatus();
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invoice issued.')]);
 
         return to_route('invoices.show', $invoice);

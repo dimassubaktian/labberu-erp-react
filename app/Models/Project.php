@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -22,6 +23,9 @@ use Illuminate\Support\Str;
  * @property int|null $person_in_charge_id
  * @property string|null $description
  * @property string $status
+ * @property string|null $sales_status
+ * @property string|null $po_status
+ * @property string|null $billing_status
  * @property string $priority
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
@@ -135,6 +139,111 @@ class Project extends Model
     public function purchaseOrders(): HasMany
     {
         return $this->hasMany(PurchaseOrder::class);
+    }
+
+    /**
+     * Get the invoices raised against this project's quotations.
+     *
+     * @return HasManyThrough<Invoice, Quotation, $this>
+     */
+    public function invoices(): HasManyThrough
+    {
+        return $this->hasManyThrough(Invoice::class, Quotation::class);
+    }
+
+    /**
+     * Recompute and persist the main project status from business events.
+     * Cancelled is manual-only and is never overridden here.
+     */
+    public function recomputeStatus(): void
+    {
+        if ($this->status === 'cancelled') {
+            return;
+        }
+
+        $deliveryProgress = ['signed', 'partially_delivered', 'fully_delivered'];
+
+        $fullyDelivered = $this->quotations()->where('progress', 'fully_delivered')->exists();
+
+        if ($fullyDelivered && $this->billing_status === 'paid') {
+            $next = 'completed';
+        } elseif ($this->quotations()->whereIn('progress', $deliveryProgress)->exists()) {
+            $next = 'in_progress';
+        } elseif ($this->quotations()->exists()) {
+            $next = 'planning';
+        } else {
+            return;
+        }
+
+        if ($next !== $this->status) {
+            $this->update(['status' => $next]);
+        }
+    }
+
+    /**
+     * Recompute and persist sales_status from the project's quotations.
+     */
+    public function recomputeSalesStatus(): void
+    {
+        $approved = $this->quotations()->where('status', 'approved')->latest()->first();
+
+        if ($approved) {
+            $this->sales_status = match ($approved->progress) {
+                'signed' => 'signed',
+                'sent' => 'sent',
+                default => 'approved',
+            };
+        } elseif ($this->quotations()->exists()) {
+            $this->sales_status = 'quoting';
+        } else {
+            $this->sales_status = null;
+        }
+
+        $this->saveQuietly();
+    }
+
+    /**
+     * Recompute and persist po_status from the project's purchase order progress values.
+     */
+    public function recomputePoStatus(): void
+    {
+        $progresses = $this->purchaseOrders()->whereNotNull('progress')->pluck('progress');
+
+        if ($progresses->isEmpty()) {
+            $this->po_status = $this->purchaseOrders()->exists() ? 'pending' : null;
+        } elseif ($progresses->every(fn ($p) => $p === 'closed')) {
+            $this->po_status = 'closed';
+        } elseif ($progresses->every(fn ($p) => in_array($p, ['fully_received', 'closed']))) {
+            $this->po_status = 'fully_received';
+        } elseif ($progresses->contains('partially_received')) {
+            $this->po_status = 'partially_received';
+        } elseif ($progresses->contains('sent')) {
+            $this->po_status = 'sent';
+        } else {
+            $this->po_status = 'pending';
+        }
+
+        $this->saveQuietly();
+    }
+
+    /**
+     * Recompute and persist billing_status from the project's issued invoices.
+     */
+    public function recomputeBillingStatus(): void
+    {
+        $issued = $this->invoices()->where('invoices.status', 'issued')->pluck('invoices.payment_status');
+
+        if ($issued->isEmpty()) {
+            $this->billing_status = null;
+        } elseif ($issued->every(fn ($s) => $s === 'paid')) {
+            $this->billing_status = 'paid';
+        } elseif ($issued->contains(fn ($s) => $s === 'partially_paid')) {
+            $this->billing_status = 'partially_paid';
+        } else {
+            $this->billing_status = 'awaiting_payment';
+        }
+
+        $this->saveQuietly();
     }
 
     /**

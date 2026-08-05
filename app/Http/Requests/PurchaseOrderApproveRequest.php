@@ -5,7 +5,6 @@ namespace App\Http\Requests;
 use App\Models\PurchaseOrder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class PurchaseOrderApproveRequest extends FormRequest
 {
@@ -19,7 +18,8 @@ class PurchaseOrderApproveRequest extends FormRequest
         return $purchaseOrder instanceof PurchaseOrder
             && $purchaseOrder->status === 'issued'
             && $purchaseOrder->checked_by_1_id !== null
-            && $purchaseOrder->checked_by_2_id !== null;
+            && $purchaseOrder->checked_by_2_id !== null
+            && $this->user()?->workforce !== null;
     }
 
     /**
@@ -29,8 +29,6 @@ class PurchaseOrderApproveRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'approved_by_id' => ['required', Rule::exists('workforces', 'id')->whereNull('deleted_at')],
-        ];
+        return [];
     }
 }

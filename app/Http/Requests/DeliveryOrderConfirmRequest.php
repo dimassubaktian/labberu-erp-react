@@ -5,7 +5,6 @@ namespace App\Http\Requests;
 use App\Models\DeliveryOrder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class DeliveryOrderConfirmRequest extends FormRequest
 {
@@ -16,7 +15,9 @@ class DeliveryOrderConfirmRequest extends FormRequest
     {
         $deliveryOrder = $this->route('deliveryOrder');
 
-        return $deliveryOrder instanceof DeliveryOrder && $deliveryOrder->status === 'draft';
+        return $deliveryOrder instanceof DeliveryOrder
+            && $deliveryOrder->status === 'draft'
+            && $this->user()?->workforce !== null;
     }
 
     /**
@@ -26,8 +27,6 @@ class DeliveryOrderConfirmRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'delivered_by_id' => ['required', Rule::exists('workforces', 'id')->whereNull('deleted_at')],
-        ];
+        return [];
     }
 }

@@ -11,9 +11,12 @@ use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomSubgroup;
 use App\Models\Currency;
+use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
+use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Project;
+use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
@@ -159,6 +162,8 @@ class QuotationController extends Controller
             return $quotation;
         });
 
+        $quotation->project->recomputeStatus();
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation created.')]);
 
         return to_route('quotations.show', $quotation);
@@ -178,23 +183,45 @@ class QuotationController extends Controller
             'groups.items.product',
             'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
             'bom',
-            'purchaseOrders' => fn ($query) => $query->with(['vendor:id,name', 'currency'])->orderByDesc('created_at'),
-            'deliveryOrders' => fn ($query) => $query->orderByDesc('created_at'),
-            'invoices' => fn ($query) => $query->orderByDesc('created_at'),
         ]);
 
         $rootId = $quotation->root_quotation_id ?? $quotation->id;
 
-        $history = Quotation::query()
+        $threadIds = Quotation::query()
             ->where('id', $rootId)
             ->orWhere('root_quotation_id', $rootId)
+            ->pluck('id');
+
+        $history = Quotation::query()
+            ->whereIn('id', $threadIds)
             ->orderBy('version_major')
             ->orderBy('version_minor')
             ->get(['id', 'uuid', 'version_major', 'version_minor', 'status', 'is_current', 'created_at']);
 
+        $purchaseOrders = PurchaseOrder::query()
+            ->whereIn('quotation_id', $threadIds)
+            ->with(['vendor:id,name', 'currency', 'quotation:id,version_major,version_minor'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $deliveryOrders = DeliveryOrder::query()
+            ->whereIn('quotation_id', $threadIds)
+            ->with('quotation:id,version_major,version_minor')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $invoices = Invoice::query()
+            ->whereIn('quotation_id', $threadIds)
+            ->with('quotation:id,version_major,version_minor')
+            ->orderByDesc('created_at')
+            ->get();
+
         return Inertia::render('quotations/show', [
             'quotation' => $quotation,
             'history' => $history,
+            'purchaseOrders' => $purchaseOrders,
+            'deliveryOrders' => $deliveryOrders,
+            'invoices' => $invoices,
         ]);
     }
 
@@ -364,6 +391,8 @@ class QuotationController extends Controller
             'approved_at' => $status === 'approved' ? now() : $quotation->approved_at,
         ]);
 
+        $quotation->project->recomputeSalesStatus();
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation status updated.')]);
 
         return to_route('quotations.show', $quotation);
@@ -375,6 +404,9 @@ class QuotationController extends Controller
     public function updateProgress(QuotationProgressUpdateRequest $request, Quotation $quotation): RedirectResponse
     {
         $quotation->update(['progress' => $request->validated('progress')]);
+
+        $quotation->project->recomputeSalesStatus();
+        $quotation->project->recomputeStatus();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation progress updated.')]);
 

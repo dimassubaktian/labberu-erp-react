@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Invoice;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class InvoicePaymentStoreRequest extends FormRequest
 {
@@ -28,7 +29,7 @@ class InvoicePaymentStoreRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_date' => ['required', 'date'],
-            'method' => ['nullable', 'string', 'max:255'],
+            'method' => ['nullable', Rule::in(['Bank Transfer', 'Card', 'QRIS', 'Cash'])],
             'remarks' => ['nullable', 'string', 'max:2000'],
         ];
     }
