@@ -851,7 +851,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                     {formatNumber(group.tax_amount)}
                                 </dd>
                             </div>
-                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                            <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                                 <dt>Group total</dt>
                                 <dd>
                                     {currencySymbol} {formatNumber(group.total)}
@@ -973,7 +973,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 {formatNumber(quotation.tax_amount)}
                             </dd>
                         </div>
-                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                        <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                             <dt>Total</dt>
                             <dd>
                                 {currencySymbol} {formatNumber(quotation.total)}
@@ -1033,7 +1033,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                             )}
                                         </dd>
                                     </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                    <div className="flex justify-between border-t border-border pt-2 font-semibold">
                                         <dt>Total cost</dt>
                                         <dd>
                                             {currencySymbol}{' '}
@@ -1317,7 +1317,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 <Link
                                     key={entry.id}
                                     href={show(entry)}
-                                    className="block rounded-lg border border-sidebar-border/70 p-4 transition-colors hover:bg-accent dark:border-sidebar-border"
+                                    className="block rounded-lg border border-border/50 p-4 transition-colors hover:bg-accent"
                                 >
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                         <div>

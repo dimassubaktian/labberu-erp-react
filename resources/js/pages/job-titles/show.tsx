@@ -139,7 +139,7 @@ export default function JobTitlesShow({ jobTitle, workforces }: Props) {
                 <div>
                     <h2 className="mb-4 text-base font-semibold">Workforce</h2>
                     {workforces.length === 0 ? (
-                        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-sidebar-border/70 py-10 text-center dark:border-sidebar-border">
+                        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/50 py-10 text-center">
                             <Users className="size-8 text-muted-foreground" />
                             <p className="text-sm font-medium">
                                 No workforce assigned

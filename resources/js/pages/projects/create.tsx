@@ -30,6 +30,10 @@ type WorkforceOption = {
     full_name: string;
 };
 
+function todayDate(): string {
+    return new Date().toISOString().slice(0, 10);
+}
+
 type Props = {
     workforces: WorkforceOption[];
 };
@@ -100,6 +104,7 @@ export default function ProjectsCreate({ workforces }: Props) {
                                         type="date"
                                         name="request_date"
                                         required
+                                        defaultValue={todayDate()}
                                     />
                                     <InputError message={errors.request_date} />
                                 </div>

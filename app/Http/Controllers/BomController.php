@@ -7,7 +7,9 @@ use App\Http\Requests\BomUpdateRequest;
 use App\Models\Bom;
 use App\Models\BomSubgroup;
 use App\Models\Quotation;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,15 +17,56 @@ use Inertia\Response;
 class BomController extends Controller
 {
     /**
+     * Return a JSON list of BOMs matching the given query string, for the import dialog.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $q = (string) $request->query('q', '');
+
+        $boms = Bom::query()
+            ->with(['quotation.project.customer'])
+            ->whereHas('quotation', fn ($query) => $query
+                ->where('quotation_code', 'like', "%{$q}%")
+                ->orWhereHas('project', fn ($p) => $p->where('name', 'like', "%{$q}%"))
+            )
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(fn (Bom $bom) => [
+                'uuid' => $bom->uuid,
+                'quotation_code' => $bom->quotation->quotation_code,
+                'project_name' => $bom->quotation->project->name,
+                'customer_name' => $bom->quotation->project->customer->name,
+            ]);
+
+        return response()->json($boms);
+    }
+
+    /**
      * Show the form for creating the quotation's BOM.
      */
-    public function create(Quotation $quotation): Response
+    public function create(Request $request, Quotation $quotation): Response
     {
         abort_if($quotation->status !== 'draft', 403, 'Only draft quotations can have a BOM created.');
         abort_if($quotation->bom()->exists(), 409, 'This quotation already has a BOM.');
 
+        $importFrom = null;
+
+        if ($request->query('from')) {
+            $importFrom = Bom::query()
+                ->where('uuid', $request->query('from'))
+                ->with([
+                    'groups.items.product',
+                    'groups.subgroups.items.product',
+                    'subgroups.items.product',
+                    'items' => fn ($q) => $q->whereNull('bom_group_id')->whereNull('bom_subgroup_id')->with('product'),
+                ])
+                ->first();
+        }
+
         return Inertia::render('boms/create', [
             'quotation' => $quotation,
+            'importFrom' => $importFrom,
         ]);
     }
 

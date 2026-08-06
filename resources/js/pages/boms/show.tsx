@@ -165,7 +165,7 @@ function SubgroupCard({
 
                 <MaterialsTable items={subgroup.items} />
 
-                <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                     <dt>Phase subtotal</dt>
                     <dd>{formatNumber(subgroup.subtotal)}</dd>
                 </dl>
@@ -179,7 +179,7 @@ function SubgroupCard({
 
             <MaterialsTable items={subgroup.items} />
 
-            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+            <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                 <dt>Phase subtotal</dt>
                 <dd>{formatNumber(subgroup.subtotal)}</dd>
             </dl>
@@ -251,7 +251,7 @@ export default function BomsShow({ quotation, bom }: Props) {
                             />
                         ))}
 
-                        <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                        <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                             <dt>Group subtotal</dt>
                             <dd>{formatNumber(group.subtotal)}</dd>
                         </dl>
@@ -293,7 +293,7 @@ export default function BomsShow({ quotation, bom }: Props) {
                                 {formatNumber(bom.overhead_cost)}
                             </dd>
                         </div>
-                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                        <div className="flex justify-between border-t border-border pt-2 font-semibold">
                             <dt>Total cost</dt>
                             <dd>
                                 {currencySymbol} {formatNumber(bom.total_cost)}
@@ -313,7 +313,7 @@ export default function BomsShow({ quotation, bom }: Props) {
                     </dl>
 
                     {bom.remarks && (
-                        <div className="mt-6 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                        <div className="mt-6 border-t border-border pt-4">
                             <p className="text-sm text-muted-foreground">
                                 Remarks
                             </p>

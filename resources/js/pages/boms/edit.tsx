@@ -265,7 +265,7 @@ function LineItemForm({
     }
 
     return (
-        <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
+        <div className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
             <div className="grid gap-2">
                 <Label htmlFor={`${idPrefix}-product`}>Product</Label>
                 <AsyncCombobox<ProductOption>
@@ -412,7 +412,7 @@ function LineItemForm({
                 </div>
             </div>
 
-            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+            <dl className="flex justify-between border-t border-border pt-4">
                 <dt className="text-sm text-muted-foreground">Total cost</dt>
                 <dd className="font-medium">{formatNumber(totalCost)}</dd>
             </dl>
@@ -632,7 +632,7 @@ function LineItemsSection({
             )}
 
             {items.length > 0 && (
-                <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                <div className="overflow-hidden rounded-lg border border-border/50">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -742,7 +742,7 @@ function SubgroupFields({
                     onRemoveItem={onRemoveItem}
                 />
 
-                <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                     <dt>Phase subtotal</dt>
                     <dd>{formatNumber(subtotal)}</dd>
                 </dl>
@@ -1514,7 +1514,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                 )}
                                             </div>
 
-                                            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                                            <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                                                 <dt>Group subtotal</dt>
                                                 <dd>
                                                     {formatNumber(
@@ -1679,7 +1679,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                     <InputError message={errors.remarks} />
                                 </div>
 
-                                <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                <dl className="space-y-2 border-t border-border pt-4">
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">
                                             Main cost
@@ -1696,7 +1696,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                             {formatNumber(overheadCost)}
                                         </dd>
                                     </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                    <div className="flex justify-between border-t border-border pt-2 font-semibold">
                                         <dt>Total cost</dt>
                                         <dd>{formatNumber(totalCost)}</dd>
                                     </div>

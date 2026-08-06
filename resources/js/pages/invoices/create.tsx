@@ -666,7 +666,7 @@ export default function InvoicesCreate({ initialQuotation, taxes }: Props) {
                                             {formatNumber(taxAmount)}
                                         </dd>
                                     </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                    <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                                         <dt>Total</dt>
                                         <dd>
                                             {currencySymbol}{' '}

@@ -146,7 +146,7 @@ export default function RolesShow({ role, users }: Props) {
                                 <Link
                                     key={user.id}
                                     href={showUser(user)}
-                                    className="block rounded-lg border border-sidebar-border/70 p-4 transition-colors hover:bg-accent dark:border-sidebar-border"
+                                    className="block rounded-lg border border-border/50 p-4 transition-colors hover:bg-accent"
                                 >
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                         <div>

@@ -146,6 +146,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store')->middleware('permission:invoices.payments.create');
     Route::delete('invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy')->middleware('permission:invoices.payments.delete');
 
+    Route::get('boms/search', [BomController::class, 'search'])->name('boms.search')->middleware('permission:bom.view');
+
     Route::get('quotations/{quotation}/bom/create', [BomController::class, 'create'])->name('quotations.bom.create')->middleware('permission:bom.create');
     Route::post('quotations/{quotation}/bom', [BomController::class, 'store'])->name('quotations.bom.store')->middleware('permission:bom.create');
     Route::get('quotations/{quotation}/bom', [BomController::class, 'show'])->name('quotations.bom.show')->middleware('permission:bom.view');

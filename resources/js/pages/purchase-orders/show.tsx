@@ -623,7 +623,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                 {formatNumber(purchaseOrder.tax_amount)}
                             </dd>
                         </div>
-                        <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                        <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                             <dt>Grand total</dt>
                             <dd>
                                 {currencySymbol}{' '}

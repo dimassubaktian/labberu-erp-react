@@ -439,7 +439,7 @@ function LineItemForm({
                 </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-4 border-t border-sidebar-border/70 pt-4 sm:grid-cols-4 dark:border-sidebar-border">
+            <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-4">
                 <div>
                     <dt className="text-sm text-muted-foreground">
                         Total price
@@ -1283,7 +1283,7 @@ export default function QuotationsEdit({
                                             )}
                                         </div>
 
-                                        <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                        <dl className="space-y-2 border-t border-border pt-4">
                                             <div className="flex justify-between">
                                                 <dt className="text-muted-foreground">
                                                     Group subtotal
@@ -1314,7 +1314,7 @@ export default function QuotationsEdit({
                                                     )}
                                                 </dd>
                                             </div>
-                                            <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                            <div className="flex justify-between border-t border-border pt-2 font-semibold">
                                                 <dt>Group total</dt>
                                                 <dd>
                                                     {formatNumber(totals.total)}
@@ -1407,7 +1407,7 @@ export default function QuotationsEdit({
                                 )}
 
                                 {items.length > 0 && (
-                                    <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                    <dl className="space-y-2 border-t border-border pt-4">
                                         <div className="flex justify-between">
                                             <dt className="text-muted-foreground">
                                                 Subtotal
@@ -1549,7 +1549,7 @@ export default function QuotationsEdit({
                                             {formatNumber(taxAmount)}
                                         </dd>
                                     </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                    <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                                         <dt>Total</dt>
                                         <dd>
                                             {currencySymbol}{' '}

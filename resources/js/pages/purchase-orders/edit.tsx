@@ -451,7 +451,7 @@ function DiscountFields({
                 </div>
             </div>
 
-            <dl className="grid grid-cols-2 gap-4 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+            <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4">
                 <div>
                     <dt className="text-sm text-muted-foreground">
                         Applied to
@@ -1545,7 +1545,7 @@ export default function PurchaseOrdersEdit({
                                             {formatNumber(taxAmount)}
                                         </dd>
                                     </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 text-base font-semibold dark:border-sidebar-border">
+                                    <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                                         <dt>Grand total</dt>
                                         <dd>
                                             {currencySymbol}{' '}

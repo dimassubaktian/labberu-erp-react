@@ -1,6 +1,7 @@
-import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Form, Head, Link, router, setLayoutProps } from '@inertiajs/react';
+import { Import, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { ImportBomStructureDialog } from '@/components/import-bom-structure-dialog';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -86,8 +87,64 @@ type GroupState = {
     subgroups: SubgroupState[];
 };
 
+type BomItemProp = {
+    product_id: number;
+    description: string | null;
+    brand: string;
+    quantity: string;
+    unit: string;
+    unit_cost: string;
+    discount_type: string | null;
+    discount_value: string | null;
+    product: import('@/lib/product-options').ProductOption;
+};
+
+type BomSubgroupProp = {
+    name: string;
+    items: BomItemProp[];
+};
+
+type BomGroupProp = {
+    name: string;
+    items: BomItemProp[];
+    subgroups: BomSubgroupProp[];
+};
+
+type ImportFromBom = {
+    remarks: string | null;
+    overhead_percentage: string | null;
+    selling_percentage: string | null;
+    items: BomItemProp[];
+    subgroups: BomSubgroupProp[];
+    groups: BomGroupProp[];
+};
+
+function toLineItem(item: BomItemProp): LineItem {
+    return {
+        product_id: String(item.product_id),
+        product: item.product,
+        description: item.description ?? '',
+        brand: item.brand,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_cost: item.unit_cost,
+        discount_type: item.discount_type ?? 'none',
+        discount_value: item.discount_value ?? '',
+    };
+}
+
+function toSubgroupState(subgroup: BomSubgroupProp): SubgroupState {
+    return {
+        name: subgroup.name,
+        items: subgroup.items.map(toLineItem),
+        draft: emptyItem(),
+        editingItemIndex: null,
+    };
+}
+
 type Props = {
     quotation: QuotationOption;
+    importFrom?: ImportFromBom | null;
 };
 
 function emptyItem(): LineItem {
@@ -204,7 +261,7 @@ function LineItemForm({
     }
 
     return (
-        <div className="space-y-4 rounded-lg border border-sidebar-border/70 bg-muted/40 p-4 dark:border-sidebar-border">
+        <div className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
             <div className="grid gap-2">
                 <Label htmlFor={`${idPrefix}-product`}>Product</Label>
                 <AsyncCombobox<ProductOption>
@@ -351,7 +408,7 @@ function LineItemForm({
                 </div>
             </div>
 
-            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+            <dl className="flex justify-between border-t border-border pt-4">
                 <dt className="text-sm text-muted-foreground">Total cost</dt>
                 <dd className="font-medium">{formatNumber(totalCost)}</dd>
             </dl>
@@ -571,7 +628,7 @@ function LineItemsSection({
             )}
 
             {items.length > 0 && (
-                <div className="overflow-hidden rounded-lg border border-sidebar-border/70 dark:border-sidebar-border">
+                <div className="overflow-hidden rounded-lg border border-border/50">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -681,7 +738,7 @@ function SubgroupFields({
                     onRemoveItem={onRemoveItem}
                 />
 
-                <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                     <dt>Phase subtotal</dt>
                     <dd>{formatNumber(subtotal)}</dd>
                 </dl>
@@ -690,7 +747,7 @@ function SubgroupFields({
     );
 }
 
-export default function BomsCreate({ quotation }: Props) {
+export default function BomsCreate({ quotation, importFrom }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Quotations', href: index() },
@@ -699,15 +756,35 @@ export default function BomsCreate({ quotation }: Props) {
         ],
     });
 
-    const [items, setItems] = useState<LineItem[]>([]);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [items, setItems] = useState<LineItem[]>(
+        importFrom ? importFrom.items.map(toLineItem) : [],
+    );
     const [itemDraft, setItemDraft] = useState<LineItem>(emptyItem());
     const [editingItemIndex, setEditingItemIndex] = useState<number | null>(
         null,
     );
-    const [subgroups, setSubgroups] = useState<SubgroupState[]>([]);
-    const [groups, setGroups] = useState<GroupState[]>([]);
-    const [overheadPercentage, setOverheadPercentage] = useState('');
-    const [sellingPercentage, setSellingPercentage] = useState('');
+    const [subgroups, setSubgroups] = useState<SubgroupState[]>(
+        importFrom ? importFrom.subgroups.map(toSubgroupState) : [],
+    );
+    const [groups, setGroups] = useState<GroupState[]>(
+        importFrom
+            ? importFrom.groups.map((group) => ({
+                  name: group.name,
+                  items: group.items.map(toLineItem),
+                  draft: emptyItem(),
+                  editingItemIndex: null,
+                  subgroups: group.subgroups.map(toSubgroupState),
+              }))
+            : [],
+    );
+    const [overheadPercentage, setOverheadPercentage] = useState(
+        importFrom?.overhead_percentage ?? '',
+    );
+    const [sellingPercentage, setSellingPercentage] = useState(
+        importFrom?.selling_percentage ?? '',
+    );
+    const [remarks, setRemarks] = useState(importFrom?.remarks ?? '');
 
     function updateItemDraft(changes: Partial<LineItem>): void {
         setItemDraft((current) => ({ ...current, ...changes }));
@@ -1242,9 +1319,29 @@ export default function BomsCreate({ quotation }: Props) {
             />
 
             <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
-                <Heading
-                    title="Create Bill of Materials"
-                    description={`For quotation ${quotation.quotation_code}`}
+                <div className="flex items-start justify-between gap-4">
+                    <Heading
+                        title="Create Bill of Materials"
+                        description={`For quotation ${quotation.quotation_code}`}
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setDialogOpen(true)}
+                    >
+                        <Import />
+                        Import from existing BOM
+                    </Button>
+                </div>
+
+                <ImportBomStructureDialog
+                    open={dialogOpen}
+                    onOpenChange={setDialogOpen}
+                    onSelect={(uuid) =>
+                        router.visit(
+                            `${create(quotation).url}?from=${encodeURIComponent(uuid)}`,
+                        )
+                    }
                 />
 
                 <Form {...store.form(quotation)} className="space-y-6">
@@ -1438,7 +1535,7 @@ export default function BomsCreate({ quotation }: Props) {
                                                 )}
                                             </div>
 
-                                            <dl className="flex justify-between border-t border-sidebar-border/70 pt-4 font-semibold dark:border-sidebar-border">
+                                            <dl className="flex justify-between border-t border-border pt-4 font-semibold">
                                                 <dt>Group subtotal</dt>
                                                 <dd>
                                                     {formatNumber(
@@ -1598,11 +1695,15 @@ export default function BomsCreate({ quotation }: Props) {
                                         id="remarks"
                                         name="remarks"
                                         placeholder="Optional"
+                                        value={remarks}
+                                        onChange={(e) =>
+                                            setRemarks(e.target.value)
+                                        }
                                     />
                                     <InputError message={errors.remarks} />
                                 </div>
 
-                                <dl className="space-y-2 border-t border-sidebar-border/70 pt-4 dark:border-sidebar-border">
+                                <dl className="space-y-2 border-t border-border pt-4">
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">
                                             Main cost
@@ -1619,7 +1720,7 @@ export default function BomsCreate({ quotation }: Props) {
                                             {formatNumber(overheadCost)}
                                         </dd>
                                     </div>
-                                    <div className="flex justify-between border-t border-sidebar-border/70 pt-2 font-semibold dark:border-sidebar-border">
+                                    <div className="flex justify-between border-t border-border pt-2 font-semibold">
                                         <dt>Total cost</dt>
                                         <dd>{formatNumber(totalCost)}</dd>
                                     </div>
