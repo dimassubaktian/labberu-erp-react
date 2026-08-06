@@ -215,9 +215,6 @@ export default function ProjectsEdit({ project, workforces }: Props) {
                                             <SelectItem value="completed">
                                                 Completed
                                             </SelectItem>
-                                            <SelectItem value="cancelled">
-                                                Cancelled
-                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.status} />

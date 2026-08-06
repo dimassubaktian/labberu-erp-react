@@ -21,6 +21,7 @@ type PipelineRow = { stage: string; count: number };
 type CustomerRow = { name: string; revenue: number };
 
 type Props = {
+    year: number;
     kpis: {
         active_projects: number;
         total_revenue: number;
@@ -33,7 +34,7 @@ type Props = {
     top_customers: CustomerRow[];
 };
 
-export function ManagementTab({ kpis, monthly_chart, projects_by_status, pipeline, top_customers }: Props) {
+export function ManagementTab({ year, kpis, monthly_chart, projects_by_status, pipeline, top_customers }: Props) {
     const chartData = monthly_chart.map((row) => ({
         month: MONTH_LABELS[row.month - 1],
         revenue: row.revenue,
@@ -64,7 +65,7 @@ export function ManagementTab({ kpis, monthly_chart, projects_by_status, pipelin
 
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="md:col-span-2">
-                    <SectionCard title="Revenue vs. Spend (This Year)">
+                    <SectionCard title={`Revenue vs. Spend (${year})`}>
                         <ChartContainer
                             className="h-64 w-full"
                             config={{

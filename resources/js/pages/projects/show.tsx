@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import {
     ArrowLeft,
+    Ban,
     Download,
     Pencil,
     Plus,
@@ -24,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { destroy, edit, index, show } from '@/routes/projects';
+import { cancel, destroy, edit, index, show } from '@/routes/projects';
 import {
     destroy as destroyAttachment,
     download as downloadAttachment,
@@ -736,6 +737,60 @@ export default function ProjectsShow({
                     <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
                         Danger Zone
                     </h2>
+                    {!['cancelled', 'completed'].includes(project.status) && (
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">Cancel this project</p>
+                                <p className="text-sm">
+                                    Mark the project as cancelled. The status will no longer update automatically.
+                                </p>
+                            </div>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Ban />
+                                        Cancel Project
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Cancel &quot;{project.name}&quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This marks the project as cancelled. This action cannot be undone.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...cancel.form(project)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Keep
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Cancel Project
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
                     <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
                             <p className="font-medium">Delete this project</p>

@@ -25,6 +25,7 @@ type OverdueInvoice = {
 };
 
 type Props = {
+    year: number;
     kpis: {
         total_invoiced: number;
         total_collected: number;
@@ -36,7 +37,7 @@ type Props = {
     overdue_invoices: OverdueInvoice[];
 };
 
-export function FinanceTab({ kpis, monthly_chart, payment_status, overdue_invoices }: Props) {
+export function FinanceTab({ year, kpis, monthly_chart, payment_status, overdue_invoices }: Props) {
     const chartData = monthly_chart.map((row) => ({
         month: MONTH_LABELS[row.month - 1],
         revenue: row.revenue,
@@ -65,7 +66,7 @@ export function FinanceTab({ kpis, monthly_chart, payment_status, overdue_invoic
 
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="md:col-span-2">
-                    <SectionCard title="Monthly Revenue vs. Collections (This Year)">
+                    <SectionCard title={`Monthly Revenue vs. Collections (${year})`}>
                         <ChartContainer
                             className="h-64 w-full"
                             config={{

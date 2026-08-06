@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProjectCancelRequest;
 use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectUpdateRequest;
 use App\Models\Project;
@@ -164,6 +165,18 @@ class ProjectController extends Controller
         $project->update($request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project updated.')]);
+
+        return to_route('projects.show', $project);
+    }
+
+    /**
+     * Cancel the specified project.
+     */
+    public function cancel(ProjectCancelRequest $request, Project $project): RedirectResponse
+    {
+        $project->update(['status' => 'cancelled']);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project cancelled.')]);
 
         return to_route('projects.show', $project);
     }

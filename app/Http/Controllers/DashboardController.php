@@ -11,34 +11,65 @@ use App\Models\PurchaseOrder;
 use App\Models\Quotation;
 use App\Models\User;
 use App\Models\Vendor;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         $roles = $user->getRoleNames()->values()->toArray();
         $isSuperAdmin = in_array('Super Admin', $roles) || in_array('Admin', $roles);
 
-        $props = [];
+        $year = (int) $request->query('year', Carbon::now()->year);
+        $staffStatus = $request->query('staff_status', 'all');
+        $staffPriority = $request->query('staff_priority', 'all');
+
+        $yearExpr = DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y', request_date)"
+            : 'YEAR(request_date)';
+
+        $availableYears = Project::query()
+            ->whereNull('deleted_at')
+            ->whereNotNull('request_date')
+            ->selectRaw("$yearExpr as year")
+            ->distinct()
+            ->orderByDesc('year')
+            ->pluck('year')
+            ->map(fn ($y) => (int) $y)
+            ->toArray();
+
+        if (! in_array(Carbon::now()->year, $availableYears)) {
+            array_unshift($availableYears, Carbon::now()->year);
+        }
+
+        $props = [
+            'filters' => [
+                'year' => $year,
+                'staff_status' => $staffStatus,
+                'staff_priority' => $staffPriority,
+            ],
+            'available_years' => $availableYears,
+        ];
 
         if ($isSuperAdmin || in_array('Manager', $roles)) {
-            $props['management'] = $this->managementData();
+            $props['management'] = $this->managementData($year);
         }
 
         if ($isSuperAdmin || in_array('Finance', $roles)) {
-            $props['finance'] = $this->financeData();
+            $props['finance'] = $this->financeData($year);
         }
 
         if ($isSuperAdmin || in_array('Procurement', $roles)) {
-            $props['purchasing'] = $this->purchasingData();
+            $props['purchasing'] = $this->purchasingData($year);
         }
 
-        $props['staff'] = $this->staffData($user);
+        $props['staff'] = $this->staffData($user, $staffStatus, $staffPriority);
 
         return Inertia::render('dashboard', $props);
     }
@@ -46,10 +77,8 @@ class DashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function managementData(): array
+    private function managementData(int $year): array
     {
-        $year = Carbon::now()->year;
-
         $projectsByStatus = Project::query()
             ->whereNull('deleted_at')
             ->selectRaw('status, COUNT(*) as count')
@@ -112,6 +141,7 @@ class DashboardController extends Controller
             ->toArray();
 
         return [
+            'year' => $year,
             'kpis' => [
                 'active_projects' => $activeProjects,
                 'total_revenue' => $totalRevenue,
@@ -135,10 +165,8 @@ class DashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function financeData(): array
+    private function financeData(int $year): array
     {
-        $year = Carbon::now()->year;
-
         $totalInvoiced = (float) Invoice::query()->whereNull('deleted_at')->where('status', 'issued')->sum('total');
         $totalCollected = (float) InvoicePayment::query()
             ->join('invoices', 'invoices.id', '=', 'invoice_payments.invoice_id')
@@ -211,6 +239,7 @@ class DashboardController extends Controller
             ->toArray();
 
         return [
+            'year' => $year,
             'kpis' => [
                 'total_invoiced' => $totalInvoiced,
                 'total_collected' => $totalCollected,
@@ -226,10 +255,8 @@ class DashboardController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function purchasingData(): array
+    private function purchasingData(int $year): array
     {
-        $year = Carbon::now()->year;
-
         $totalPos = PurchaseOrder::query()->whereNull('deleted_at')->count();
         $totalPoValue = (float) PurchaseOrder::query()->whereNull('deleted_at')->whereNotIn('status', ['draft', 'cancelled', 'voided'])->sum('grand_total');
         $openPos = PurchaseOrder::query()->whereNull('deleted_at')->whereIn('status', ['issued', 'approved'])->count();
@@ -277,6 +304,7 @@ class DashboardController extends Controller
             ->toArray();
 
         return [
+            'year' => $year,
             'kpis' => [
                 'total_pos' => $totalPos,
                 'total_value' => $totalPoValue,
@@ -291,17 +319,18 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  User  $user
      * @return array<string, mixed>
      */
-    private function staffData($user): array
+    private function staffData(User $user, string $staffStatus, string $staffPriority): array
     {
         $workforceId = $user->workforce?->id;
 
         $myProjectsQuery = Project::query()
             ->with('customer:id,name')
             ->whereNull('deleted_at')
-            ->when($workforceId !== null, fn ($q) => $q->where('person_in_charge_id', $workforceId));
+            ->when($workforceId !== null, fn ($q) => $q->where('person_in_charge_id', $workforceId))
+            ->when($staffStatus !== 'all', fn ($q) => $q->where('status', $staffStatus))
+            ->when($staffPriority !== 'all', fn ($q) => $q->where('priority', $staffPriority));
 
         $myProjects = $myProjectsQuery->clone()
             ->orderByDesc('request_date')

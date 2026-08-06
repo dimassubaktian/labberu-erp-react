@@ -55,6 +55,42 @@ class QuotationStoreRequest extends FormRequest
             'groups.*.items.*.unit_cost' => ['required', 'numeric', 'min:0'],
             'groups.*.items.*.discount_type' => ['nullable', 'string', 'in:percentage,fixed'],
             'groups.*.items.*.discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:groups.*.items.*.discount_type'],
+
+            'bom' => ['nullable', 'array'],
+            'bom.remarks' => ['nullable', 'string', 'max:2000'],
+            'bom.overhead_percentage' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'bom.selling_percentage' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
+            'bom.items' => ['nullable', 'array'],
+            ...self::bomItemRules('bom.items.*'),
+            'bom.subgroups' => ['nullable', 'array'],
+            'bom.subgroups.*.name' => ['required_with:bom.subgroups', 'string', 'max:255'],
+            'bom.subgroups.*.items' => ['required_with:bom.subgroups', 'array', 'min:1'],
+            ...self::bomItemRules('bom.subgroups.*.items.*'),
+            'bom.groups' => ['nullable', 'array'],
+            'bom.groups.*.name' => ['required_with:bom.groups', 'string', 'max:255'],
+            'bom.groups.*.items' => ['nullable', 'array'],
+            ...self::bomItemRules('bom.groups.*.items.*'),
+            'bom.groups.*.subgroups' => ['nullable', 'array'],
+            'bom.groups.*.subgroups.*.name' => ['required_with:bom.groups.*.subgroups', 'string', 'max:255'],
+            'bom.groups.*.subgroups.*.items' => ['required_with:bom.groups.*.subgroups', 'array', 'min:1'],
+            ...self::bomItemRules('bom.groups.*.subgroups.*.items.*'),
+        ];
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private static function bomItemRules(string $prefix): array
+    {
+        return [
+            "{$prefix}.product_id" => ['required', Rule::exists('products', 'id')->whereNull('deleted_at')],
+            "{$prefix}.description" => ['nullable', 'string', 'max:2000'],
+            "{$prefix}.brand" => ['required', 'string', 'max:255'],
+            "{$prefix}.quantity" => ['required', 'numeric', 'min:0.01'],
+            "{$prefix}.unit" => ['required', 'string', 'in:Pcs,Unit,Set,Box,Roll,Meter,Kg,Liter,Pack,Other'],
+            "{$prefix}.unit_cost" => ['required', 'numeric', 'min:0'],
+            "{$prefix}.discount_type" => ['nullable', 'string', 'in:percentage,fixed'],
+            "{$prefix}.discount_value" => ['nullable', 'numeric', 'min:0', "required_with:{$prefix}.discount_type"],
         ];
     }
 

@@ -7,6 +7,12 @@ use App\Models\QuotationItem;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Workforce;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(function () {
+    Storage::fake('local');
+});
 
 /**
  * @param  array<int, float>  $quantities
@@ -50,15 +56,27 @@ function draftDeliveryOrderFor(QuotationItem $item, float $delivered): DeliveryO
     return $deliveryOrder;
 }
 
-test('confirming a delivery order sets partially_delivered when not everything has shipped', function () {
+function userWithWorkforce(): array
+{
     $user = User::factory()->create();
-    $workforce = Workforce::factory()->create();
+    $workforce = Workforce::factory()->create(['user_id' => $user->id]);
+
+    return [$user, $workforce];
+}
+
+function fakeSignedDocument(): UploadedFile
+{
+    return UploadedFile::fake()->create('signed.pdf', 100, 'application/pdf');
+}
+
+test('confirming a delivery order sets partially_delivered when not everything has shipped', function () {
+    [$user, $workforce] = userWithWorkforce();
     $quotation = quotationWithItemQuantities([10]);
     $item = $quotation->items->first();
     $deliveryOrder = draftDeliveryOrderFor($item, 4);
 
     $response = $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
-        'delivered_by_id' => $workforce->id,
+        'signed_document' => fakeSignedDocument(),
     ]);
 
     $response->assertSessionHasNoErrors();
@@ -69,34 +87,34 @@ test('confirming a delivery order sets partially_delivered when not everything h
 });
 
 test('confirming enough delivery orders to cover every line sets fully_delivered', function () {
-    $user = User::factory()->create();
+    [$user] = userWithWorkforce();
     $quotation = quotationWithItemQuantities([10, 5]);
     [$itemA, $itemB] = $quotation->items;
 
     $this->actingAs($user)->patch(route('delivery-orders.confirm', draftDeliveryOrderFor($itemA, 10)), [
-        'delivered_by_id' => Workforce::factory()->create()->id,
+        'signed_document' => fakeSignedDocument(),
     ])->assertSessionHasNoErrors();
 
     expect($quotation->refresh()->progress)->toBe('partially_delivered');
 
     $this->actingAs($user)->patch(route('delivery-orders.confirm', draftDeliveryOrderFor($itemB, 5)), [
-        'delivered_by_id' => Workforce::factory()->create()->id,
+        'signed_document' => fakeSignedDocument(),
     ])->assertSessionHasNoErrors();
 
     expect($quotation->refresh()->progress)->toBe('fully_delivered');
 });
 
 test('progress derivation compares per line item, not an aggregate total', function () {
-    $user = User::factory()->create();
+    [$user] = userWithWorkforce();
     $quotation = quotationWithItemQuantities([5, 5]);
-    [$itemA, $itemB] = $quotation->items;
+    [$itemA] = $quotation->items;
 
     // Item A is over-delivered to 10 (double its order); item B never ships.
     // An aggregate sum (10 delivered / 10 ordered) would wrongly read as fully delivered.
     $deliveryOrder = draftDeliveryOrderFor($itemA, 10);
 
     $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
-        'delivered_by_id' => Workforce::factory()->create()->id,
+        'signed_document' => fakeSignedDocument(),
     ])->assertSessionHasNoErrors();
 
     expect($quotation->refresh()->progress)->toBe('partially_delivered');
@@ -111,7 +129,7 @@ test('a draft delivery order does not affect the quotation progress until confir
 });
 
 test('delivery order cannot be confirmed once the quotation is no longer approved', function () {
-    $user = User::factory()->create();
+    [$user] = userWithWorkforce();
     $quotation = quotationWithItemQuantities([10]);
     $item = $quotation->items->first();
     $deliveryOrder = draftDeliveryOrderFor($item, 4);
@@ -120,7 +138,7 @@ test('delivery order cannot be confirmed once the quotation is no longer approve
 
     $this->actingAs($user)
         ->patch(route('delivery-orders.confirm', $deliveryOrder), [
-            'delivered_by_id' => Workforce::factory()->create()->id,
+            'signed_document' => fakeSignedDocument(),
         ])
         ->assertForbidden();
 
@@ -136,7 +154,7 @@ test('a confirmed delivery order cannot be confirmed again', function () {
 
     $this->actingAs($user)
         ->patch(route('delivery-orders.confirm', $deliveryOrder), [
-            'delivered_by_id' => Workforce::factory()->create()->id,
+            'signed_document' => fakeSignedDocument(),
         ])
         ->assertForbidden();
 });
@@ -151,7 +169,7 @@ test('guests cannot confirm delivery orders', function () {
 });
 
 test('confirming a delivery order creates an out stock movement for each delivered, physical-goods line', function () {
-    $user = User::factory()->create();
+    [$user] = userWithWorkforce();
     $goodsProduct = Product::factory()->create(['type' => 'goods']);
     $serviceProduct = Product::factory()->create(['type' => 'service']);
     $quotation = Quotation::factory()->create(['status' => 'approved']);
@@ -200,7 +218,7 @@ test('confirming a delivery order creates an out stock movement for each deliver
     ]);
 
     $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
-        'delivered_by_id' => Workforce::factory()->create()->id,
+        'signed_document' => fakeSignedDocument(),
     ])->assertSessionHasNoErrors();
 
     $movement = StockMovement::sole();
@@ -211,7 +229,7 @@ test('confirming a delivery order creates an out stock movement for each deliver
 });
 
 test('a delivery order line with zero delivered quantity creates no stock movement', function () {
-    $user = User::factory()->create();
+    [$user] = userWithWorkforce();
     $goodsProduct = Product::factory()->create(['type' => 'goods']);
     $quotation = quotationWithItemQuantities([10]);
     $item = $quotation->items->first();
@@ -230,8 +248,35 @@ test('a delivery order line with zero delivered quantity creates no stock moveme
     ]);
 
     $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
-        'delivered_by_id' => Workforce::factory()->create()->id,
+        'signed_document' => fakeSignedDocument(),
     ])->assertSessionHasNoErrors();
 
     expect(StockMovement::count())->toBe(0);
+});
+
+test('confirming without a signed document fails validation', function () {
+    [$user] = userWithWorkforce();
+    $quotation = quotationWithItemQuantities([10]);
+    $item = $quotation->items->first();
+    $deliveryOrder = draftDeliveryOrderFor($item, 4);
+
+    $this->actingAs($user)
+        ->patch(route('delivery-orders.confirm', $deliveryOrder), [])
+        ->assertSessionHasErrors('signed_document');
+
+    expect($deliveryOrder->refresh()->status)->toBe('draft');
+});
+
+test('confirming stores the signed document path on the delivery order', function () {
+    [$user] = userWithWorkforce();
+    $quotation = quotationWithItemQuantities([10]);
+    $item = $quotation->items->first();
+    $deliveryOrder = draftDeliveryOrderFor($item, 4);
+
+    $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
+        'signed_document' => fakeSignedDocument(),
+    ])->assertSessionHasNoErrors();
+
+    expect($deliveryOrder->refresh()->signed_document_path)->not->toBeNull();
+    Storage::disk('local')->assertExists($deliveryOrder->signed_document_path);
 });

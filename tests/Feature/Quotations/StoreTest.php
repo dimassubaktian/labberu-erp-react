@@ -330,3 +330,78 @@ test('guests cannot create quotations', function () {
     $this->post(route('quotations.store'), [])
         ->assertRedirect(route('login'));
 });
+
+test('quotation can be created with a BOM in one request', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create(['price' => 100_000, 'cost' => 50_000]);
+    $bomProduct = Product::factory()->create(['cost' => 30_000]);
+
+    $response = $this->actingAs($user)
+        ->post(route('quotations.store'), [
+            'project_id' => $project->id,
+            'currency_id' => $currency->id,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit' => 'Pcs',
+                    'unit_price' => 100_000,
+                    'unit_cost' => 50_000,
+                ],
+            ],
+            'bom' => [
+                'overhead_percentage' => 10,
+                'items' => [
+                    [
+                        'product_id' => $bomProduct->id,
+                        'brand' => 'Acme',
+                        'quantity' => 2,
+                        'unit' => 'Pcs',
+                        'unit_cost' => 30_000,
+                    ],
+                ],
+            ],
+        ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $quotation = Quotation::sole();
+    expect($quotation->bom)->not->toBeNull();
+
+    $bom = $quotation->bom;
+    expect((float) $bom->main_cost)->toBe(60_000.0);
+    expect((float) $bom->overhead_cost)->toBe(6_000.0);
+    expect((float) $bom->total_cost)->toBe(66_000.0);
+    expect($bom->items()->count())->toBe(1);
+});
+
+test('quotation is created without BOM when no BOM items are submitted', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create(['price' => 100_000, 'cost' => 50_000]);
+
+    $this->actingAs($user)
+        ->post(route('quotations.store'), [
+            'project_id' => $project->id,
+            'currency_id' => $currency->id,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit' => 'Pcs',
+                    'unit_price' => 100_000,
+                    'unit_cost' => 50_000,
+                ],
+            ],
+            'bom' => [
+                'overhead_percentage' => 10,
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $quotation = Quotation::sole();
+    expect($quotation->bom)->toBeNull();
+});

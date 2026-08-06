@@ -1,10 +1,12 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, CheckCircle, Clock, FolderKanban } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, FolderKanban, X } from 'lucide-react';
 import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ChartContainer } from '@/components/ui/chart';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { show } from '@/routes/projects';
 
@@ -50,9 +52,13 @@ type Props = {
     my_projects: Project[];
     status_counts: Record<string, number>;
     billing_status_counts: Record<string, number>;
+    staffStatus: string;
+    staffPriority: string;
+    onFilterChange: (overrides: { staff_status?: string; staff_priority?: string }) => void;
 };
 
-export function StaffTab({ kpis, my_projects, status_counts, billing_status_counts }: Props) {
+export function StaffTab({ kpis, my_projects, status_counts, billing_status_counts, staffStatus, staffPriority, onFilterChange }: Props) {
+    const hasActiveFilters = staffStatus !== 'all' || staffPriority !== 'all';
     const statusData = Object.entries(status_counts).map(([status, count]) => ({
         name: status.replace(/_/g, ' '),
         value: count,
@@ -80,6 +86,39 @@ export function StaffTab({ kpis, my_projects, status_counts, billing_status_coun
             </div>
 
             <SectionCard title="My Project List">
+                <div className="mb-3 flex flex-wrap gap-2">
+                    <Select value={staffStatus} onValueChange={(v) => onFilterChange({ staff_status: v })}>
+                        <SelectTrigger className="w-[160px]">
+                            <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All statuses</SelectItem>
+                            <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="planning">Planning</SelectItem>
+                            <SelectItem value="in_progress">In progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={staffPriority} onValueChange={(v) => onFilterChange({ staff_priority: v })}>
+                        <SelectTrigger className="w-[160px]">
+                            <SelectValue placeholder="All priorities" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All priorities</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {hasActiveFilters && (
+                        <Button variant="ghost" size="sm" onClick={() => onFilterChange({ staff_status: 'all', staff_priority: 'all' })}>
+                            <X className="mr-1 h-3 w-3" />
+                            Reset
+                        </Button>
+                    )}
+                </div>
                 {my_projects.length === 0 ? (
                     <p className="py-8 text-center text-sm text-muted-foreground">No projects assigned to you.</p>
                 ) : (

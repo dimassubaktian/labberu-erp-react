@@ -18,6 +18,8 @@ use Illuminate\Support\Carbon;
  * @property string $quantity
  * @property string $unit
  * @property string $unit_price
+ * @property string|null $discount_type
+ * @property string|null $discount_value
  * @property string $total
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -31,6 +33,8 @@ use Illuminate\Support\Carbon;
     'quantity',
     'unit',
     'unit_price',
+    'discount_type',
+    'discount_value',
     'total',
 ])]
 class PurchaseOrderItem extends Model
@@ -85,6 +89,7 @@ class PurchaseOrderItem extends Model
         return [
             'quantity' => 'decimal:2',
             'unit_price' => 'decimal:2',
+            'discount_value' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }

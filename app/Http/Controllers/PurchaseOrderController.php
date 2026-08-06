@@ -453,7 +453,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Calculate a single line item's quantity × unit price total.
+     * Calculate a single line item's total after any per-item discount.
      *
      * @param  array<string, mixed>  $item
      * @return array<string, mixed>
@@ -462,6 +462,12 @@ class PurchaseOrderController extends Controller
     {
         $quantity = (float) $item['quantity'];
         $unitPrice = (float) $item['unit_price'];
+        $lineTotal = $quantity * $unitPrice;
+        $discountType = $item['discount_type'] ?? null;
+        $discountValue = $item['discount_value'] ?? null;
+        $total = $discountType && $discountValue !== null
+            ? $lineTotal - $this->calculateDiscountAmount($lineTotal, $discountType, $discountValue)
+            : $lineTotal;
 
         return [
             'product_id' => $item['product_id'],
@@ -471,7 +477,9 @@ class PurchaseOrderController extends Controller
             'quantity' => $quantity,
             'unit' => $item['unit'],
             'unit_price' => $unitPrice,
-            'total' => $quantity * $unitPrice,
+            'discount_type' => $discountType,
+            'discount_value' => $discountValue !== null ? (float) $discountValue : null,
+            'total' => $total,
         ];
     }
 

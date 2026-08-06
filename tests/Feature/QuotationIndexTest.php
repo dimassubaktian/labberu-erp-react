@@ -90,20 +90,19 @@ test('filters prop is passed back to the page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get(route('quotations.index', ['search' => 'test', 'status' => 'draft', 'sort_by' => 'total', 'sort' => 'asc']))
+        ->get(route('quotations.index', ['search' => 'test', 'status' => 'draft', 'sort' => 'higher_amount']))
         ->assertInertia(fn ($page) => $page
             ->where('filters.search', 'test')
             ->where('filters.status', 'draft')
-            ->where('filters.sort_by', 'total')
-            ->where('filters.sort', 'asc')
+            ->where('filters.sort', 'higher_amount')
         );
 });
 
-test('invalid sort_by value defaults to created_at', function () {
+test('invalid sort value defaults to latest', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->get(route('quotations.index', ['sort_by' => 'malicious_column']))
+        ->get(route('quotations.index', ['sort' => 'malicious_value']))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->where('filters.sort_by', 'created_at'));
+        ->assertInertia(fn ($page) => $page->where('filters.sort', 'latest'));
 });

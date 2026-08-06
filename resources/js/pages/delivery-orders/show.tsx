@@ -1,8 +1,11 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import InputError from '@/components/input-error';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogClose,
@@ -22,7 +25,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { cancel, confirm, destroy, edit, index } from '@/routes/delivery-orders';
+import { cancel, confirm, destroy, edit, index, signedDocument } from '@/routes/delivery-orders';
 import { show as showQuotation } from '@/routes/quotations';
 
 type WorkforceOption = {
@@ -50,6 +53,7 @@ type DeliveryOrder = {
     delivery_date: string;
     remarks: string | null;
     delivered_at: string | null;
+    signed_document_path: string | null;
     quotation: {
         id: number;
         uuid: string;
@@ -177,6 +181,23 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 </div>
                             )}
 
+                        {deliveryOrder.signed_document_path && (
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Signed document
+                                </dt>
+                                <dd className="font-medium">
+                                    <a
+                                        href={signedDocument.url(deliveryOrder)}
+                                        className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+                                    >
+                                        <Download className="size-4" />
+                                        Download
+                                    </a>
+                                </dd>
+                            </div>
+                        )}
+
                         {deliveryOrder.remarks && (
                             <div className="sm:col-span-2">
                                 <dt className="text-sm text-muted-foreground">
@@ -256,23 +277,38 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
 
                                 <Form
                                     {...confirm.form(deliveryOrder)}
+                                    encType="multipart/form-data"
                                     options={{ preserveScroll: true }}
                                 >
-                                    {({ processing }) => (
-                                        <DialogFooter className="gap-2">
-                                            <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                    {({ processing, errors }) => (
+                                        <>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="signed_document">
+                                                    Signed document
+                                                </Label>
+                                                <Input
+                                                    id="signed_document"
+                                                    type="file"
+                                                    name="signed_document"
+                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                />
+                                                <InputError message={errors.signed_document} />
+                                            </div>
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={processing}
+                                                >
+                                                    {processing ? <Spinner /> : <PackageCheck />}
+                                                    Confirm delivery
                                                 </Button>
-                                            </DialogClose>
-                                            <Button
-                                                type="submit"
-                                                disabled={processing}
-                                            >
-                                                {processing ? <Spinner /> : <PackageCheck />}
-                                                Confirm delivery
-                                            </Button>
-                                        </DialogFooter>
+                                            </DialogFooter>
+                                        </>
                                     )}
                                 </Form>
                             </DialogContent>

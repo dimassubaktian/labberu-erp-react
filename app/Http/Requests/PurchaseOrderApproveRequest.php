@@ -21,6 +21,11 @@ class PurchaseOrderApproveRequest extends FormRequest
             && $purchaseOrder->checked_by_2_id !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['approved_by_id' => auth()->user()?->workforce?->id]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *

@@ -22,6 +22,7 @@ use Illuminate\Support\Str;
  * @property string $status
  * @property int|null $delivered_by_id
  * @property Carbon|null $delivered_at
+ * @property string|null $signed_document_path
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -33,6 +34,7 @@ use Illuminate\Support\Str;
     'status',
     'delivered_by_id',
     'delivered_at',
+    'signed_document_path',
 ])]
 class DeliveryOrder extends Model
 {

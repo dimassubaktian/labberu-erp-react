@@ -1,9 +1,12 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Import, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { BomFormSection } from '@/components/bom/bom-form-section';
+import type { ImportFromBom } from '@/components/bom/types';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
+import { ImportBomStructureDialog } from '@/components/import-bom-structure-dialog';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +36,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type { ProductOption } from '@/lib/product-options';
 import { productLabel } from '@/lib/product-options';
@@ -597,6 +601,11 @@ export default function QuotationsCreate({
     currencies,
     taxes,
 }: Props) {
+    const [activeTab, setActiveTab] = useState<'quotation' | 'bom'>('quotation');
+    const [bomImportDialogOpen, setBomImportDialogOpen] = useState(false);
+    const [bomImportKey, setBomImportKey] = useState(0);
+    const [bomImportFrom, setBomImportFrom] = useState<ImportFromBom | null>(null);
+
     const [projectId, setProjectId] = useState(
         initialProject ? String(initialProject.id) : '',
     );
@@ -614,6 +623,13 @@ export default function QuotationsCreate({
         null,
     );
     const [groups, setGroups] = useState<GroupState[]>([]);
+
+    async function handleBomImport(uuid: string): Promise<void> {
+        const response = await fetch(`/boms/${uuid}/import-data`);
+        const data = (await response.json()) as ImportFromBom;
+        setBomImportFrom(data);
+        setBomImportKey((k) => k + 1);
+    }
 
     function updateItemDraft(changes: Partial<LineItem>): void {
         setItemDraft((current) => ({ ...current, ...changes }));
@@ -812,6 +828,30 @@ export default function QuotationsCreate({
                 <Form {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
+                            <Tabs
+                                value={activeTab}
+                                onValueChange={(v) =>
+                                    setActiveTab(v as 'quotation' | 'bom')
+                                }
+                            >
+                                <TabsList>
+                                    <TabsTrigger value="quotation">
+                                        Quotation
+                                    </TabsTrigger>
+                                    <TabsTrigger value="bom">
+                                        BOM (optional)
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent
+                                    value="quotation"
+                                    forceMount
+                                    className={
+                                        activeTab !== 'quotation'
+                                            ? 'hidden'
+                                            : 'space-y-6 pt-4'
+                                    }
+                                >
                             <div className="space-y-6">
                                 <h2 className="text-base font-semibold">
                                     Details
@@ -1514,6 +1554,57 @@ export default function QuotationsCreate({
                                     </div>
                                 </dl>
                             </div>
+
+                                </TabsContent>
+
+                                <TabsContent
+                                    value="bom"
+                                    forceMount
+                                    className={
+                                        activeTab !== 'bom'
+                                            ? 'hidden'
+                                            : 'space-y-6 pt-4'
+                                    }
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h2 className="text-base font-semibold">
+                                                Bill of Materials
+                                            </h2>
+                                            <p className="text-sm text-muted-foreground">
+                                                Optional. Add material costs to
+                                                track project expenses alongside
+                                                this quotation.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                setBomImportDialogOpen(true)
+                                            }
+                                        >
+                                            <Import />
+                                            Import from existing BOM
+                                        </Button>
+                                    </div>
+
+                                    <ImportBomStructureDialog
+                                        open={bomImportDialogOpen}
+                                        onOpenChange={setBomImportDialogOpen}
+                                        onSelect={handleBomImport}
+                                    />
+
+                                    <BomFormSection
+                                        key={bomImportKey}
+                                        namePrefix="bom"
+                                        errorPrefix="bom"
+                                        errors={errors}
+                                        importFrom={bomImportFrom}
+                                    />
+                                </TabsContent>
+                            </Tabs>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                 <Button type="button" variant="outline" asChild>

@@ -19,6 +19,11 @@ class DeliveryOrderConfirmRequest extends FormRequest
             && $deliveryOrder->status === 'draft';
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['delivered_by_id' => auth()->user()?->workforce?->id]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -28,6 +33,7 @@ class DeliveryOrderConfirmRequest extends FormRequest
     {
         return [
             'delivered_by_id' => ['required', 'integer', 'exists:workforces,id'],
+            'signed_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
         ];
     }
 }

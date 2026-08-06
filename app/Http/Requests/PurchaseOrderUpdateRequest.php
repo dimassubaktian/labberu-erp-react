@@ -59,6 +59,8 @@ class PurchaseOrderUpdateRequest extends FormRequest
             'items.*.quantity' => ['required', 'numeric', 'min:0.01'],
             'items.*.unit' => ['required', 'string', 'max:50'],
             'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.discount_type' => ['nullable', 'string', 'in:percentage,fixed'],
+            'items.*.discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:items.*.discount_type'],
             'discounts' => ['nullable', 'array'],
             'discounts.*.label' => ['required', 'string', 'max:255'],
             'discounts.*.discount_type' => ['required', 'string', 'in:percentage,fixed'],

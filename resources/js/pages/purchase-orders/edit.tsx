@@ -93,6 +93,8 @@ type LineItem = {
     quantity: string;
     unit: string;
     unit_price: string;
+    discount_type: string;
+    discount_value: string;
     product: ProductOption | null;
 };
 
@@ -111,6 +113,8 @@ type PurchaseOrderItemProp = {
     quantity: string;
     unit: string;
     unit_price: string;
+    discount_type: string | null;
+    discount_value: string | null;
     product: ProductOption;
 };
 
@@ -163,6 +167,8 @@ function emptyItem(): LineItem {
         quantity: '1',
         unit: '',
         unit_price: '0',
+        discount_type: 'none',
+        discount_value: '',
         product: null,
     };
 }
@@ -180,6 +186,8 @@ function toLineItem(item: PurchaseOrderItemProp): LineItem {
         quantity: item.quantity,
         unit: item.unit,
         unit_price: item.unit_price,
+        discount_type: item.discount_type ?? 'none',
+        discount_value: item.discount_value ?? '',
         product: item.product,
     };
 }
@@ -192,8 +200,25 @@ function toDiscountLevel(discount: PurchaseOrderDiscountProp): DiscountLevel {
     };
 }
 
+function calculateItemDiscount(item: LineItem): number {
+    const lineTotal = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
+    if (item.discount_type === 'none' || item.discount_value === '') return 0;
+    const value = Number(item.discount_value) || 0;
+    return item.discount_type === 'percentage'
+        ? Math.min(lineTotal, (lineTotal * value) / 100)
+        : Math.min(lineTotal, value);
+}
+
 function calculateItemTotal(item: LineItem): number {
-    return (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
+    const lineTotal = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
+    return lineTotal - calculateItemDiscount(item);
+}
+
+function discountLabel(item: LineItem): string {
+    if (item.discount_type === 'none' || item.discount_value === '') return '—';
+    return item.discount_type === 'percentage'
+        ? `${item.discount_value}%`
+        : formatNumber(Number(item.discount_value));
 }
 
 function calculateItemsSubtotal(items: LineItem[]): number {
@@ -236,7 +261,8 @@ function LineItemForm({
     onCommit,
     onCancel,
 }: LineItemFormProps) {
-    const total = calculateItemTotal(draft);
+    const lineTotal = (Number(draft.quantity) || 0) * (Number(draft.unit_price) || 0);
+    const total = lineTotal - calculateItemDiscount(draft);
 
     function handleProductChange(
         productId: string,
@@ -299,7 +325,7 @@ function LineItemForm({
                 />
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2">
                 <div className="grid gap-2">
                     <Label>Quantity</Label>
                     <Input
@@ -323,13 +349,49 @@ function LineItemForm({
                         }
                     />
                 </div>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label>Line discount type</Label>
+                    <Select
+                        value={draft.discount_type}
+                        onValueChange={(value) =>
+                            onChange({ discount_type: value })
+                        }
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No discount</SelectItem>
+                            <SelectItem value="percentage">Percentage</SelectItem>
+                            <SelectItem value="fixed">Fixed amount</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
 
                 <div className="grid gap-2">
-                    <Label>Total</Label>
-                    <p className="flex h-9 items-center font-medium">
-                        {formatNumber(total)}
-                    </p>
+                    <Label>Line discount value</Label>
+                    <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={draft.discount_value}
+                        onChange={(e) =>
+                            onChange({ discount_value: e.target.value })
+                        }
+                        disabled={draft.discount_type === 'none'}
+                        placeholder="Optional"
+                    />
                 </div>
+            </div>
+
+            <div className="grid gap-2">
+                <Label>Total</Label>
+                <p className="flex h-9 items-center font-medium">
+                    {formatNumber(total)}
+                </p>
             </div>
 
             <div className="flex justify-end gap-2">
@@ -350,124 +412,6 @@ function LineItemForm({
     );
 }
 
-type DiscountFieldsProps = {
-    index: number;
-    discount: DiscountLevel;
-    baseAmount: number;
-    amount: number;
-    errors: Partial<Record<string, string>>;
-    onChange: (changes: Partial<DiscountLevel>) => void;
-    onRemove: () => void;
-};
-
-function DiscountFields({
-    index,
-    discount,
-    baseAmount,
-    amount,
-    errors,
-    onChange,
-    onRemove,
-}: DiscountFieldsProps) {
-    const namePrefix = `discounts[${index}]`;
-    const errorPrefix = `discounts.${index}`;
-
-    return (
-        <div className="space-y-4 rounded-lg border border-border/50 bg-muted/40 p-4">
-            <div className="flex items-start justify-between gap-2">
-                <div className="grid flex-1 gap-2">
-                    <Label htmlFor={`discount-${index}-label`}>
-                        Discount label
-                    </Label>
-                    <Input
-                        id={`discount-${index}-label`}
-                        name={`${namePrefix}[label]`}
-                        value={discount.label}
-                        onChange={(e) => onChange({ label: e.target.value })}
-                        placeholder="e.g. Discount I"
-                    />
-                    <InputError message={errors[`${errorPrefix}.label`]} />
-                </div>
-
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="mt-6"
-                    onClick={onRemove}
-                >
-                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                </Button>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor={`discount-${index}-type`}>Type</Label>
-                    <input
-                        type="hidden"
-                        name={`${namePrefix}[discount_type]`}
-                        value={discount.discount_type}
-                    />
-                    <Select
-                        value={discount.discount_type}
-                        onValueChange={(value) =>
-                            onChange({ discount_type: value })
-                        }
-                    >
-                        <SelectTrigger
-                            id={`discount-${index}-type`}
-                            className="w-full"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="percentage">
-                                Percentage
-                            </SelectItem>
-                            <SelectItem value="fixed">Fixed amount</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <InputError
-                        message={errors[`${errorPrefix}.discount_type`]}
-                    />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor={`discount-${index}-value`}>Value</Label>
-                    <Input
-                        id={`discount-${index}-value`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        name={`${namePrefix}[discount_value]`}
-                        value={discount.discount_value}
-                        onChange={(e) =>
-                            onChange({ discount_value: e.target.value })
-                        }
-                    />
-                    <InputError
-                        message={errors[`${errorPrefix}.discount_value`]}
-                    />
-                </div>
-            </div>
-
-            <dl className="grid grid-cols-2 gap-4 border-t border-border pt-4">
-                <div>
-                    <dt className="text-sm text-muted-foreground">
-                        Applied to
-                    </dt>
-                    <dd className="font-medium">{formatNumber(baseAmount)}</dd>
-                </div>
-                <div>
-                    <dt className="text-sm text-muted-foreground">
-                        Discount amount
-                    </dt>
-                    <dd className="font-medium">{formatNumber(amount)}</dd>
-                </div>
-            </dl>
-        </div>
-    );
-}
 
 export default function PurchaseOrdersEdit({
     purchaseOrder,
@@ -625,6 +569,8 @@ export default function PurchaseOrdersEdit({
                 quantity: item.quantity,
                 unit: item.unit,
                 unit_price: item.unit_price,
+                discount_type: 'none',
+                discount_value: '',
                 product: item.initialProduct,
             })),
         ]);
@@ -1185,6 +1131,9 @@ export default function PurchaseOrdersEdit({
                                                     <TableHead className="w-28">
                                                         Unit price
                                                     </TableHead>
+                                                    <TableHead className="w-28">
+                                                        Discount
+                                                    </TableHead>
                                                     <TableHead className="w-28 text-right">
                                                         Total
                                                     </TableHead>
@@ -1290,6 +1239,20 @@ export default function PurchaseOrdersEdit({
                                                                     item.quantity
                                                                 }
                                                             />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][discount_type]`}
+                                                                value={
+                                                                    item.discount_type === 'none' ? '' : item.discount_type
+                                                                }
+                                                            />
+                                                            <input
+                                                                type="hidden"
+                                                                name={`items[${index}][discount_value]`}
+                                                                value={
+                                                                    item.discount_value
+                                                                }
+                                                            />
                                                             <div className="font-medium">
                                                                 {productLabel(
                                                                     item.product,
@@ -1327,14 +1290,14 @@ export default function PurchaseOrdersEdit({
                                                                 ),
                                                             )}
                                                         </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {discountLabel(item)}
+                                                        </TableCell>
                                                         <TableCell className="text-right font-medium">
                                                             {formatNumber(
-                                                                Number(
-                                                                    item.quantity,
-                                                                ) *
-                                                                    Number(
-                                                                        item.unit_price,
-                                                                    ),
+                                                                calculateItemTotal(
+                                                                    item,
+                                                                ),
                                                             )}
                                                         </TableCell>
                                                         <TableCell>
@@ -1438,24 +1401,89 @@ export default function PurchaseOrdersEdit({
                                     </p>
                                 )}
 
-                                {discounts.map((discount, index) => (
-                                    <DiscountFields
-                                        key={index}
-                                        index={index}
-                                        discount={discount}
-                                        baseAmount={
-                                            discountRows[index]?.baseAmount ?? 0
-                                        }
-                                        amount={
-                                            discountRows[index]?.amount ?? 0
-                                        }
-                                        errors={errors}
-                                        onChange={(changes) =>
-                                            updateDiscount(index, changes)
-                                        }
-                                        onRemove={() => removeDiscount(index)}
-                                    />
-                                ))}
+                                {discounts.length > 0 && (
+                                    <div className="overflow-hidden rounded-lg border border-border/50">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Label</TableHead>
+                                                    <TableHead className="w-36">Type</TableHead>
+                                                    <TableHead className="w-32">Value</TableHead>
+                                                    <TableHead className="w-32">Applied to</TableHead>
+                                                    <TableHead className="w-36">Discount amount</TableHead>
+                                                    <TableHead className="w-16" />
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {discounts.map((discount, index) => {
+                                                    const namePrefix = `discounts[${index}]`;
+                                                    const errorPrefix = `discounts.${index}`;
+                                                    const row = discountRows[index];
+                                                    return (
+                                                        <TableRow key={index}>
+                                                            <TableCell>
+                                                                <Input
+                                                                    name={`${namePrefix}[label]`}
+                                                                    value={discount.label}
+                                                                    onChange={(e) => updateDiscount(index, { label: e.target.value })}
+                                                                    placeholder="e.g. Discount I"
+                                                                />
+                                                                <InputError message={errors[`${errorPrefix}.label`]} />
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <input
+                                                                    type="hidden"
+                                                                    name={`${namePrefix}[discount_type]`}
+                                                                    value={discount.discount_type}
+                                                                />
+                                                                <Select
+                                                                    value={discount.discount_type}
+                                                                    onValueChange={(value) => updateDiscount(index, { discount_type: value })}
+                                                                >
+                                                                    <SelectTrigger className="w-full">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="percentage">Percentage</SelectItem>
+                                                                        <SelectItem value="fixed">Fixed amount</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <InputError message={errors[`${errorPrefix}.discount_type`]} />
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Input
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    min="0"
+                                                                    name={`${namePrefix}[discount_value]`}
+                                                                    value={discount.discount_value}
+                                                                    onChange={(e) => updateDiscount(index, { discount_value: e.target.value })}
+                                                                />
+                                                                <InputError message={errors[`${errorPrefix}.discount_value`]} />
+                                                            </TableCell>
+                                                            <TableCell className="text-muted-foreground">
+                                                                {formatNumber(row?.baseAmount ?? 0)}
+                                                            </TableCell>
+                                                            <TableCell className="font-medium">
+                                                                {formatNumber(row?.amount ?? 0)}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    onClick={() => removeDiscount(index)}
+                                                                >
+                                                                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
                             </div>
 
                             <div>

@@ -258,10 +258,6 @@ class GoodsReceiptNoteController extends Controller
      */
     private function updatePurchaseOrderProgress(PurchaseOrder $purchaseOrder): void
     {
-        if ($purchaseOrder->progress === 'closed') {
-            return;
-        }
-
         $items = $purchaseOrder->items;
 
         $accepted = GoodsReceiptNoteItem::query()
@@ -287,11 +283,13 @@ class GoodsReceiptNoteController extends Controller
         }
 
         if (! $anyReceived) {
-            $purchaseOrder->update(['progress' => null]);
+            if (in_array($purchaseOrder->progress, ['partially_received', 'fully_received', 'closed'])) {
+                $purchaseOrder->update(['progress' => 'sent']);
+            }
 
             return;
         }
 
-        $purchaseOrder->update(['progress' => $allFullyReceived ? 'fully_received' : 'partially_received']);
+        $purchaseOrder->update(['progress' => $allFullyReceived ? 'closed' : 'partially_received']);
     }
 }

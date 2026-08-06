@@ -105,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show')->middleware('permission:projects.view');
     Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit')->middleware('permission:projects.update');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update')->middleware('permission:projects.update');
+    Route::patch('projects/{project}/cancel', [ProjectController::class, 'cancel'])->name('projects.cancel')->middleware('permission:projects.update');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy')->middleware('permission:projects.delete');
 
     Route::get('projects/{project}/quotations', [ProjectController::class, 'quotations'])->name('projects.quotations.index')->middleware('permission:projects.view');
@@ -136,6 +137,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('delivery-orders/{deliveryOrder}', [DeliveryOrderController::class, 'destroy'])->name('delivery-orders.destroy')->middleware('permission:delivery-orders.delete');
     Route::patch('delivery-orders/{deliveryOrder}/confirm', [DeliveryOrderController::class, 'confirm'])->name('delivery-orders.confirm')->middleware('permission:delivery-orders.confirm');
     Route::patch('delivery-orders/{deliveryOrder}/cancel', [DeliveryOrderController::class, 'cancel'])->name('delivery-orders.cancel')->middleware('permission:delivery-orders.cancel');
+    Route::get('delivery-orders/{deliveryOrder}/signed-document', [DeliveryOrderController::class, 'downloadSignedDocument'])->name('delivery-orders.signed-document')->middleware('permission:delivery-orders.view');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.view');
     Route::get('invoices/create', [InvoiceController::class, 'create'])->name('invoices.create')->middleware('permission:invoices.create');
@@ -149,6 +151,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy')->middleware('permission:invoices.payments.delete');
 
     Route::get('boms/search', [BomController::class, 'search'])->name('boms.search')->middleware('permission:bom.view');
+    Route::get('boms/{bom}/import-data', [BomController::class, 'importData'])->name('boms.import-data')->middleware('permission:bom.view');
 
     Route::get('quotations/{quotation}/bom/create', [BomController::class, 'create'])->name('quotations.bom.create')->middleware('permission:bom.create');
     Route::post('quotations/{quotation}/bom', [BomController::class, 'store'])->name('quotations.bom.store')->middleware('permission:bom.create');

@@ -28,6 +28,7 @@ type MonthRow = { month: number; spend: number };
 type VendorRow = { name: string; spend: number };
 
 type Props = {
+    year: number;
     kpis: {
         total_pos: number;
         total_value: number;
@@ -40,7 +41,7 @@ type Props = {
     grn_by_status: Record<string, number>;
 };
 
-export function PurchasingTab({ kpis, monthly_chart, po_by_status, top_vendors, grn_by_status }: Props) {
+export function PurchasingTab({ year, kpis, monthly_chart, po_by_status, top_vendors, grn_by_status }: Props) {
     const chartData = monthly_chart.map((row) => ({
         month: MONTH_LABELS[row.month - 1],
         spend: row.spend,
@@ -69,7 +70,7 @@ export function PurchasingTab({ kpis, monthly_chart, po_by_status, top_vendors, 
 
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="md:col-span-2">
-                    <SectionCard title="Monthly PO Spend (This Year)">
+                    <SectionCard title={`Monthly PO Spend (${year})`}>
                         <ChartContainer className="h-64 w-full" config={{ spend: { label: 'Spend', color: '#6366f1' } }}>
                             <BarChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

@@ -14,24 +14,51 @@ use App\Models\StockMovement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DeliveryOrderController extends Controller
 {
     /**
      * Display a listing of the delivery orders.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = $request->string('search')->trim()->toString();
+        $status = $request->string('status')->toString();
+        $sort = in_array($request->string('sort')->toString(), ['delivery_date_asc', 'delivery_date_desc'])
+            ? $request->string('sort')->toString()
+            : 'delivery_date_desc';
+
+        [$sortColumn, $sortDirection] = match ($sort) {
+            'delivery_date_asc' => ['delivery_date', 'asc'],
+            default => ['delivery_date', 'desc'],
+        };
+
         $deliveryOrders = DeliveryOrder::query()
             ->with('quotation.project.customer')
-            ->orderByDesc('created_at')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('do_code', 'like', "%{$search}%")
+                        ->orWhereHas('quotation', function ($q) use ($search): void {
+                            $q->where('quotation_code', 'like', "%{$search}%")
+                                ->orWhereHas('project', function ($p) use ($search): void {
+                                    $p->where('name', 'like', "%{$search}%")
+                                        ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+                                });
+                        });
+                });
+            })
+            ->when($status !== '', fn ($q) => $q->where('status', $status))
+            ->orderBy($sortColumn, $sortDirection)
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('delivery-orders/index', [
             'deliveryOrders' => $deliveryOrders,
+            'filters' => ['search' => $search, 'status' => $status, 'sort' => $sort],
         ]);
     }
 
@@ -157,11 +184,14 @@ class DeliveryOrderController extends Controller
     {
         abort_if($deliveryOrder->quotation->status !== 'approved', 403, 'The linked quotation is no longer approved.');
 
-        DB::transaction(function () use ($request, $deliveryOrder): void {
+        $path = $request->file('signed_document')->store('delivery-order-documents', 'local');
+
+        DB::transaction(function () use ($request, $deliveryOrder, $path): void {
             $deliveryOrder->update([
                 'status' => 'confirmed',
                 'delivered_by_id' => $request->validated('delivered_by_id'),
                 'delivered_at' => now(),
+                'signed_document_path' => $path,
             ]);
 
             $this->createStockMovements($deliveryOrder);
@@ -196,6 +226,16 @@ class DeliveryOrderController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Delivery order cancelled.')]);
 
         return to_route('delivery-orders.show', $deliveryOrder);
+    }
+
+    /**
+     * Download the signed document attached to the specified delivery order.
+     */
+    public function downloadSignedDocument(DeliveryOrder $deliveryOrder): StreamedResponse
+    {
+        abort_if($deliveryOrder->signed_document_path === null, 404);
+
+        return Storage::disk('local')->download($deliveryOrder->signed_document_path);
     }
 
     /**

@@ -21,6 +21,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Tax;
+use App\Services\BomService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,8 @@ use Inertia\Response;
 
 class QuotationController extends Controller
 {
+    public function __construct(private readonly BomService $bomService) {}
+
     /**
      * Search quotations for async select pickers, restricted to approved quotations (only
      * approved quotations can have goods delivered or invoiced against them).
@@ -100,10 +103,16 @@ class QuotationController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
         $status = $request->string('status')->toString();
-        $sortBy = in_array($request->string('sort_by')->toString(), ['created_at', 'valid_until', 'total'])
-            ? $request->string('sort_by')->toString()
-            : 'created_at';
-        $sort = $request->string('sort', 'desc')->toString() === 'asc' ? 'asc' : 'desc';
+        $sort = in_array($request->string('sort')->toString(), ['latest', 'oldest', 'higher_amount', 'lower_amount'])
+            ? $request->string('sort')->toString()
+            : 'latest';
+
+        [$sortColumn, $sortDirection] = match ($sort) {
+            'oldest' => ['created_at', 'asc'],
+            'higher_amount' => ['total', 'desc'],
+            'lower_amount' => ['total', 'asc'],
+            default => ['created_at', 'desc'],
+        };
 
         $quotations = Quotation::query()
             ->where('is_current', true)
@@ -118,13 +127,13 @@ class QuotationController extends Controller
                 });
             })
             ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->orderBy($sortBy, $sort)
+            ->orderBy($sortColumn, $sortDirection)
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('quotations/index', [
             'quotations' => $quotations,
-            'filters' => ['search' => $search, 'status' => $status, 'sort_by' => $sortBy, 'sort' => $sort],
+            'filters' => ['search' => $search, 'status' => $status, 'sort' => $sort],
         ]);
     }
 
@@ -176,6 +185,19 @@ class QuotationController extends Controller
             ]);
 
             $this->syncGroupsAndItems($quotation, $data);
+
+            $bomData = $data['bom'] ?? null;
+
+            if ($bomData && $this->bomService->hasItems($bomData)) {
+                $bom = Bom::create([
+                    'quotation_id' => $quotation->id,
+                    'remarks' => $bomData['remarks'] ?? null,
+                    'overhead_percentage' => $bomData['overhead_percentage'] ?? null,
+                    'selling_percentage' => $bomData['selling_percentage'] ?? null,
+                ]);
+
+                $this->bomService->syncGroupsAndItems($bom, $bomData);
+            }
 
             return $quotation;
         });

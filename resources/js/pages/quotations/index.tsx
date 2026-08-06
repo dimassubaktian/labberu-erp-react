@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn, formatDate, formatNumber } from '@/lib/utils';
+import { show as showCustomer } from '@/routes/customers';
+import { show as showProject } from '@/routes/projects';
 import { create, index as quotationsIndex, show } from '@/routes/quotations';
 import type { Paginated } from '@/types';
 
@@ -36,9 +38,11 @@ type Quotation = {
     created_at: string;
     project: {
         id: number;
+        uuid: string;
         name: string;
         customer: {
             id: number;
+            uuid: string;
             name: string;
         };
     };
@@ -49,13 +53,11 @@ type Quotation = {
     };
 };
 
-type Sort = 'asc' | 'desc';
-type SortBy = 'created_at' | 'valid_until' | 'total';
+type Sort = 'latest' | 'oldest' | 'higher_amount' | 'lower_amount';
 
 type Filters = {
     search: string;
     status: string;
-    sort_by: SortBy;
     sort: Sort;
 };
 
@@ -73,36 +75,39 @@ const STATUS_OPTIONS = [
     { value: 'cancelled', label: 'Cancelled' },
 ];
 
+const SORT_OPTIONS: { value: Sort; label: string }[] = [
+    { value: 'latest', label: 'Latest' },
+    { value: 'oldest', label: 'Oldest' },
+    { value: 'higher_amount', label: 'Higher amount' },
+    { value: 'lower_amount', label: 'Lower amount' },
+];
+
 const DEFAULT_FILTERS: Filters = {
     search: '',
     status: 'all',
-    sort_by: 'created_at',
-    sort: 'desc',
+    sort: 'latest',
 };
 
 export default function QuotationsIndex({ quotations, filters }: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [status, setStatus] = React.useState(filters.status || 'all');
-    const [sortBy, setSortBy] = React.useState<SortBy>(filters.sort_by || 'created_at');
-    const [sort, setSort] = React.useState<Sort>(filters.sort || 'desc');
+    const [sort, setSort] = React.useState<Sort>(filters.sort || 'latest');
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasActiveFilters =
         search !== DEFAULT_FILTERS.search ||
         status !== DEFAULT_FILTERS.status ||
-        sortBy !== DEFAULT_FILTERS.sort_by ||
         sort !== DEFAULT_FILTERS.sort;
 
-    function applyFilters(overrides: Partial<{ search: string; status: string; sort_by: SortBy; sort: Sort }>): void {
-        const next = { search, status, sort_by: sortBy, sort, ...overrides };
+    function applyFilters(overrides: Partial<Filters>): void {
+        const next = { search, status, sort, ...overrides };
 
         router.get(
             quotationsIndex.url({
                 query: {
                     search: next.search || undefined,
                     status: next.status !== 'all' ? next.status : undefined,
-                    sort_by: next.sort_by !== 'created_at' ? next.sort_by : undefined,
-                    sort: next.sort !== 'desc' ? next.sort : undefined,
+                    sort: next.sort !== 'latest' ? next.sort : undefined,
                 },
             }),
             {},
@@ -127,11 +132,9 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
         applyFilters({ status: value });
     }
 
-    function handleSortChange(column: SortBy): void {
-        const nextSort: Sort = sortBy === column && sort === 'desc' ? 'asc' : 'desc';
-        setSortBy(column);
-        setSort(nextSort);
-        applyFilters({ sort_by: column, sort: nextSort });
+    function handleSortChange(value: string): void {
+        setSort(value as Sort);
+        applyFilters({ sort: value as Sort });
     }
 
     function handleReset(): void {
@@ -141,22 +144,12 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
 
         setSearch(DEFAULT_FILTERS.search);
         setStatus(DEFAULT_FILTERS.status);
-        setSortBy(DEFAULT_FILTERS.sort_by);
         setSort(DEFAULT_FILTERS.sort);
 
         router.get(
             quotationsIndex.url(),
             {},
             { preserveState: true, preserveScroll: true, replace: true },
-        );
-    }
-
-    function SortIcon({ column }: { column: SortBy }) {
-        if (sortBy !== column) return null;
-        return sort === 'desc' ? (
-            <ArrowDown className="size-3.5" />
-        ) : (
-            <ArrowUp className="size-3.5" />
         );
     }
 
@@ -204,6 +197,19 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         </SelectContent>
                     </Select>
 
+                    <Select value={sort} onValueChange={handleSortChange}>
+                        <SelectTrigger className="w-full sm:w-44">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {SORT_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     {hasActiveFilters && (
                         <Button
                             variant="ghost"
@@ -225,36 +231,9 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                                 <TableHead>Customer</TableHead>
                                 <TableHead>Version</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSortChange('valid_until')}
-                                        className="inline-flex items-center gap-1 hover:text-foreground"
-                                    >
-                                        Valid until
-                                        <SortIcon column="valid_until" />
-                                    </button>
-                                </TableHead>
-                                <TableHead>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSortChange('total')}
-                                        className="inline-flex items-center gap-1 hover:text-foreground"
-                                    >
-                                        Total
-                                        <SortIcon column="total" />
-                                    </button>
-                                </TableHead>
-                                <TableHead>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSortChange('created_at')}
-                                        className="inline-flex items-center gap-1 hover:text-foreground"
-                                    >
-                                        Created date
-                                        <SortIcon column="created_at" />
-                                    </button>
-                                </TableHead>
+                                <TableHead>Valid until</TableHead>
+                                <TableHead>Total</TableHead>
+                                <TableHead>Created date</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -277,10 +256,14 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                                         </Link>
                                     </TableCell>
                                     <TableCell>
-                                        {quotation.project.name}
+                                        <Link href={showProject(quotation.project).url}>
+                                            {quotation.project.name}
+                                        </Link>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {quotation.project.customer.name}
+                                        <Link href={showCustomer(quotation.project.customer).url}>
+                                            {quotation.project.customer.name}
+                                        </Link>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {quotation.version_major}.

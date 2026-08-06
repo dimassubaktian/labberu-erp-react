@@ -19,6 +19,11 @@ class PurchaseOrderIssueRequest extends FormRequest
             && $purchaseOrder->status === 'draft';
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['issued_by_id' => auth()->user()?->workforce?->id]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
