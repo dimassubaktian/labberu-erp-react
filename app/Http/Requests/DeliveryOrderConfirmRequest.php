@@ -16,8 +16,7 @@ class DeliveryOrderConfirmRequest extends FormRequest
         $deliveryOrder = $this->route('deliveryOrder');
 
         return $deliveryOrder instanceof DeliveryOrder
-            && $deliveryOrder->status === 'draft'
-            && $this->user()?->workforce !== null;
+            && $deliveryOrder->status === 'draft';
     }
 
     /**
@@ -27,6 +26,8 @@ class DeliveryOrderConfirmRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'delivered_by_id' => ['required', 'integer', 'exists:workforces,id'],
+        ];
     }
 }

@@ -16,7 +16,15 @@ return new class extends Migration
             $table->dropUnique(['email']);
         });
 
-        DB::statement('create unique index workforces_email_active_unique on workforces (email) where deleted_at is null');
+        if (DB::getDriverName() === 'mysql') {
+            // MySQL does not support partial indexes. A virtual generated column bridges the gap:
+            // active rows key on email (enforcing uniqueness), deleted rows key on the always-unique uuid.
+            DB::statement('ALTER TABLE workforces ADD COLUMN email_unique_key VARCHAR(255) GENERATED ALWAYS AS (IF(deleted_at IS NULL, email, uuid)) VIRTUAL');
+            DB::statement('CREATE UNIQUE INDEX workforces_email_active_unique ON workforces (email_unique_key)');
+        } else {
+            // SQLite supports expression indexes directly.
+            DB::statement('CREATE UNIQUE INDEX workforces_email_active_unique ON workforces (CASE WHEN deleted_at IS NULL THEN email ELSE uuid END)');
+        }
     }
 
     /**
@@ -24,7 +32,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('drop index workforces_email_active_unique');
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('DROP INDEX workforces_email_active_unique ON workforces');
+            DB::statement('ALTER TABLE workforces DROP COLUMN email_unique_key');
+        } else {
+            DB::statement('DROP INDEX workforces_email_active_unique');
+        }
 
         Schema::table('workforces', function (Blueprint $table) {
             $table->unique('email');

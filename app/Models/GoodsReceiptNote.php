@@ -46,7 +46,8 @@ class GoodsReceiptNote extends Model
      */
     private const array TRANSITIONS = [
         'draft' => ['confirmed'],
-        'confirmed' => [],
+        'confirmed' => ['cancelled'],
+        'cancelled' => [],
     ];
 
     /**

@@ -23,7 +23,15 @@ return new class extends Migration
             $table->softDeletes();
         });
 
-        DB::statement('create unique index currencies_iso_code_active_unique on currencies (iso_code) where deleted_at is null');
+        if (DB::getDriverName() === 'mysql') {
+            // MySQL does not support partial indexes. A virtual generated column bridges the gap:
+            // active rows key on iso_code (enforcing uniqueness), deleted rows key on the always-unique uuid.
+            DB::statement('ALTER TABLE currencies ADD COLUMN iso_code_unique_key VARCHAR(255) GENERATED ALWAYS AS (IF(deleted_at IS NULL, iso_code, uuid)) VIRTUAL');
+            DB::statement('CREATE UNIQUE INDEX currencies_iso_code_active_unique ON currencies (iso_code_unique_key)');
+        } else {
+            // SQLite supports expression indexes directly.
+            DB::statement('CREATE UNIQUE INDEX currencies_iso_code_active_unique ON currencies (CASE WHEN deleted_at IS NULL THEN iso_code ELSE uuid END)');
+        }
     }
 
     /**

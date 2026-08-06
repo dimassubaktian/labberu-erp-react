@@ -18,8 +18,7 @@ class PurchaseOrderApproveRequest extends FormRequest
         return $purchaseOrder instanceof PurchaseOrder
             && $purchaseOrder->status === 'issued'
             && $purchaseOrder->checked_by_1_id !== null
-            && $purchaseOrder->checked_by_2_id !== null
-            && $this->user()?->workforce !== null;
+            && $purchaseOrder->checked_by_2_id !== null;
     }
 
     /**
@@ -29,6 +28,8 @@ class PurchaseOrderApproveRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'approved_by_id' => ['required', 'integer', 'exists:workforces,id'],
+        ];
     }
 }

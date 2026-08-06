@@ -1,4 +1,5 @@
 import { Form, Head, Link, useHttp } from '@inertiajs/react';
+import { PackageCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -256,6 +257,7 @@ export default function DeliveryOrdersCreate({ initialQuotation }: Props) {
                                             size="sm"
                                             onClick={fillAllRemaining}
                                         >
+                                            <PackageCheck />
                                             Deliver all remaining
                                         </Button>
                                     )}

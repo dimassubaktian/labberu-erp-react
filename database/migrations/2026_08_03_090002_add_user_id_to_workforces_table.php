@@ -31,7 +31,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('drop index workforces_user_id_unique');
+        DB::statement('DROP INDEX workforces_user_id_unique ON workforces');
 
         Schema::table('workforces', function (Blueprint $table) {
             $table->dropColumn('user_id');

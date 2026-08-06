@@ -125,8 +125,8 @@ class PurchaseOrder extends Model
      */
     private const array PROGRESS_TRANSITIONS = [
         '' => ['sent'],
-        'sent' => [],
-        'partially_received' => [],
+        'sent' => ['partially_received', 'fully_received'],
+        'partially_received' => ['fully_received'],
         'fully_received' => ['closed'],
         'closed' => [],
     ];

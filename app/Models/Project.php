@@ -203,6 +203,23 @@ class Project extends Model
     }
 
     /**
+     * Recompute and persist actual_contract_value and actual_cost from the approved quotation.
+     * Pass null to clear both fields (e.g. when the quotation is voided).
+     */
+    public function recomputeActualValues(?Quotation $approvedQuotation = null): void
+    {
+        if ($approvedQuotation !== null) {
+            $this->actual_contract_value = $approvedQuotation->total;
+            $this->actual_cost = $approvedQuotation->bom?->total_cost;
+        } else {
+            $this->actual_contract_value = null;
+            $this->actual_cost = null;
+        }
+
+        $this->saveQuietly();
+    }
+
+    /**
      * Recompute and persist po_status from the project's purchase order progress values.
      */
     public function recomputePoStatus(): void

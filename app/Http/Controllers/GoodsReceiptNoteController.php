@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GoodsReceiptNoteCancelRequest;
 use App\Http\Requests\GoodsReceiptNoteConfirmRequest;
 use App\Http\Requests\GoodsReceiptNoteStoreRequest;
 use App\Http\Requests\GoodsReceiptNoteUpdateRequest;
@@ -159,7 +160,7 @@ class GoodsReceiptNoteController extends Controller
         DB::transaction(function () use ($request, $goodsReceiptNote): void {
             $goodsReceiptNote->update([
                 'status' => 'confirmed',
-                'received_by_id' => $request->user()->workforce->id,
+                'received_by_id' => $request->validated('received_by_id'),
                 'received_at' => now(),
             ]);
 
@@ -169,6 +170,30 @@ class GoodsReceiptNoteController extends Controller
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Goods receipt note confirmed.')]);
+
+        return to_route('goods-receipt-notes.show', $goodsReceiptNote);
+    }
+
+    /**
+     * Cancel the specified goods receipt note, reversing its stock movements and
+     * recomputing the linked purchase order's fulfillment progress.
+     */
+    public function cancel(GoodsReceiptNoteCancelRequest $request, GoodsReceiptNote $goodsReceiptNote): RedirectResponse
+    {
+        $goodsReceiptNote->load(['items', 'purchaseOrder.project', 'purchaseOrder.items']);
+
+        DB::transaction(function () use ($goodsReceiptNote): void {
+            StockMovement::query()
+                ->whereIn('goods_receipt_note_item_id', $goodsReceiptNote->items->pluck('id'))
+                ->delete();
+
+            $goodsReceiptNote->update(['status' => 'cancelled']);
+
+            $this->updatePurchaseOrderProgress($goodsReceiptNote->purchaseOrder);
+            $goodsReceiptNote->purchaseOrder->project->recomputePoStatus();
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Goods receipt note cancelled.')]);
 
         return to_route('goods-receipt-notes.show', $goodsReceiptNote);
     }
@@ -262,6 +287,8 @@ class GoodsReceiptNoteController extends Controller
         }
 
         if (! $anyReceived) {
+            $purchaseOrder->update(['progress' => null]);
+
             return;
         }
 

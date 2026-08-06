@@ -4,6 +4,7 @@ use App\Http\Controllers\BomController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryOrderController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvoiceController;
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\Route;
 Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('job-titles', [JobTitleController::class, 'index'])->name('job-titles.index')->middleware('permission:job-titles.view');
     Route::get('job-titles/create', [JobTitleController::class, 'create'])->name('job-titles.create')->middleware('permission:job-titles.create');
@@ -134,6 +135,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('delivery-orders/{deliveryOrder}', [DeliveryOrderController::class, 'update'])->name('delivery-orders.update')->middleware('permission:delivery-orders.update');
     Route::delete('delivery-orders/{deliveryOrder}', [DeliveryOrderController::class, 'destroy'])->name('delivery-orders.destroy')->middleware('permission:delivery-orders.delete');
     Route::patch('delivery-orders/{deliveryOrder}/confirm', [DeliveryOrderController::class, 'confirm'])->name('delivery-orders.confirm')->middleware('permission:delivery-orders.confirm');
+    Route::patch('delivery-orders/{deliveryOrder}/cancel', [DeliveryOrderController::class, 'cancel'])->name('delivery-orders.cancel')->middleware('permission:delivery-orders.cancel');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.view');
     Route::get('invoices/create', [InvoiceController::class, 'create'])->name('invoices.create')->middleware('permission:invoices.create');
@@ -180,6 +182,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'update'])->name('goods-receipt-notes.update')->middleware('permission:goods-receipt-notes.update');
     Route::delete('goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'destroy'])->name('goods-receipt-notes.destroy')->middleware('permission:goods-receipt-notes.delete');
     Route::patch('goods-receipt-notes/{goodsReceiptNote}/confirm', [GoodsReceiptNoteController::class, 'confirm'])->name('goods-receipt-notes.confirm')->middleware('permission:goods-receipt-notes.confirm');
+    Route::patch('goods-receipt-notes/{goodsReceiptNote}/cancel', [GoodsReceiptNoteController::class, 'cancel'])->name('goods-receipt-notes.cancel')->middleware('permission:goods-receipt-notes.cancel');
 
     Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('permission:users.view');
     Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');

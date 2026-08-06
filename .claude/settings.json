@@ -1,11 +1,34 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"CAVEMAN MODE DEFAULT: Respond like caveman throughout this session. Ultra-compressed, ~65% fewer tokens, full technical accuracy. No pleasantries, no padding, no verbose explanations. Short sentences. Grunt-level brevity.\"}}'",
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "codegraph prompt-hook"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph sync",
+            "async": true,
+            "statusMessage": "Syncing CodeGraph index..."
           }
         ]
       }

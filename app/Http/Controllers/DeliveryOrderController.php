@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\DeliveryOrderCancelRequest;
 use App\Http\Requests\DeliveryOrderConfirmRequest;
 use App\Http\Requests\DeliveryOrderStoreRequest;
 use App\Http\Requests\DeliveryOrderUpdateRequest;
@@ -159,7 +160,7 @@ class DeliveryOrderController extends Controller
         DB::transaction(function () use ($request, $deliveryOrder): void {
             $deliveryOrder->update([
                 'status' => 'confirmed',
-                'delivered_by_id' => $request->user()->workforce->id,
+                'delivered_by_id' => $request->validated('delivered_by_id'),
                 'delivered_at' => now(),
             ]);
 
@@ -169,6 +170,30 @@ class DeliveryOrderController extends Controller
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Delivery order confirmed.')]);
+
+        return to_route('delivery-orders.show', $deliveryOrder);
+    }
+
+    /**
+     * Cancel the specified delivery order, reversing its stock movements and
+     * recomputing the linked quotation's fulfillment progress.
+     */
+    public function cancel(DeliveryOrderCancelRequest $request, DeliveryOrder $deliveryOrder): RedirectResponse
+    {
+        $deliveryOrder->load(['items', 'quotation.project', 'quotation.items']);
+
+        DB::transaction(function () use ($deliveryOrder): void {
+            StockMovement::query()
+                ->whereIn('delivery_order_item_id', $deliveryOrder->items->pluck('id'))
+                ->delete();
+
+            $deliveryOrder->update(['status' => 'cancelled']);
+
+            $this->updateQuotationProgress($deliveryOrder->quotation);
+            $deliveryOrder->quotation->project->recomputeStatus();
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Delivery order cancelled.')]);
 
         return to_route('delivery-orders.show', $deliveryOrder);
     }
@@ -255,6 +280,8 @@ class DeliveryOrderController extends Controller
         }
 
         if (! $anyDelivered) {
+            $quotation->update(['progress' => 'signed']);
+
             return;
         }
 

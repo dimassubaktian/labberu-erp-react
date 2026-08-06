@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Bom;
 use App\Models\Quotation;
 use App\Models\User;
 
@@ -161,4 +162,59 @@ test('a user with the quotations.approval permission can approve and reject quot
         ->assertSessionHasNoErrors();
 
     expect($quotation->refresh()->status)->toBe('approved');
+});
+
+test('approving a quotation sets actual_contract_value and actual_cost from bom on the project', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create([
+        'status' => 'request_for_approval',
+        'total' => 2_000_000,
+    ]);
+    Bom::create([
+        'quotation_id' => $quotation->id,
+        'main_cost' => 800_000,
+        'overhead_percentage' => 0,
+        'overhead_cost' => 0,
+        'total_cost' => 800_000,
+        'selling_percentage' => 0,
+        'selling_cost' => 0,
+    ]);
+
+    $this->actingAs($user)->patch(route('quotations.status.update', $quotation), ['status' => 'approved']);
+
+    $project = $quotation->project->refresh();
+    expect((float) $project->actual_contract_value)->toBe(2_000_000.0);
+    expect((float) $project->actual_cost)->toBe(800_000.0);
+});
+
+test('approving a quotation without a bom sets actual_contract_value but leaves actual_cost null', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create([
+        'status' => 'request_for_approval',
+        'total' => 1_500_000,
+    ]);
+
+    $this->actingAs($user)->patch(route('quotations.status.update', $quotation), ['status' => 'approved']);
+
+    $project = $quotation->project->refresh();
+    expect((float) $project->actual_contract_value)->toBe(1_500_000.0);
+    expect($project->actual_cost)->toBeNull();
+});
+
+test('voiding an approved quotation clears actual_contract_value and actual_cost on the project', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create([
+        'status' => 'approved',
+        'total' => 2_000_000,
+    ]);
+    $quotation->project->update([
+        'actual_contract_value' => 2_000_000,
+        'actual_cost' => 800_000,
+    ]);
+
+    $this->actingAs($user)->patch(route('quotations.status.update', $quotation), ['status' => 'voided']);
+
+    $project = $quotation->project->refresh();
+    expect($project->actual_contract_value)->toBeNull();
+    expect($project->actual_cost)->toBeNull();
 });

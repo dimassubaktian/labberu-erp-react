@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Banknote, CircleCheck, Pencil, SendHorizonal, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -346,7 +346,10 @@ export default function InvoicesShow({ invoice }: Props) {
                         </h2>
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button>Issue</Button>
+                                <Button>
+                                    <SendHorizonal />
+                                    Issue
+                                </Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogTitle>Issue this invoice?</DialogTitle>
@@ -370,7 +373,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                {processing && <Spinner />}
+                                                {processing ? <Spinner /> : <SendHorizonal />}
                                                 Issue
                                             </Button>
                                         </DialogFooter>
@@ -513,6 +516,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                                 }
                                             }}
                                         >
+                                            <Banknote />
                                             Pay all remaining
                                         </Button>
                                     </div>
@@ -621,7 +625,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                             type="submit"
                                             disabled={processing}
                                         >
-                                            {processing && <Spinner />}
+                                            {processing ? <Spinner /> : <CircleCheck />}
                                             Record Payment
                                         </Button>
                                     </div>

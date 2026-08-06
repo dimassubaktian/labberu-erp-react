@@ -1,4 +1,5 @@
 import { Form, Head, Link, setLayoutProps, useHttp } from '@inertiajs/react';
+import { ReceiptText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -343,6 +344,7 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
                                             size="sm"
                                             onClick={fillAllRemaining}
                                         >
+                                            <ReceiptText />
                                             Invoice all remaining
                                         </Button>
                                     )}

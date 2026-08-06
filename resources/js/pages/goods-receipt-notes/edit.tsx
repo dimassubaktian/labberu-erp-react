@@ -1,4 +1,5 @@
 import { Form, Head, Link, setLayoutProps, useHttp } from '@inertiajs/react';
+import { CheckCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -160,6 +161,36 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
         }));
     }
 
+    function fillAllRemaining(): void {
+        setItemStates((current) =>
+            Object.fromEntries(
+                poItems.map((item) => [
+                    item.id,
+                    {
+                        ...(current[item.id] ?? emptyItemState()),
+                        quantity_accepted: String(item.remaining),
+                        quantity_rejected: '0',
+                    },
+                ]),
+            ),
+        );
+    }
+
+    function rejectAllRemaining(): void {
+        setItemStates((current) =>
+            Object.fromEntries(
+                poItems.map((item) => [
+                    item.id,
+                    {
+                        ...(current[item.id] ?? emptyItemState()),
+                        quantity_accepted: '0',
+                        quantity_rejected: String(item.remaining),
+                    },
+                ]),
+            ),
+        );
+    }
+
     const submittableItems = poItems.filter((item) => {
         const state = itemStates[item.id];
 
@@ -253,9 +284,33 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                             </div>
 
                             <div>
-                                <h2 className="mb-4 text-base font-semibold">
-                                    Items
-                                </h2>
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-base font-semibold">
+                                        Items
+                                    </h2>
+                                    {!loadingItems && poItems.length > 0 && (
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={rejectAllRemaining}
+                                            >
+                                                <X />
+                                                Reject all remaining
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="default"
+                                                size="sm"
+                                                onClick={fillAllRemaining}
+                                            >
+                                                <CheckCheck />
+                                                Accept all remaining
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                                 <InputError message={errors.items} />
 
                                 {loadingItems && (

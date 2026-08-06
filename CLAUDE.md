@@ -1,8 +1,3 @@
-## Session Start
-
-- At the start of each new session, `Read` `HANDOFF.md` first — it indexes prior work and
-  links to `docs/handoff/*.md` for topic-specific detail.
-
 <laravel-boost-guidelines>
 === foundation rules ===
 

@@ -1,5 +1,6 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, GitBranch, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Check, ClipboardCheck, GitBranch, ListPlus, PenLine, Pencil, ReceiptText, ScrollText, Send, ShoppingCart, Trash2, Truck, Undo2, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +56,7 @@ import { update as updateStatus } from '@/routes/quotations/status';
 type StatusAction = {
     status: string;
     label: string;
+    icon?: LucideIcon;
     variant?: 'default' | 'outline' | 'destructive';
     confirmTitle: string;
     confirmDescription: string;
@@ -67,6 +69,7 @@ function statusActions(status: string): StatusAction[] {
                 {
                     status: 'request_for_approval',
                     label: 'Submit for Approval',
+                    icon: ClipboardCheck,
                     confirmTitle: 'Submit this quotation for approval?',
                     confirmDescription:
                         'The quotation will be locked from further edits until it is approved or rejected.',
@@ -74,6 +77,7 @@ function statusActions(status: string): StatusAction[] {
                 {
                     status: 'cancelled',
                     label: 'Cancel Quotation',
+                    icon: Ban,
                     variant: 'destructive',
                     confirmTitle: 'Cancel this quotation?',
                     confirmDescription:
@@ -85,6 +89,7 @@ function statusActions(status: string): StatusAction[] {
                 {
                     status: 'approved',
                     label: 'Approve',
+                    icon: Check,
                     confirmTitle: 'Approve this quotation?',
                     confirmDescription:
                         'You will be recorded as the approver and the quotation will be marked approved.',
@@ -92,6 +97,7 @@ function statusActions(status: string): StatusAction[] {
                 {
                     status: 'rejected',
                     label: 'Reject',
+                    icon: X,
                     variant: 'destructive',
                     confirmTitle: 'Reject this quotation?',
                     confirmDescription:
@@ -100,6 +106,7 @@ function statusActions(status: string): StatusAction[] {
                 {
                     status: 'draft',
                     label: 'Cancel Request Approval',
+                    icon: Undo2,
                     variant: 'destructive',
                     confirmTitle: 'Cancel this approval request?',
                     confirmDescription:
@@ -111,6 +118,7 @@ function statusActions(status: string): StatusAction[] {
                 {
                     status: 'voided',
                     label: 'Void Quotation',
+                    icon: Ban,
                     variant: 'destructive',
                     confirmTitle: 'Void this quotation?',
                     confirmDescription:
@@ -125,6 +133,7 @@ function statusActions(status: string): StatusAction[] {
 type ProgressAction = {
     progress: string;
     label: string;
+    icon?: LucideIcon;
     confirmTitle: string;
     confirmDescription: string;
 };
@@ -136,6 +145,7 @@ function progressActions(progress: string | null): ProgressAction[] {
                 {
                     progress: 'sent',
                     label: 'Mark as Sent',
+                    icon: Send,
                     confirmTitle: 'Mark this quotation as sent?',
                     confirmDescription:
                         'This records that the quotation has been sent to the customer.',
@@ -146,6 +156,7 @@ function progressActions(progress: string | null): ProgressAction[] {
                 {
                     progress: 'signed',
                     label: 'Mark as Signed',
+                    icon: PenLine,
                     confirmTitle: 'Mark this quotation as signed?',
                     confirmDescription:
                         'This confirms the customer has signed the quotation, so the project can continue to the next step.',
@@ -319,6 +330,8 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
         quotation.status === 'approved'
             ? progressActions(quotation.progress)
             : [];
+    const voidAction = actions.find((a) => a.status === 'voided') ?? null;
+    const workflowActions = actions.filter((a) => a.status !== 'voided');
 
     return (
         <>
@@ -331,7 +344,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                         description={`Version ${quotation.version_major}.${quotation.version_minor}`}
                     />
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                         <Button
                             variant="destructive"
                             asChild
@@ -350,6 +363,60 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                     Edit Quotation
                                 </Link>
                             </Button>
+                        )}
+
+                        {voidAction && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        {voidAction.icon && <voidAction.icon />}
+                                        {voidAction.label}
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        {voidAction.confirmTitle}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {voidAction.confirmDescription}
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...updateStatus.form(quotation)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <>
+                                                <input
+                                                    type="hidden"
+                                                    name="status"
+                                                    value={voidAction.status}
+                                                />
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Cancel
+                                                        </Button>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        {voidAction.label}
+                                                    </Button>
+                                                </DialogFooter>
+                                            </>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
                         )}
 
                         {quotation.status !== 'draft' &&
@@ -448,13 +515,13 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                     </div>
                 </div>
 
-                {actions.length > 0 && (
+                {workflowActions.length > 0 && (
                     <div>
                         <h2 className="mb-4 text-base font-semibold">
                             Workflow
                         </h2>
                         <div className="flex flex-wrap gap-3">
-                            {actions.map((action) => (
+                            {workflowActions.map((action) => (
                                 <Dialog key={action.status}>
                                     <DialogTrigger asChild>
                                         <Button
@@ -462,6 +529,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                                 action.variant ?? 'default'
                                             }
                                         >
+                                            {action.icon && <action.icon />}
                                             {action.label}
                                         </Button>
                                     </DialogTrigger>
@@ -528,7 +596,10 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                             {progressActionsList.map((action) => (
                                 <Dialog key={action.progress}>
                                     <DialogTrigger asChild>
-                                        <Button>{action.label}</Button>
+                                        <Button>
+                                            {action.icon && <action.icon />}
+                                            {action.label}
+                                        </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
@@ -999,6 +1070,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                             <div className="flex justify-end">
                                 <Button size="sm" asChild>
                                     <Link href={createBom(quotation)}>
+                                        <ListPlus />
                                         Create BOM
                                     </Link>
                                 </Button>
@@ -1064,6 +1136,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                         asChild
                                     >
                                         <Link href={showBom(quotation)}>
+                                            <ScrollText />
                                             View Bill of Materials
                                         </Link>
                                     </Button>
@@ -1074,6 +1147,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                             asChild
                                         >
                                             <Link href={editBom(quotation)}>
+                                                <Pencil />
                                                 Edit Bill of Materials
                                             </Link>
                                         </Button>
@@ -1099,6 +1173,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                             },
                                         })}
                                     >
+                                        <ShoppingCart />
                                         Create PO
                                     </Link>
                                 </Button>
@@ -1161,6 +1236,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                             },
                                         })}
                                     >
+                                        <Truck />
                                         Create DO
                                     </Link>
                                 </Button>
@@ -1218,6 +1294,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                             },
                                         })}
                                     >
+                                        <ReceiptText />
                                         Create Invoice
                                     </Link>
                                 </Button>

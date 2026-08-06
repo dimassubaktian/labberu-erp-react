@@ -1326,7 +1326,6 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                     />
                     <Button
                         type="button"
-                        variant="outline"
                         onClick={() => setDialogOpen(true)}
                     >
                         <Import />

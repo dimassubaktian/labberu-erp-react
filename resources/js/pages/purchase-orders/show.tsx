@@ -1,5 +1,6 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Send, Trash2, X } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +55,7 @@ type WorkforceOption = {
 type ProgressAction = {
     progress: string;
     label: string;
+    icon?: LucideIcon;
     confirmTitle: string;
     confirmDescription: string;
 };
@@ -65,6 +67,7 @@ function progressActions(progress: string | null): ProgressAction[] {
                 {
                     progress: 'sent',
                     label: 'Mark as Sent',
+                    icon: Mail,
                     confirmTitle: 'Mark this purchase order as sent?',
                     confirmDescription:
                         'This records that the purchase order has been sent to the vendor.',
@@ -222,7 +225,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         description={purchaseOrder.project_name}
                     />
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
                         <Button
                             variant="destructive"
                             asChild
@@ -242,6 +245,50 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                     Edit Purchase Order
                                 </Link>
                             </Button>
+                        )}
+
+                        {canVoid && purchaseOrder.status === 'approved' && (
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full sm:w-auto">
+                                        <Ban />Void Purchase Order
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Void this purchase order?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This marks the approved purchase order
+                                        as voided. This action cannot be undone.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...voidPurchaseOrder.form(
+                                            purchaseOrder,
+                                        )}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Keep
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Void Purchase Order
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
                         )}
                     </div>
                 </div>
@@ -647,6 +694,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                         },
                                     })}
                                 >
+                                    <ClipboardList />
                                     Create GRN
                                 </Link>
                             </Button>
@@ -778,7 +826,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         {canIssue && purchaseOrder.status === 'draft' && (
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button>Issue</Button>
+                                    <Button><Send />Issue</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogTitle>
@@ -820,7 +868,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             !purchaseOrder.checked_by_first && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button>Sign as Checker 1</Button>
+                                        <Button><PenLine />Sign as Checker 1</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
@@ -868,7 +916,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             !purchaseOrder.checked_by_second && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button>Sign as Checker 2</Button>
+                                        <Button><PenLine />Sign as Checker 2</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
@@ -916,7 +964,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             bothCheckersSigned && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button>Approve</Button>
+                                        <Button><Check />Approve</Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
@@ -957,7 +1005,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
-                                        Reject
+                                        <X />Reject
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -1021,7 +1069,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
-                                        Cancel Purchase Order
+                                        <Ban />Cancel Purchase Order
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -1059,49 +1107,6 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             </Dialog>
                         )}
 
-                        {canVoid && purchaseOrder.status === 'approved' && (
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        Void Purchase Order
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogTitle>
-                                        Void this purchase order?
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        This marks the approved purchase order
-                                        as voided. This action cannot be undone.
-                                    </DialogDescription>
-
-                                    <Form
-                                        {...voidPurchaseOrder.form(
-                                            purchaseOrder,
-                                        )}
-                                        options={{ preserveScroll: true }}
-                                    >
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Keep
-                                                    </Button>
-                                                </DialogClose>
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    {processing && <Spinner />}
-                                                    Void Purchase Order
-                                                </Button>
-                                            </DialogFooter>
-                                        )}
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
-                        )}
                     </div>
                 </div>
 
@@ -1114,7 +1119,10 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             {progressActionsList.map((action) => (
                                 <Dialog key={action.progress}>
                                     <DialogTrigger asChild>
-                                        <Button>{action.label}</Button>
+                                        <Button>
+                                            {action.icon && <action.icon />}
+                                            {action.label}
+                                        </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>

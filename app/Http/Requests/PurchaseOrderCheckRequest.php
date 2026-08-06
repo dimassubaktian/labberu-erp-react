@@ -21,10 +21,6 @@ class PurchaseOrderCheckRequest extends FormRequest
 
         $slot = (int) $this->input('slot');
 
-        if ($this->user()?->workforce === null) {
-            return false;
-        }
-
         return match ($slot) {
             1 => $purchaseOrder->checked_by_1_id === null,
             2 => $purchaseOrder->checked_by_2_id === null,
@@ -41,6 +37,7 @@ class PurchaseOrderCheckRequest extends FormRequest
     {
         return [
             'slot' => ['required', 'integer', 'in:1,2'],
+            'checked_by_id' => ['required', 'integer', 'exists:workforces,id'],
         ];
     }
 }

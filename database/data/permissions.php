@@ -14,10 +14,10 @@ return [
     'projects' => ['view', 'create', 'update', 'delete', 'attachments.create', 'attachments.delete'],
     'quotations' => ['view', 'create', 'update', 'delete', 'status.update', 'progress.update', 'revisions.create', 'approval'],
     'bom' => ['view', 'create', 'update', 'delete'],
-    'delivery-orders' => ['view', 'create', 'update', 'delete', 'confirm'],
+    'delivery-orders' => ['view', 'create', 'update', 'delete', 'confirm', 'cancel'],
     'invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.delete'],
     'purchase-orders' => ['view', 'create', 'update', 'delete', 'issue', 'check', 'approve', 'reject', 'cancel', 'void', 'progress.update'],
-    'goods-receipt-notes' => ['view', 'create', 'update', 'delete', 'confirm'],
+    'goods-receipt-notes' => ['view', 'create', 'update', 'delete', 'confirm', 'cancel'],
     'users' => ['view', 'create', 'update', 'delete'],
     'roles' => ['view', 'create', 'update', 'delete'],
 ];

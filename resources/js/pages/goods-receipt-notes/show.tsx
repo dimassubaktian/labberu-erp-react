@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { confirm, destroy, edit, index } from '@/routes/goods-receipt-notes';
+import { cancel, confirm, destroy, edit, index } from '@/routes/goods-receipt-notes';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 
 type WorkforceOption = {
@@ -70,6 +70,7 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
     const { auth } = usePage().props;
     const hasWorkforce = auth.workforce_id !== null;
     const canConfirm = hasWorkforce && auth.permissions.includes('goods-receipt-notes.confirm');
+    const canCancel = auth.permissions.includes('goods-receipt-notes.cancel');
 
     setLayoutProps({
         breadcrumbs: [
@@ -260,7 +261,10 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                         </h2>
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button>Confirm</Button>
+                                <Button>
+                                    <PackageCheck />
+                                    Confirm
+                                </Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogTitle>
@@ -288,7 +292,7 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                {processing && <Spinner />}
+                                                {processing ? <Spinner /> : <PackageCheck />}
                                                 Confirm
                                             </Button>
                                         </DialogFooter>
@@ -296,6 +300,74 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                 </Form>
                             </DialogContent>
                         </Dialog>
+                    </div>
+                )}
+
+                {goodsReceiptNote.status === 'confirmed' && canCancel && (
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Cancel this goods receipt note
+                                </p>
+                                <p className="text-sm">
+                                    Reverses stock movements and recomputes
+                                    purchase order progress. This action cannot
+                                    be undone.
+                                </p>
+                            </div>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Ban />
+                                        Cancel GRN
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Cancel &quot;
+                                        {goodsReceiptNote.grn_code}
+                                        &quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Stock movements will be reversed and the
+                                        purchase order&apos;s fulfillment
+                                        progress will be recomputed. This action
+                                        cannot be undone.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...cancel.form(goodsReceiptNote)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Keep
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Cancel GRN
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
                 )}
 

@@ -96,17 +96,35 @@ class QuotationController extends Controller
     /**
      * Display a listing of the quotations.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = $request->string('search')->trim()->toString();
+        $status = $request->string('status')->toString();
+        $sortBy = in_array($request->string('sort_by')->toString(), ['created_at', 'valid_until', 'total'])
+            ? $request->string('sort_by')->toString()
+            : 'created_at';
+        $sort = $request->string('sort', 'desc')->toString() === 'asc' ? 'asc' : 'desc';
+
         $quotations = Quotation::query()
             ->where('is_current', true)
             ->with(['project.customer', 'currency'])
-            ->orderByDesc('created_at')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($inner) use ($search): void {
+                    $inner->where('quotation_code', 'like', "%{$search}%")
+                        ->orWhereHas('project', function ($q) use ($search): void {
+                            $q->where('name', 'like', "%{$search}%")
+                                ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+                        });
+                });
+            })
+            ->when($status !== '', fn ($query) => $query->where('status', $status))
+            ->orderBy($sortBy, $sort)
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('quotations/index', [
             'quotations' => $quotations,
+            'filters' => ['search' => $search, 'status' => $status, 'sort_by' => $sortBy, 'sort' => $sort],
         ]);
     }
 
@@ -392,6 +410,12 @@ class QuotationController extends Controller
         ]);
 
         $quotation->project->recomputeSalesStatus();
+
+        if ($status === 'approved') {
+            $quotation->project->recomputeActualValues($quotation);
+        } elseif ($status === 'voided') {
+            $quotation->project->recomputeActualValues(null);
+        }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation status updated.')]);
 

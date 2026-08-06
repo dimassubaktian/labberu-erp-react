@@ -16,8 +16,7 @@ class GoodsReceiptNoteConfirmRequest extends FormRequest
         $goodsReceiptNote = $this->route('goodsReceiptNote');
 
         return $goodsReceiptNote instanceof GoodsReceiptNote
-            && $goodsReceiptNote->status === 'draft'
-            && $this->user()?->workforce !== null;
+            && $goodsReceiptNote->status === 'draft';
     }
 
     /**
@@ -27,6 +26,8 @@ class GoodsReceiptNoteConfirmRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'received_by_id' => ['required', 'integer', 'exists:workforces,id'],
+        ];
     }
 }

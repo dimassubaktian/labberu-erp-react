@@ -72,9 +72,9 @@ test('quotation detail page includes purchase orders raised against it', functio
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('quotations/show')
-            ->has('quotation.purchase_orders', 1)
-            ->where('quotation.purchase_orders.0.id', $purchaseOrder->id)
-            ->where('quotation.purchase_orders.0.purchase_order_code', $purchaseOrder->purchase_order_code),
+            ->has('purchaseOrders', 1)
+            ->where('purchaseOrders.0.id', $purchaseOrder->id)
+            ->where('purchaseOrders.0.purchase_order_code', $purchaseOrder->purchase_order_code),
         );
 });
 

@@ -300,7 +300,7 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->update([
             'status' => 'issued',
-            'issued_by_id' => $request->user()->workforce->id,
+            'issued_by_id' => $request->validated('issued_by_id'),
             'issued_at' => now(),
             'rejection_reason' => null,
         ]);
@@ -318,7 +318,7 @@ class PurchaseOrderController extends Controller
         $slot = (int) $request->validated('slot');
 
         $purchaseOrder->update([
-            "checked_by_{$slot}_id" => $request->user()->workforce->id,
+            "checked_by_{$slot}_id" => $request->validated('checked_by_id'),
             "checked_by_{$slot}_at" => now(),
         ]);
 
@@ -334,7 +334,7 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->update([
             'status' => 'approved',
-            'approved_by_id' => $request->user()->workforce->id,
+            'approved_by_id' => $request->validated('approved_by_id'),
             'approved_at' => now(),
         ]);
 

@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { confirm, destroy, edit, index } from '@/routes/delivery-orders';
+import { cancel, confirm, destroy, edit, index } from '@/routes/delivery-orders';
 import { show as showQuotation } from '@/routes/quotations';
 
 type WorkforceOption = {
@@ -68,6 +68,7 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
     const { auth } = usePage().props;
     const hasWorkforce = auth.workforce_id !== null;
     const canConfirm = hasWorkforce && auth.permissions.includes('delivery-orders.confirm');
+    const canCancel = auth.permissions.includes('delivery-orders.cancel');
 
     setLayoutProps({
         breadcrumbs: [
@@ -237,7 +238,10 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                         </h2>
                         <Dialog>
                             <DialogTrigger asChild>
-                                <Button>Confirm</Button>
+                                <Button>
+                                    <PackageCheck />
+                                    Confirm
+                                </Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogTitle>
@@ -265,7 +269,7 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                {processing && <Spinner />}
+                                                {processing ? <Spinner /> : <PackageCheck />}
                                                 Confirm delivery
                                             </Button>
                                         </DialogFooter>
@@ -273,6 +277,74 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 </Form>
                             </DialogContent>
                         </Dialog>
+                    </div>
+                )}
+
+                {deliveryOrder.status === 'confirmed' && canCancel && (
+                    <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
+                        <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
+                            Danger Zone
+                        </h2>
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Cancel this delivery order
+                                </p>
+                                <p className="text-sm">
+                                    Reverses stock movements and recomputes
+                                    quotation progress. This action cannot be
+                                    undone.
+                                </p>
+                            </div>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Ban />
+                                        Cancel Delivery Order
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Cancel &quot;
+                                        {deliveryOrder.do_code}
+                                        &quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Stock movements will be reversed and the
+                                        quotation&apos;s fulfillment progress
+                                        will be recomputed. This action cannot
+                                        be undone.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...cancel.form(deliveryOrder)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Keep
+                                                    </Button>
+                                                </DialogClose>
+                                                <Button
+                                                    type="submit"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                >
+                                                    {processing && <Spinner />}
+                                                    Cancel Delivery Order
+                                                </Button>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
                     </div>
                 )}
 

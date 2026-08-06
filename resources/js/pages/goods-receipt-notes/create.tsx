@@ -1,4 +1,5 @@
 import { Form, Head, Link, useHttp } from '@inertiajs/react';
+import { CheckCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -164,6 +165,22 @@ export default function GoodsReceiptNotesCreate({
                     {
                         ...(current[item.id] ?? emptyItemState()),
                         quantity_accepted: String(item.remaining),
+                        quantity_rejected: '0',
+                    },
+                ]),
+            ),
+        );
+    }
+
+    function rejectAllRemaining(): void {
+        setItemStates((current) =>
+            Object.fromEntries(
+                poItems.map((item) => [
+                    item.id,
+                    {
+                        ...(current[item.id] ?? emptyItemState()),
+                        quantity_accepted: '0',
+                        quantity_rejected: String(item.remaining),
                     },
                 ]),
             ),
@@ -265,14 +282,26 @@ export default function GoodsReceiptNotesCreate({
                                         Items
                                     </h2>
                                     {!loadingItems && poItems.length > 0 && (
-                                        <Button
-                                            type="button"
-                                            variant="default"
-                                            size="sm"
-                                            onClick={fillAllRemaining}
-                                        >
-                                            Accept all remaining
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={rejectAllRemaining}
+                                            >
+                                                <X />
+                                                Reject all remaining
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="default"
+                                                size="sm"
+                                                onClick={fillAllRemaining}
+                                            >
+                                                <CheckCheck />
+                                                Accept all remaining
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                                 <InputError message={errors.items} />

@@ -2,21 +2,21 @@
 
 namespace App\Http\Requests;
 
-use App\Models\PurchaseOrder;
+use App\Models\DeliveryOrder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class PurchaseOrderIssueRequest extends FormRequest
+class DeliveryOrderCancelRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        $purchaseOrder = $this->route('purchaseOrder');
+        $deliveryOrder = $this->route('deliveryOrder');
 
-        return $purchaseOrder instanceof PurchaseOrder
-            && $purchaseOrder->status === 'draft';
+        return $deliveryOrder instanceof DeliveryOrder
+            && $deliveryOrder->status === 'confirmed';
     }
 
     /**
@@ -26,8 +26,6 @@ class PurchaseOrderIssueRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'issued_by_id' => ['required', 'integer', 'exists:workforces,id'],
-        ];
+        return [];
     }
 }
