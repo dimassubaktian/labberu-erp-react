@@ -39,6 +39,10 @@ type Project = {
         id: number;
         name: string;
     };
+    business_line: {
+        id: number;
+        name: string;
+    } | null;
 };
 
 type Sort = 'asc' | 'desc';
@@ -241,6 +245,7 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                 <TableHead>Project code</TableHead>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Customer</TableHead>
+                                <TableHead>Business Line</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Sales</TableHead>
                                 <TableHead>PO</TableHead>
@@ -266,7 +271,7 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                             {projects.data.length === 0 && (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={9}
+                                        colSpan={10}
                                         className="h-24 text-center text-muted-foreground"
                                     >
                                         No projects found.
@@ -288,6 +293,9 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {project.customer.name}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {project.business_line?.name ?? <span>&mdash;</span>}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
  * @property string $project_code
  * @property string $name
  * @property int $customer_id
+ * @property int|null $business_line_id
  * @property Carbon $request_date
  * @property int|null $person_in_charge_id
  * @property string|null $description
@@ -41,6 +42,7 @@ use Illuminate\Support\Str;
 #[Fillable([
     'name',
     'customer_id',
+    'business_line_id',
     'request_date',
     'person_in_charge_id',
     'description',
@@ -99,6 +101,16 @@ class Project extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /**
+     * Get the business line this project belongs to.
+     *
+     * @return BelongsTo<BusinessLine, $this>
+     */
+    public function businessLine(): BelongsTo
+    {
+        return $this->belongsTo(BusinessLine::class);
     }
 
     /**

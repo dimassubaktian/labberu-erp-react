@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProjectCancelRequest;
 use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectUpdateRequest;
+use App\Models\BusinessLine;
 use App\Models\Project;
 use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
@@ -61,7 +62,7 @@ class ProjectController extends Controller
         $sort = $request->string('sort', 'desc')->toString() === 'asc' ? 'asc' : 'desc';
 
         $projects = Project::query()
-            ->with('customer')
+            ->with('customer', 'businessLine:id,name')
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($inner) use ($search): void {
                     $inner->where('name', 'like', "%{$search}%")
@@ -95,8 +96,14 @@ class ProjectController extends Controller
             ->orderBy('full_name')
             ->get(['id', 'full_name']);
 
+        $businessLines = BusinessLine::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('projects/create', [
             'workforces' => $workforces,
+            'businessLines' => $businessLines,
         ]);
     }
 
@@ -151,9 +158,18 @@ class ProjectController extends Controller
             ->orderBy('full_name')
             ->get(['id', 'full_name']);
 
+        $businessLines = BusinessLine::query()
+            ->where(function ($query) use ($project): void {
+                $query->where('status', 'active')
+                    ->orWhere('id', $project->business_line_id);
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('projects/edit', [
             'project' => $project,
             'workforces' => $workforces,
+            'businessLines' => $businessLines,
         ]);
     }
 

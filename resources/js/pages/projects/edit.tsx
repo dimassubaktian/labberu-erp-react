@@ -30,6 +30,11 @@ type WorkforceOption = {
     full_name: string;
 };
 
+type BusinessLineOption = {
+    id: number;
+    name: string;
+};
+
 type Project = {
     id: number;
     uuid: string;
@@ -39,6 +44,7 @@ type Project = {
     customer: CustomerOption;
     request_date: string;
     person_in_charge_id: number | null;
+    business_line_id: number | null;
     description: string | null;
     status: string;
     priority: string;
@@ -54,16 +60,20 @@ type Project = {
 type Props = {
     project: Project;
     workforces: WorkforceOption[];
+    businessLines: BusinessLineOption[];
 };
 
 function toDateInputValue(value: string | null): string {
     return value ? value.slice(0, 10) : '';
 }
 
-export default function ProjectsEdit({ project, workforces }: Props) {
+export default function ProjectsEdit({ project, workforces, businessLines }: Props) {
     const [customerId, setCustomerId] = useState(String(project.customer_id));
     const [personInChargeId, setPersonInChargeId] = useState(
         project.person_in_charge_id ? String(project.person_in_charge_id) : '',
+    );
+    const [businessLineId, setBusinessLineId] = useState(
+        project.business_line_id ? String(project.business_line_id) : '',
     );
     const [status, setStatus] = useState(project.status);
     const [priority, setPriority] = useState(project.priority);
@@ -170,6 +180,41 @@ export default function ProjectsEdit({ project, workforces }: Props) {
                                 />
                                 <InputError
                                     message={errors.person_in_charge_id}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="business_line_id">
+                                    Business line
+                                </Label>
+                                <input
+                                    type="hidden"
+                                    name="business_line_id"
+                                    value={businessLineId}
+                                />
+                                <Select
+                                    value={businessLineId}
+                                    onValueChange={setBusinessLineId}
+                                >
+                                    <SelectTrigger
+                                        id="business_line_id"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Optional" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {businessLines.map((bl) => (
+                                            <SelectItem
+                                                key={bl.id}
+                                                value={String(bl.id)}
+                                            >
+                                                {bl.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={errors.business_line_id}
                                 />
                             </div>
 

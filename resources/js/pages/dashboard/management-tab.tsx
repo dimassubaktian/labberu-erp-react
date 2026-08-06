@@ -1,8 +1,9 @@
-import { Activity, DollarSign, TrendingUp, Users } from 'lucide-react';
+import { Activity, DollarSign, Layers, TrendingUp, Users } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, Tooltip, XAxis, YAxis } from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCompact } from '@/lib/utils';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -19,6 +20,7 @@ const FUNNEL_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#
 type MonthRow = { month: number; revenue: number; spend: number };
 type PipelineRow = { stage: string; count: number };
 type CustomerRow = { name: string; revenue: number };
+type BusinessLineRow = { name: string; project_count: number; total_revenue: number; total_cost: number; gross_profit: number; gross_margin: number };
 
 type Props = {
     year: number;
@@ -32,9 +34,10 @@ type Props = {
     projects_by_status: Record<string, number>;
     pipeline: PipelineRow[];
     top_customers: CustomerRow[];
+    business_line_stats: BusinessLineRow[];
 };
 
-export function ManagementTab({ year, kpis, monthly_chart, projects_by_status, pipeline, top_customers }: Props) {
+export function ManagementTab({ year, kpis, monthly_chart, projects_by_status, pipeline, top_customers, business_line_stats }: Props) {
     const chartData = monthly_chart.map((row) => ({
         month: MONTH_LABELS[row.month - 1],
         revenue: row.revenue,
@@ -144,6 +147,84 @@ export function ManagementTab({ year, kpis, monthly_chart, projects_by_status, p
                     </ChartContainer>
                 </SectionCard>
             </div>
+
+            {business_line_stats.length > 0 && (
+                <SectionCard title="Business Line Performance">
+                    <ChartContainer
+                        className="w-full"
+                        style={{ height: Math.max(200, business_line_stats.length * 80) }}
+                        config={{
+                            total_revenue: { label: 'Revenue', color: '#6366f1' },
+                            total_cost: { label: 'Cost', color: '#f59e0b' },
+                            gross_profit: { label: 'Gross Profit', color: '#22c55e' },
+                        }}
+                    >
+                        <BarChart layout="vertical" data={business_line_stats} margin={{ top: 4, right: 16, left: 4, bottom: 4 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" tickFormatter={(v) => formatCompact(v)} tick={{ fontSize: 11 }} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={96} />
+                            <Tooltip
+                                content={
+                                    <ChartTooltipContent
+                                        formatter={(value, name, item) => (
+                                            <>
+                                                <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                                                <div className="flex flex-1 items-center justify-between gap-4 leading-none">
+                                                    <span className="text-muted-foreground">{String(name)}</span>
+                                                    <span className="font-mono font-medium tabular-nums text-foreground">
+                                                        Rp {formatCompact(Number(value))}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                    />
+                                }
+                            />
+                            <Bar dataKey="total_revenue" fill="var(--color-total_revenue)" radius={[0, 3, 3, 0]} name="Revenue" />
+                            <Bar dataKey="total_cost" fill="var(--color-total_cost)" radius={[0, 3, 3, 0]} name="Cost" />
+                            <Bar dataKey="gross_profit" fill="var(--color-gross_profit)" radius={[0, 3, 3, 0]} name="Gross Profit" />
+                        </BarChart>
+                    </ChartContainer>
+
+                    <div className="mt-4 overflow-hidden rounded-lg border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Business Line</TableHead>
+                                    <TableHead className="text-right">Projects</TableHead>
+                                    <TableHead className="text-right">Revenue</TableHead>
+                                    <TableHead className="text-right">Cost</TableHead>
+                                    <TableHead className="text-right">Gross Profit</TableHead>
+                                    <TableHead className="text-right">Gross Margin</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {business_line_stats.map((row) => (
+                                    <TableRow key={row.name}>
+                                        <TableCell className="flex items-center gap-2 font-medium">
+                                            <Layers className="size-4 text-muted-foreground" />
+                                            {row.name}
+                                        </TableCell>
+                                        <TableCell className="text-right">{row.project_count}</TableCell>
+                                        <TableCell className="text-right">Rp {formatCompact(row.total_revenue)}</TableCell>
+                                        <TableCell className="text-right">Rp {formatCompact(row.total_cost)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <span className={row.gross_profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                Rp {formatCompact(row.gross_profit)}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <span className={row.gross_margin >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                                {row.gross_margin}%
+                                            </span>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </SectionCard>
+            )}
         </div>
     );
 }

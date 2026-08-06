@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessLine;
 use App\Models\Customer;
 use App\Models\GoodsReceiptNote;
 use App\Models\Invoice;
@@ -140,6 +141,38 @@ class DashboardController extends Controller
             ->map(fn ($row) => ['name' => $row->name, 'revenue' => (float) $row->total_revenue])
             ->toArray();
 
+        $businessLineStats = BusinessLine::query()
+            ->leftJoin('projects', function ($join): void {
+                $join->on('projects.business_line_id', '=', 'business_lines.id')
+                    ->whereNull('projects.deleted_at');
+            })
+            ->leftJoin('quotations', function ($join): void {
+                $join->on('quotations.project_id', '=', 'projects.id')
+                    ->whereNull('quotations.deleted_at')
+                    ->where('quotations.is_current', true);
+            })
+            ->leftJoin('invoices', function ($join): void {
+                $join->on('invoices.quotation_id', '=', 'quotations.id')
+                    ->whereNull('invoices.deleted_at')
+                    ->where('invoices.status', 'issued');
+            })
+            ->whereNull('business_lines.deleted_at')
+            ->selectRaw('business_lines.name, COUNT(DISTINCT projects.id) as project_count, COALESCE(SUM(invoices.total), 0) as total_revenue, COALESCE(SUM(projects.actual_cost), 0) as total_cost')
+            ->groupBy('business_lines.id', 'business_lines.name')
+            ->orderBy('business_lines.name')
+            ->get()
+            ->map(fn ($row) => [
+                'name' => $row->name,
+                'project_count' => (int) $row->project_count,
+                'total_revenue' => (float) $row->total_revenue,
+                'total_cost' => (float) $row->total_cost,
+                'gross_profit' => (float) $row->total_revenue - (float) $row->total_cost,
+                'gross_margin' => (float) $row->total_revenue > 0
+                    ? round((($row->total_revenue - $row->total_cost) / $row->total_revenue) * 100, 1)
+                    : 0,
+            ])
+            ->toArray();
+
         return [
             'year' => $year,
             'kpis' => [
@@ -159,6 +192,7 @@ class DashboardController extends Controller
                 ['stage' => 'Paid', 'count' => $paid],
             ],
             'top_customers' => $topCustomers,
+            'business_line_stats' => $businessLineStats,
         ];
     }
 

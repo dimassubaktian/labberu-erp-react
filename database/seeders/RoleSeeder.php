@@ -33,6 +33,7 @@ class RoleSeeder extends Seeder
             'vendors' => ['view'],
             'products' => ['view'],
             'workforces' => ['view'],
+            'business-lines' => ['view'],
             'job-titles' => ['view'],
             'currencies' => ['view'],
             'taxes' => ['view'],

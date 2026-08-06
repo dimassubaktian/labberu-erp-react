@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'business-lines' => ['view', 'create', 'update', 'delete'],
     'job-titles' => ['view', 'create', 'update', 'delete'],
     'workforces' => ['view', 'create', 'update', 'delete'],
     'currencies' => ['view', 'create', 'update', 'delete'],

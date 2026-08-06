@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BomController;
+use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomerController;
@@ -28,6 +29,14 @@ Route::redirect('/', '/login')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('business-lines', [BusinessLineController::class, 'index'])->name('business-lines.index')->middleware('permission:business-lines.view');
+    Route::get('business-lines/create', [BusinessLineController::class, 'create'])->name('business-lines.create')->middleware('permission:business-lines.create');
+    Route::post('business-lines', [BusinessLineController::class, 'store'])->name('business-lines.store')->middleware('permission:business-lines.create');
+    Route::get('business-lines/{businessLine}', [BusinessLineController::class, 'show'])->name('business-lines.show')->middleware('permission:business-lines.view');
+    Route::get('business-lines/{businessLine}/edit', [BusinessLineController::class, 'edit'])->name('business-lines.edit')->middleware('permission:business-lines.update');
+    Route::put('business-lines/{businessLine}', [BusinessLineController::class, 'update'])->name('business-lines.update')->middleware('permission:business-lines.update');
+    Route::delete('business-lines/{businessLine}', [BusinessLineController::class, 'destroy'])->name('business-lines.destroy')->middleware('permission:business-lines.delete');
 
     Route::get('job-titles', [JobTitleController::class, 'index'])->name('job-titles.index')->middleware('permission:job-titles.view');
     Route::get('job-titles/create', [JobTitleController::class, 'create'])->name('job-titles.create')->middleware('permission:job-titles.create');

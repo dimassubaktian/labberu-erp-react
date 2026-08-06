@@ -8,6 +8,7 @@ import {
     Contact,
     FileText,
     FolderKanban,
+    Layers,
     LayoutGrid,
     Package,
     PackageCheck,
@@ -39,6 +40,7 @@ import { index as customersIndex } from '@/routes/customers';
 import { index as deliveryOrdersIndex } from '@/routes/delivery-orders';
 import { index as goodsReceiptNotesIndex } from '@/routes/goods-receipt-notes';
 import { index as invoicesIndex } from '@/routes/invoices';
+import { index as businessLinesIndex } from '@/routes/business-lines';
 import { index as jobTitlesIndex } from '@/routes/job-titles';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
@@ -90,6 +92,12 @@ const navGroups: NavGroup[] = [
                 href: customersIndex(),
                 icon: Contact,
                 permission: 'customers.view',
+            },
+            {
+                title: 'Business Lines',
+                href: businessLinesIndex(),
+                icon: Layers,
+                permission: 'business-lines.view',
             },
         ],
     },

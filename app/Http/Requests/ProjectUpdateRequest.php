@@ -26,6 +26,7 @@ class ProjectUpdateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'customer_id' => ['required', Rule::exists('customers', 'id')->whereNull('deleted_at')],
+            'business_line_id' => ['nullable', Rule::exists('business_lines', 'id')->whereNull('deleted_at')],
             'request_date' => ['required', 'date'],
             'person_in_charge_id' => ['nullable', Rule::exists('workforces', 'id')->whereNull('deleted_at')],
             'description' => ['nullable', 'string', 'max:2000'],
