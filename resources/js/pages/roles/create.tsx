@@ -47,7 +47,7 @@ export default function RolesCreate({ permissionsByModule }: Props) {
         <>
             <Head title="New Role" />
 
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Role"
                     description="Create a new role and choose which permissions it grants"

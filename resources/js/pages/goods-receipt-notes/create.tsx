@@ -206,7 +206,7 @@ export default function GoodsReceiptNotesCreate({
         <>
             <Head title="New Goods Receipt Note" />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Goods Receipt Note"
                     description="Record goods received against an approved purchase order"

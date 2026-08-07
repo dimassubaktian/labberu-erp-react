@@ -178,7 +178,7 @@ export default function DeliveryOrdersCreate({ initialQuotation }: Props) {
         <>
             <Head title="New Delivery Order" />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Delivery Order"
                     description="Record goods delivered against an approved quotation"

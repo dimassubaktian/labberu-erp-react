@@ -6,6 +6,7 @@ use App\Http\Requests\JobTitleStoreRequest;
 use App\Http\Requests\JobTitleUpdateRequest;
 use App\Models\JobTitle;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,15 +15,21 @@ class JobTitleController extends Controller
     /**
      * Display a listing of the job titles.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $status = (string) $request->query('status', '');
+
         $jobTitles = JobTitle::query()
+            ->when($search !== '', fn ($builder) => $builder->where('name', 'like', "%{$search}%"))
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('job-titles/index', [
             'jobTitles' => $jobTitles,
+            'filters' => ['search' => $search, 'status' => $status],
         ]);
     }
 

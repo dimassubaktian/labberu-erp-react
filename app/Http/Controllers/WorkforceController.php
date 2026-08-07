@@ -7,6 +7,7 @@ use App\Http\Requests\WorkforceUpdateRequest;
 use App\Models\JobTitle;
 use App\Models\Workforce;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,16 +18,31 @@ class WorkforceController extends Controller
     /**
      * Display a listing of the workforce members.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $jobTitle = (string) $request->query('job_title', '');
+        $status = (string) $request->query('status', '');
+
         $workforces = Workforce::query()
             ->with('jobTitle:id,name')
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($q) use ($search): void {
+                    $q->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('employee_code', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($jobTitle !== '' && $jobTitle !== 'all', fn ($builder) => $builder->where('job_title_id', $jobTitle))
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
             ->orderBy('full_name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('workforces/index', [
             'workforces' => $workforces,
+            'jobTitles' => JobTitle::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => ['search' => $search, 'job_title' => $jobTitle, 'status' => $status],
         ]);
     }
 

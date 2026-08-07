@@ -562,7 +562,7 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
         <>
             <Head title="New Purchase Order" />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Purchase Order"
                     description="Raise a purchase order against a vendor"

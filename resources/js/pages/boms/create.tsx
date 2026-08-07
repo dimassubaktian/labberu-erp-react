@@ -475,7 +475,7 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
         <>
             <Head title={`Create Bill of Materials — ${quotation.quotation_code}`} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex items-start justify-between gap-4">
                     <Heading
                         title="Create Bill of Materials"

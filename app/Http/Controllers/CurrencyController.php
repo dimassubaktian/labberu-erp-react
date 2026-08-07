@@ -6,6 +6,7 @@ use App\Http\Requests\CurrencyStoreRequest;
 use App\Http\Requests\CurrencyUpdateRequest;
 use App\Models\Currency;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,15 +16,26 @@ class CurrencyController extends Controller
     /**
      * Display a listing of the currencies.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $status = (string) $request->query('status', '');
+
         $currencies = Currency::query()
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($q) use ($search): void {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('iso_code', 'like', "%{$search}%");
+                });
+            })
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('currencies/index', [
             'currencies' => $currencies,
+            'filters' => ['search' => $search, 'status' => $status],
         ]);
     }
 

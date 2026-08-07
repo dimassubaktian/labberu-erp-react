@@ -1,6 +1,8 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Search, Trash2, X } from 'lucide-react';
+import React from 'react';
 import Heading from '@/components/heading';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -11,9 +13,52 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { formatDateTime } from '@/lib/utils';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
+import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 import { destroy, edit, index, show } from '@/routes/vendors';
+
+const PO_STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'issued', label: 'Issued' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'voided', label: 'Voided' },
+];
+
+const PO_PROGRESS_OPTIONS = [
+    { value: 'sent', label: 'Sent' },
+    { value: 'partially_received', label: 'Partially received' },
+    { value: 'fully_received', label: 'Fully received' },
+    { value: 'closed', label: 'Closed' },
+];
+
+type PurchaseOrder = {
+    id: number;
+    uuid: string;
+    purchase_order_code: string;
+    status: string;
+    progress: string | null;
+    grand_total: string;
+    created_at: string;
+    currency: { iso_code: string; symbol: string | null };
+};
 
 type Vendor = {
     id: number;
@@ -35,9 +80,34 @@ type Vendor = {
 
 type Props = {
     vendor: Vendor;
+    purchaseOrders: PurchaseOrder[];
 };
 
-export default function VendorsShow({ vendor }: Props) {
+export default function VendorsShow({ vendor, purchaseOrders }: Props) {
+    const [poSearch, setPoSearch] = React.useState('');
+    const [poStatus, setPoStatus] = React.useState('all');
+    const [poProgress, setPoProgress] = React.useState('all');
+
+    const filteredPurchaseOrders = React.useMemo(() => {
+        return purchaseOrders.filter((po) => {
+            const matchesSearch =
+                poSearch === '' ||
+                po.purchase_order_code
+                    .toLowerCase()
+                    .includes(poSearch.toLowerCase());
+            const matchesStatus =
+                poStatus === 'all' || po.status === poStatus;
+            const matchesProgress =
+                poProgress === 'all' ||
+                (poProgress === 'none' && po.progress === null) ||
+                po.progress === poProgress;
+            return matchesSearch && matchesStatus && matchesProgress;
+        });
+    }, [purchaseOrders, poSearch, poStatus, poProgress]);
+
+    const hasActivePoFilters =
+        poSearch !== '' || poStatus !== 'all' || poProgress !== 'all';
+
     setLayoutProps({
         breadcrumbs: [
             { title: 'Vendors', href: index() },
@@ -49,7 +119,7 @@ export default function VendorsShow({ vendor }: Props) {
         <>
             <Head title={vendor.name} />
 
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading title={vendor.name} description="Vendor details" />
 
@@ -228,6 +298,136 @@ export default function VendorsShow({ vendor }: Props) {
                             </dd>
                         </div>
                     </dl>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">
+                        Purchase Orders
+                    </h2>
+
+                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        <div className="relative w-full sm:max-w-xs">
+                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={poSearch}
+                                onChange={(e) => setPoSearch(e.target.value)}
+                                placeholder="Search by PO code"
+                                className="pl-9"
+                            />
+                        </div>
+
+                        <Select value={poStatus} onValueChange={setPoStatus}>
+                            <SelectTrigger className="w-full sm:w-36">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All statuses</SelectItem>
+                                {PO_STATUS_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select value={poProgress} onValueChange={setPoProgress}>
+                            <SelectTrigger className="w-full sm:w-48">
+                                <SelectValue placeholder="Progress" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All progress</SelectItem>
+                                <SelectItem value="none">No progress</SelectItem>
+                                {PO_PROGRESS_OPTIONS.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {hasActivePoFilters && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    setPoSearch('');
+                                    setPoStatus('all');
+                                    setPoProgress('all');
+                                }}
+                                className="w-full text-destructive hover:text-destructive sm:w-auto"
+                            >
+                                <X />
+                                Reset
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="overflow-hidden rounded-xl border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>PO code</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Progress</TableHead>
+                                    <TableHead>Grand total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredPurchaseOrders.length === 0 && (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={5}
+                                            className="h-24 text-center text-muted-foreground"
+                                        >
+                                            No purchase orders found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {filteredPurchaseOrders.map((po) => (
+                                    <TableRow key={po.id}>
+                                        <TableCell className="font-medium">
+                                            <Link
+                                                href={showPurchaseOrder({
+                                                    purchaseOrder: po,
+                                                })}
+                                            >
+                                                {po.purchase_order_code}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {formatDate(po.created_at)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant="secondary"
+                                                className="capitalize"
+                                            >
+                                                {po.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {po.progress ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="capitalize"
+                                                >
+                                                    {po.progress.replaceAll('_', ' ')}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    &mdash;
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {po.currency.symbol ?? po.currency.iso_code}{' '}
+                                            {formatNumber(po.grand_total)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
 
                 <div className="space-y-4 rounded-lg border border-destructive/50 p-4">

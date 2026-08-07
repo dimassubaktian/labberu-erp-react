@@ -1317,7 +1317,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                 title={`Edit Bill of Materials — ${quotation.quotation_code}`}
             />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Bill of Materials"
                     description={`For quotation ${quotation.quotation_code}`}

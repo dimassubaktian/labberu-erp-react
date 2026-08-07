@@ -20,16 +20,38 @@ class InvoiceController extends Controller
     /**
      * Display a listing of the invoices.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $status = (string) $request->query('status', '');
+        $paymentStatus = (string) $request->query('payment_status', '');
+        $sort = (string) $request->query('sort', '');
+
         $invoices = Invoice::query()
             ->with('quotation.project.customer')
-            ->orderByDesc('created_at')
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($q) use ($search): void {
+                    $q->where('invoice_code', 'like', "%{$search}%")
+                        ->orWhereHas('quotation', function ($q2) use ($search): void {
+                            $q2->where('quotation_code', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('quotation.project.customer', function ($q2) use ($search): void {
+                            $q2->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
+            ->when($paymentStatus !== '' && $paymentStatus !== 'all', fn ($builder) => $builder->where('payment_status', $paymentStatus))
+            ->when($sort === 'oldest', fn ($builder) => $builder->orderBy('created_at'))
+            ->when($sort === 'due_date_desc', fn ($builder) => $builder->orderByDesc('due_date'))
+            ->when($sort === 'due_date_asc', fn ($builder) => $builder->orderBy('due_date'))
+            ->when(! in_array($sort, ['oldest', 'due_date_desc', 'due_date_asc']), fn ($builder) => $builder->orderByDesc('created_at'))
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('invoices/index', [
             'invoices' => $invoices,
+            'filters' => ['search' => $search, 'status' => $status, 'payment_status' => $paymentStatus, 'sort' => $sort],
         ]);
     }
 

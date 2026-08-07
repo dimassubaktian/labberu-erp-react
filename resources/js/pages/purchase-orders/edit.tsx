@@ -615,7 +615,7 @@ export default function PurchaseOrdersEdit({
         <>
             <Head title={`Edit ${purchaseOrder.purchase_order_code}`} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title={`Edit ${purchaseOrder.purchase_order_code}`}
                     description="Update this purchase order"

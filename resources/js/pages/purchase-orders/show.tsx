@@ -218,7 +218,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
         <>
             <Head title={purchaseOrder.purchase_order_code} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
                         title={purchaseOrder.purchase_order_code}

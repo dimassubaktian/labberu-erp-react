@@ -22,16 +22,34 @@ class GoodsReceiptNoteController extends Controller
     /**
      * Display a listing of the goods receipt notes.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $status = (string) $request->query('status', '');
+        $sort = (string) $request->query('sort', 'latest');
+
         $goodsReceiptNotes = GoodsReceiptNote::query()
             ->with('purchaseOrder.vendor')
-            ->orderByDesc('created_at')
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner->where('grn_code', 'like', "%{$search}%")
+                        ->orWhereHas('purchaseOrder', function ($q) use ($search): void {
+                            $q->where('purchase_order_code', 'like', "%{$search}%")
+                                ->orWhereHas('vendor', fn ($v) => $v->where('name', 'like', "%{$search}%"));
+                        });
+                });
+            })
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
+            ->when($sort === 'oldest', fn ($builder) => $builder->orderBy('created_at'))
+            ->when($sort === 'date_desc', fn ($builder) => $builder->orderByDesc('received_date'))
+            ->when($sort === 'date_asc', fn ($builder) => $builder->orderBy('received_date'))
+            ->when(! in_array($sort, ['oldest', 'date_desc', 'date_asc'], true), fn ($builder) => $builder->orderByDesc('created_at'))
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('goods-receipt-notes/index', [
             'goodsReceiptNotes' => $goodsReceiptNotes,
+            'filters' => ['search' => $search, 'status' => $status, 'sort' => $sort],
         ]);
     }
 

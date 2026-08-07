@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\VendorStoreRequest;
 use App\Http\Requests\VendorUpdateRequest;
+use App\Models\PurchaseOrder;
 use App\Models\Vendor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -37,15 +38,24 @@ class VendorController extends Controller
     /**
      * Display a listing of the vendors.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+
         $vendors = Vendor::query()
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('vendor_code', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('vendors/index', [
             'vendors' => $vendors,
+            'filters' => ['search' => $search],
         ]);
     }
 
@@ -74,8 +84,15 @@ class VendorController extends Controller
      */
     public function show(Vendor $vendor): Response
     {
+        $purchaseOrders = PurchaseOrder::query()
+            ->with('currency:id,iso_code,symbol')
+            ->where('vendor_id', $vendor->id)
+            ->orderByDesc('created_at')
+            ->get(['id', 'uuid', 'purchase_order_code', 'status', 'progress', 'grand_total', 'currency_id', 'created_at']);
+
         return Inertia::render('vendors/show', [
             'vendor' => $vendor,
+            'purchaseOrders' => $purchaseOrders,
         ]);
     }
 

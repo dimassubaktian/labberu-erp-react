@@ -1,7 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Plus, Search, X } from 'lucide-react';
+import React from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Table,
     TableBody,
@@ -24,11 +26,61 @@ type Vendor = {
     city: string | null;
 };
 
-type Props = {
-    vendors: Paginated<Vendor>;
+type Filters = {
+    search: string;
 };
 
-export default function VendorsIndex({ vendors }: Props) {
+type Props = {
+    vendors: Paginated<Vendor>;
+    filters: Filters;
+};
+
+const DEFAULT_FILTERS: Filters = { search: '' };
+
+export default function VendorsIndex({ vendors, filters }: Props) {
+    const [search, setSearch] = React.useState(filters.search);
+    const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+
+    const hasActiveFilters = search !== DEFAULT_FILTERS.search;
+
+    function applyFilters(overrides: Partial<Filters>): void {
+        const next = { search, ...overrides };
+
+        router.get(
+            vendorsIndex.url({
+                query: { search: next.search || undefined },
+            }),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+
+    function handleSearchChange(value: string): void {
+        setSearch(value);
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            applyFilters({ search: value });
+        }, 400);
+    }
+
+    function handleReset(): void {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        setSearch(DEFAULT_FILTERS.search);
+
+        router.get(
+            vendorsIndex.url(),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+
     return (
         <>
             <Head title="Vendors" />
@@ -46,6 +98,29 @@ export default function VendorsIndex({ vendors }: Props) {
                             New Vendor
                         </Link>
                     </Button>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative w-full sm:max-w-xs">
+                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={search}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            placeholder="Search by code or name"
+                            className="pl-9"
+                        />
+                    </div>
+
+                    {hasActiveFilters && (
+                        <Button
+                            variant="ghost"
+                            onClick={handleReset}
+                            className="w-full text-destructive hover:text-destructive sm:w-auto"
+                        >
+                            <X />
+                            Reset
+                        </Button>
+                    )}
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">

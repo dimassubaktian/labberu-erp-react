@@ -6,6 +6,7 @@ use App\Http\Requests\RoleStoreRequest;
 use App\Http\Requests\RoleUpdateRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,16 +18,20 @@ class RoleController extends Controller
     /**
      * Display a listing of the roles.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+
         $roles = Role::query()
             ->withCount('permissions')
+            ->when($search !== '', fn ($builder) => $builder->where('name', 'like', "%{$search}%"))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('roles/index', [
             'roles' => $roles,
+            'filters' => ['search' => $search],
         ]);
     }
 

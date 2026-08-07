@@ -1,6 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search, X } from 'lucide-react';
+import React from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -25,6 +36,7 @@ type StockMovement = {
         uuid: string;
         product_code: string;
         name: string;
+        reference_number: string;
         unit: string;
     };
     goods_receipt_note_item: {
@@ -60,11 +72,78 @@ type StockMovement = {
     } | null;
 };
 
-type Props = {
-    stockMovements: Paginated<StockMovement>;
+type Filters = {
+    search: string;
+    type: string;
 };
 
-export default function StockMovementsIndex({ stockMovements }: Props) {
+type Props = {
+    stockMovements: Paginated<StockMovement>;
+    filters: Filters;
+};
+
+const DEFAULT_FILTERS: Filters = { search: '', type: 'all' };
+
+const TYPE_OPTIONS = [
+    { value: 'in', label: 'In' },
+    { value: 'out', label: 'Out' },
+];
+
+export default function StockMovementsIndex({ stockMovements, filters }: Props) {
+    const [search, setSearch] = React.useState(filters.search);
+    const [type, setType] = React.useState(filters.type || 'all');
+    const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+
+    const hasActiveFilters =
+        search !== DEFAULT_FILTERS.search || type !== DEFAULT_FILTERS.type;
+
+    function applyFilters(overrides: Partial<Filters>): void {
+        const next = { search, type, ...overrides };
+
+        router.get(
+            stockMovementsIndex.url({
+                query: {
+                    search: next.search || undefined,
+                    type: next.type !== 'all' ? next.type : undefined,
+                },
+            }),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+
+    function handleSearchChange(value: string): void {
+        setSearch(value);
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            applyFilters({ search: value });
+        }, 400);
+    }
+
+    function handleTypeChange(value: string): void {
+        setType(value);
+        applyFilters({ type: value });
+    }
+
+    function handleReset(): void {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        setSearch(DEFAULT_FILTERS.search);
+        setType(DEFAULT_FILTERS.type);
+
+        router.get(
+            stockMovementsIndex.url(),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+
     return (
         <>
             <Head title="Stock Movements" />
@@ -74,6 +153,43 @@ export default function StockMovementsIndex({ stockMovements }: Props) {
                     title="Stock Movements"
                     description="A ledger of goods received and delivered, recorded automatically when a Goods Receipt Note or Delivery Order is confirmed"
                 />
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative w-full sm:max-w-xs">
+                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={search}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            placeholder="Search by code, name, or reference"
+                            className="pl-9"
+                        />
+                    </div>
+
+                    <Select value={type} onValueChange={handleTypeChange}>
+                        <SelectTrigger className="w-full sm:w-36">
+                            <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All types</SelectItem>
+                            {TYPE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {hasActiveFilters && (
+                        <Button
+                            variant="ghost"
+                            onClick={handleReset}
+                            className="w-full text-destructive hover:text-destructive sm:w-auto"
+                        >
+                            <X />
+                            Reset
+                        </Button>
+                    )}
+                </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">
                     <Table>
@@ -104,8 +220,12 @@ export default function StockMovementsIndex({ stockMovements }: Props) {
                                         {formatDate(movement.movement_date)}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {movement.product.product_code} &mdash;{' '}
-                                        {movement.product.name}
+                                        <div>{movement.product.product_code} &mdash; {movement.product.name}</div>
+                                        {movement.product.reference_number && (
+                                            <div className="text-sm text-muted-foreground">
+                                                {movement.product.reference_number}
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

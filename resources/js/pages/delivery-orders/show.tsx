@@ -85,7 +85,7 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
         <>
             <Head title={deliveryOrder.do_code} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
                         title={deliveryOrder.do_code}
@@ -282,7 +282,7 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 >
                                     {({ processing, errors }) => (
                                         <>
-                                            <div className="grid gap-2">
+                                            <div className="mb-4 grid gap-2">
                                                 <Label htmlFor="signed_document">
                                                     Signed document
                                                 </Label>

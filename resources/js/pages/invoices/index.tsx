@@ -1,8 +1,17 @@
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Plus, Search, X } from 'lucide-react';
+import React from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import {
     Table,
     TableBody,
@@ -33,11 +42,116 @@ type Invoice = {
     };
 };
 
-type Props = {
-    invoices: Paginated<Invoice>;
+type Filters = {
+    search: string;
+    status: string;
+    payment_status: string;
+    sort: string;
 };
 
-export default function InvoicesIndex({ invoices }: Props) {
+type Props = {
+    invoices: Paginated<Invoice>;
+    filters: Filters;
+};
+
+const DEFAULT_FILTERS: Filters = {
+    search: '',
+    status: 'all',
+    payment_status: 'all',
+    sort: 'latest',
+};
+
+const STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'issued', label: 'Issued' },
+];
+
+const PAYMENT_OPTIONS = [
+    { value: 'paid', label: 'Paid' },
+    { value: 'partially_paid', label: 'Partially paid' },
+];
+
+const SORT_OPTIONS = [
+    { value: 'latest', label: 'Latest first' },
+    { value: 'oldest', label: 'Oldest first' },
+    { value: 'due_date_desc', label: 'Latest due date' },
+    { value: 'due_date_asc', label: 'Oldest due date' },
+];
+
+export default function InvoicesIndex({ invoices, filters }: Props) {
+    const [search, setSearch] = React.useState(filters.search);
+    const [status, setStatus] = React.useState(filters.status || 'all');
+    const [paymentStatus, setPaymentStatus] = React.useState(filters.payment_status || 'all');
+    const [sort, setSort] = React.useState(filters.sort || 'latest');
+    const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+
+    const hasActiveFilters =
+        search !== DEFAULT_FILTERS.search ||
+        status !== DEFAULT_FILTERS.status ||
+        paymentStatus !== DEFAULT_FILTERS.payment_status ||
+        sort !== DEFAULT_FILTERS.sort;
+
+    function applyFilters(overrides: Partial<Filters>): void {
+        const next = { search, status, payment_status: paymentStatus, sort, ...overrides };
+
+        router.get(
+            invoicesIndex.url({
+                query: {
+                    search: next.search || undefined,
+                    status: next.status !== 'all' ? next.status : undefined,
+                    payment_status: next.payment_status !== 'all' ? next.payment_status : undefined,
+                    sort: next.sort !== 'latest' ? next.sort : undefined,
+                },
+            }),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+
+    function handleSearchChange(value: string): void {
+        setSearch(value);
+
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        debounceRef.current = setTimeout(() => {
+            applyFilters({ search: value });
+        }, 400);
+    }
+
+    function handleStatusChange(value: string): void {
+        setStatus(value);
+        applyFilters({ status: value });
+    }
+
+    function handlePaymentStatusChange(value: string): void {
+        setPaymentStatus(value);
+        applyFilters({ payment_status: value });
+    }
+
+    function handleSortChange(value: string): void {
+        setSort(value);
+        applyFilters({ sort: value });
+    }
+
+    function handleReset(): void {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        setSearch(DEFAULT_FILTERS.search);
+        setStatus(DEFAULT_FILTERS.status);
+        setPaymentStatus(DEFAULT_FILTERS.payment_status);
+        setSort(DEFAULT_FILTERS.sort);
+
+        router.get(
+            invoicesIndex.url(),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+
     return (
         <>
             <Head title="Invoices" />
@@ -55,6 +169,70 @@ export default function InvoicesIndex({ invoices }: Props) {
                             New Invoice
                         </Link>
                     </Button>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative w-full sm:max-w-xs">
+                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={search}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            placeholder="Search by invoice code, quotation, or customer"
+                            className="pl-9"
+                        />
+                    </div>
+
+                    <Select value={status} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-full sm:w-36">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All statuses</SelectItem>
+                            {STATUS_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={paymentStatus} onValueChange={handlePaymentStatusChange}>
+                        <SelectTrigger className="w-full sm:w-44">
+                            <SelectValue placeholder="Payment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All payments</SelectItem>
+                            {PAYMENT_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={sort} onValueChange={handleSortChange}>
+                        <SelectTrigger className="w-full sm:w-44">
+                            <SelectValue placeholder="Sort" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {SORT_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {hasActiveFilters && (
+                        <Button
+                            variant="ghost"
+                            onClick={handleReset}
+                            className="w-full text-destructive hover:text-destructive sm:w-auto"
+                        >
+                            <X />
+                            Reset
+                        </Button>
+                    )}
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">

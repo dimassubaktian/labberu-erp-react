@@ -1,5 +1,6 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Search, Trash2, X } from 'lucide-react';
+import React from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,23 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { destroy, edit, index, show } from '@/routes/customers';
 import { show as showProject } from '@/routes/projects';
@@ -23,9 +40,19 @@ type Project = {
     project_code: string;
     name: string;
     status: string;
+    sales_status: string | null;
+    po_status: string | null;
+    billing_status: string | null;
     priority: string;
     request_date: string;
 };
+
+const PROJECT_STATUS_OPTIONS = [
+    { value: 'planning', label: 'Planning' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'cancelled', label: 'Cancelled' },
+];
 
 type Customer = {
     id: number;
@@ -51,6 +78,24 @@ type Props = {
 };
 
 export default function CustomersShow({ customer }: Props) {
+    const [projectSearch, setProjectSearch] = React.useState('');
+    const [projectStatus, setProjectStatus] = React.useState('all');
+
+    const filteredProjects = React.useMemo(() => {
+        return customer.projects.filter((p) => {
+            const matchesSearch =
+                projectSearch === '' ||
+                p.name.toLowerCase().includes(projectSearch.toLowerCase()) ||
+                p.project_code.toLowerCase().includes(projectSearch.toLowerCase());
+            const matchesStatus =
+                projectStatus === 'all' || p.status === projectStatus;
+            return matchesSearch && matchesStatus;
+        });
+    }, [customer.projects, projectSearch, projectStatus]);
+
+    const hasActiveProjectFilters =
+        projectSearch !== '' || projectStatus !== 'all';
+
     setLayoutProps({
         breadcrumbs: [
             { title: 'Customers', href: index() },
@@ -62,7 +107,7 @@ export default function CustomersShow({ customer }: Props) {
         <>
             <Head title={customer.name} />
 
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
                         title={customer.name}
@@ -248,54 +293,161 @@ export default function CustomersShow({ customer }: Props) {
 
                 <div>
                     <h2 className="mb-4 text-base font-semibold">Projects</h2>
-                    {customer.projects.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No projects found.
-                        </p>
-                    ) : (
-                        <div className="space-y-3">
-                            {customer.projects.map((project) => (
-                                <Link
-                                    key={project.id}
-                                    href={showProject(project)}
-                                    className="block rounded-lg border border-border/50 p-4 transition-colors hover:bg-accent"
-                                >
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                        <div>
-                                            <p className="font-medium">
-                                                {project.name}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {project.project_code}
-                                                {' · '}
-                                                {formatDate(
-                                                    project.request_date,
-                                                )}
-                                            </p>
-                                        </div>
 
-                                        <div className="flex gap-2">
+                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                        <div className="relative w-full sm:max-w-xs">
+                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={projectSearch}
+                                onChange={(e) =>
+                                    setProjectSearch(e.target.value)
+                                }
+                                placeholder="Search by code or name"
+                                className="pl-9"
+                            />
+                        </div>
+
+                        <Select
+                            value={projectStatus}
+                            onValueChange={setProjectStatus}
+                        >
+                            <SelectTrigger className="w-full sm:w-40">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All statuses</SelectItem>
+                                {PROJECT_STATUS_OPTIONS.map((opt) => (
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {hasActiveProjectFilters && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    setProjectSearch('');
+                                    setProjectStatus('all');
+                                }}
+                                className="w-full text-destructive hover:text-destructive sm:w-auto"
+                            >
+                                <X />
+                                Reset
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="overflow-hidden rounded-xl border border-border/50">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Project code</TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Sales</TableHead>
+                                    <TableHead>PO</TableHead>
+                                    <TableHead>Billing</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredProjects.length === 0 && (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={7}
+                                            className="h-24 text-center text-muted-foreground"
+                                        >
+                                            No projects found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {filteredProjects.map((project) => (
+                                    <TableRow key={project.id}>
+                                        <TableCell className="font-medium">
+                                            <Link href={showProject(project)}>
+                                                {project.project_code}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Link href={showProject(project)}>
+                                                {project.name}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {formatDate(project.request_date)}
+                                        </TableCell>
+                                        <TableCell>
                                             <Badge
                                                 variant="secondary"
                                                 className="capitalize"
                                             >
-                                                {project.status.replace(
+                                                {project.status.replaceAll(
                                                     '_',
                                                     ' ',
                                                 )}
                                             </Badge>
-                                            <Badge
-                                                variant="outline"
-                                                className="capitalize"
-                                            >
-                                                {project.priority}
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {project.sales_status ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="capitalize"
+                                                >
+                                                    {project.sales_status.replaceAll(
+                                                        '_',
+                                                        ' ',
+                                                    )}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    &mdash;
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {project.po_status ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="capitalize"
+                                                >
+                                                    {project.po_status.replaceAll(
+                                                        '_',
+                                                        ' ',
+                                                    )}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    &mdash;
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {project.billing_status ? (
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="capitalize"
+                                                >
+                                                    {project.billing_status.replaceAll(
+                                                        '_',
+                                                        ' ',
+                                                    )}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    &mdash;
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
 
                 <div className="space-y-4 rounded-lg border border-destructive/50 p-4">

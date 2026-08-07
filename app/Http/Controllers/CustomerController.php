@@ -37,15 +37,24 @@ class CustomerController extends Controller
     /**
      * Display a listing of the customers.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+
         $customers = Customer::query()
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('customer_code', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('customers/index', [
             'customers' => $customers,
+            'filters' => ['search' => $search],
         ]);
     }
 
@@ -75,7 +84,8 @@ class CustomerController extends Controller
     public function show(Customer $customer): Response
     {
         $customer->load(['projects' => function ($query): void {
-            $query->orderByDesc('request_date');
+            $query->orderByDesc('request_date')
+                ->select(['id', 'uuid', 'project_code', 'name', 'status', 'sales_status', 'po_status', 'billing_status', 'priority', 'request_date', 'customer_id']);
         }]);
 
         return Inertia::render('customers/show', [

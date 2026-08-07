@@ -6,6 +6,7 @@ use App\Http\Requests\BusinessLineStoreRequest;
 use App\Http\Requests\BusinessLineUpdateRequest;
 use App\Models\BusinessLine;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,15 +15,25 @@ class BusinessLineController extends Controller
     /**
      * Display a listing of the business lines.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $status = (string) $request->query('status', '');
+
         $businessLines = BusinessLine::query()
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%");
+            })
+            ->when($status !== '' && $status !== 'all', function ($builder) use ($status): void {
+                $builder->where('status', $status);
+            })
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('business-lines/index', [
             'businessLines' => $businessLines,
+            'filters' => ['search' => $search, 'status' => $status],
         ]);
     }
 

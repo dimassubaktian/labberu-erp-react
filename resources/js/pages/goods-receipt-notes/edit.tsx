@@ -210,7 +210,7 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
         <>
             <Head title={`Edit ${goodsReceiptNote.grn_code}`} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title={`Edit ${goodsReceiptNote.grn_code}`}
                     description="Update this goods receipt note"

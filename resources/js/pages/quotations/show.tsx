@@ -337,7 +337,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
         <>
             <Head title={quotation.quotation_code} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
                         title={quotation.quotation_code}

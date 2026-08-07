@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Workforce;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -19,16 +20,30 @@ class UserController extends Controller
     /**
      * Display a listing of the users.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $role = (string) $request->query('role', '');
+        $status = (string) $request->query('status', '');
+
         $users = User::query()
             ->with(['workforce:id,full_name,user_id', 'roles:id,name'])
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($q) use ($search): void {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($role !== '' && $role !== 'all', fn ($builder) => $builder->whereHas('roles', fn ($q) => $q->where('id', $role)))
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('users/index', [
             'users' => $users,
+            'roles' => Role::query()->orderBy('name')->get(['id', 'name']),
+            'filters' => ['search' => $search, 'role' => $role, 'status' => $status],
         ]);
     }
 

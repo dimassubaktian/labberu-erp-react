@@ -42,15 +42,30 @@ class ProductController extends Controller
     /**
      * Display a listing of the products.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $search = (string) $request->query('search', '');
+        $type = (string) $request->query('type', '');
+        $status = (string) $request->query('status', '');
+
         $products = Product::query()
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner->where('product_code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('reference_number', 'like', "%{$search}%")
+                        ->orWhere('brand', 'like', "%{$search}%");
+                });
+            })
+            ->when($type !== '' && $type !== 'all', fn ($builder) => $builder->where('type', $type))
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('products/index', [
             'products' => $products,
+            'filters' => ['search' => $search, 'type' => $type, 'status' => $status],
         ]);
     }
 

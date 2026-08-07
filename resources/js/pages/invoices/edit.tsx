@@ -251,7 +251,7 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
         <>
             <Head title={`Edit ${invoice.invoice_code}`} />
 
-            <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title={`Edit ${invoice.invoice_code}`}
                     description="Update this invoice"
