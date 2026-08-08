@@ -46,7 +46,7 @@ export default function CurrenciesEdit({ currency }: Props) {
         <>
             <Head title={`Edit ${currency.name}`} />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Currency"
                     description="Update this currency's details"

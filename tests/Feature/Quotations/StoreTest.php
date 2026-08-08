@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Currency;
+use App\Models\PaymentTermTemplate;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Quotation;
@@ -17,6 +18,20 @@ test('quotation create page is displayed', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('quotations/create')
             ->where('initialProject', null),
+        );
+});
+
+test('quotation create page lists available payment term templates', function () {
+    $user = User::factory()->create();
+    $template = PaymentTermTemplate::factory()->create(['name' => 'Standard Terms']);
+
+    $this->actingAs($user)
+        ->get(route('quotations.create'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('quotations/create')
+            ->has('paymentTermTemplates', 1)
+            ->where('paymentTermTemplates.0.id', $template->id),
         );
 });
 
@@ -283,6 +298,47 @@ test('grouped and ungrouped items can both be present on the same quotation', fu
     expect($quotation->groups()->sole()->items()->count())->toBe(1);
     expect((float) $quotation->subtotal)->toBe(80_000.0);
     expect((float) $quotation->total)->toBe(80_000.0);
+});
+
+test('quotation can be created with a payment terms snapshot from a template', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create();
+    $template = PaymentTermTemplate::factory()->create(['content' => '<p>Down payment 40%.</p>']);
+
+    $this->actingAs($user)->post(route('quotations.store'), [
+        'project_id' => $project->id,
+        'currency_id' => $currency->id,
+        'payment_term_template_id' => $template->id,
+        'payment_terms_html' => '<p>Down payment 40%.</p>',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000, 'unit_cost' => 500],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $quotation = Quotation::sole();
+
+    expect($quotation->payment_term_template_id)->toBe($template->id);
+    expect($quotation->payment_terms_html)->toBe('<p>Down payment 40%.</p>');
+});
+
+test('payment term template must exist', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('quotations.store'), [
+            'project_id' => $project->id,
+            'currency_id' => $currency->id,
+            'payment_term_template_id' => 999999,
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000, 'unit_cost' => 500],
+            ],
+        ])
+        ->assertSessionHasErrors('payment_term_template_id');
 });
 
 test('a group requires a name and at least one item', function () {

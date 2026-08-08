@@ -37,7 +37,7 @@ export default function StockAdjustmentsCreate() {
         <>
             <Head title="New Stock Adjustment" />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Stock Adjustment"
                     description="Correct a product's stock on hand for a stock count, damage, loss, or initial load"

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\PaymentTermTemplate;
 use App\Models\PurchaseOrder;
 use App\Models\Quotation;
 use App\Models\QuotationGroup;
@@ -75,6 +76,26 @@ test('quotation detail page includes purchase orders raised against it', functio
             ->has('purchaseOrders', 1)
             ->where('purchaseOrders.0.id', $purchaseOrder->id)
             ->where('purchaseOrders.0.purchase_order_code', $purchaseOrder->purchase_order_code),
+        );
+});
+
+test('quotation detail page includes the payment terms snapshot and its source template', function () {
+    $user = User::factory()->create();
+    $template = PaymentTermTemplate::factory()->create(['name' => 'Standard Terms']);
+    $quotation = Quotation::factory()->create([
+        'payment_term_template_id' => $template->id,
+        'payment_terms_html' => '<p>Down payment 40%.</p>',
+    ]);
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id]);
+
+    $this->actingAs($user)
+        ->get(route('quotations.show', $quotation))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('quotations/show')
+            ->where('quotation.payment_terms_html', '<p>Down payment 40%.</p>')
+            ->where('quotation.payment_term_template.id', $template->id)
+            ->where('quotation.payment_term_template.name', 'Standard Terms'),
         );
 });
 

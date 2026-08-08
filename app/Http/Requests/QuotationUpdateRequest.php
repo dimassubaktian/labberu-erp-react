@@ -34,6 +34,8 @@ class QuotationUpdateRequest extends FormRequest
             'discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:discount_type'],
             'tax_id' => ['nullable', Rule::exists('taxes', 'id')->whereNull('deleted_at')],
             'remarks' => ['nullable', 'string', 'max:2000'],
+            'payment_term_template_id' => ['nullable', Rule::exists('payment_term_templates', 'id')->whereNull('deleted_at')],
+            'payment_terms_html' => ['nullable', 'string'],
             'items' => ['nullable', 'array'],
             'items.*.product_id' => ['required', Rule::exists('products', 'id')->whereNull('deleted_at')],
             'items.*.description' => ['nullable', 'string', 'max:2000'],

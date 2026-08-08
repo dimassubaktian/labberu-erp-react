@@ -13,7 +13,7 @@ export default function CustomersCreate() {
         <>
             <Head title="New Customer" />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Customer"
                     description="Add a new customer for your organization"

@@ -35,6 +35,8 @@ use Illuminate\Support\Str;
  * @property string $tax_amount
  * @property string $total
  * @property string|null $remarks
+ * @property int|null $payment_term_template_id
+ * @property string|null $payment_terms_html
  * @property int|null $approved_by
  * @property Carbon|null $approved_at
  * @property Carbon|null $created_at
@@ -59,6 +61,8 @@ use Illuminate\Support\Str;
     'tax_amount',
     'total',
     'remarks',
+    'payment_term_template_id',
+    'payment_terms_html',
     'approved_by',
     'approved_at',
 ])]
@@ -195,6 +199,16 @@ class Quotation extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Get the payment term template this quotation's payment terms were snapshotted from.
+     *
+     * @return BelongsTo<PaymentTermTemplate, $this>
+     */
+    public function paymentTermTemplate(): BelongsTo
+    {
+        return $this->belongsTo(PaymentTermTemplate::class);
     }
 
     /**

@@ -41,7 +41,7 @@ export default function JobTitlesEdit({ jobTitle }: Props) {
         <>
             <Head title={`Edit ${jobTitle.name}`} />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Job Title"
                     description="Update this job title's details"

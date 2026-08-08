@@ -90,7 +90,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
         <>
             <Head title={`Edit ${project.name}`} />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Project"
                     description="Update this project's details"

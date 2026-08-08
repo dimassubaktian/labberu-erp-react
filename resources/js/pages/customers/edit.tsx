@@ -41,7 +41,7 @@ export default function CustomersEdit({ customer }: Props) {
         <>
             <Head title={`Edit ${customer.name}`} />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Customer"
                     description="Update this customer's details"

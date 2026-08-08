@@ -5,6 +5,7 @@ import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -112,6 +113,8 @@ type Quotation = {
     discount_type: string | null;
     discount_value: string | null;
     remarks: string | null;
+    payment_term_template_id: number | null;
+    payment_terms_html: string | null;
     project: {
         id: number;
         name: string;
@@ -129,10 +132,18 @@ type Quotation = {
     }[];
 };
 
+type PaymentTermTemplateOption = {
+    id: number;
+    uuid: string;
+    name: string;
+    content: string;
+};
+
 type Props = {
     quotation: Quotation;
     currencies: CurrencyOption[];
     taxes: TaxOption[];
+    paymentTermTemplates: PaymentTermTemplateOption[];
 };
 
 function calculateDiscount(
@@ -634,6 +645,7 @@ export default function QuotationsEdit({
     quotation,
     currencies,
     taxes,
+    paymentTermTemplates,
 }: Props) {
     setLayoutProps({
         breadcrumbs: [
@@ -671,6 +683,26 @@ export default function QuotationsEdit({
             editingItemIndex: null,
         })),
     );
+    const [paymentTermTemplateId, setPaymentTermTemplateId] = useState(
+        quotation.payment_term_template_id
+            ? String(quotation.payment_term_template_id)
+            : 'none',
+    );
+    const [paymentTermsHtml, setPaymentTermsHtml] = useState(
+        quotation.payment_terms_html ?? '',
+    );
+
+    function handlePaymentTermTemplateChange(value: string): void {
+        setPaymentTermTemplateId(value);
+
+        const template = paymentTermTemplates.find(
+            (t) => String(t.id) === value,
+        );
+
+        if (template) {
+            setPaymentTermsHtml(template.content);
+        }
+    }
 
     function updateItemDraft(changes: Partial<LineItem>): void {
         setItemDraft((current) => ({ ...current, ...changes }));
@@ -961,6 +993,78 @@ export default function QuotationsEdit({
                                         placeholder="Optional"
                                     />
                                     <InputError message={errors.remarks} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h2 className="text-base font-semibold">
+                                    Payment Terms
+                                </h2>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="payment_term_template_id">
+                                        Template
+                                    </Label>
+                                    <input
+                                        type="hidden"
+                                        name="payment_term_template_id"
+                                        value={
+                                            paymentTermTemplateId === 'none'
+                                                ? ''
+                                                : paymentTermTemplateId
+                                        }
+                                    />
+                                    <Select
+                                        value={paymentTermTemplateId}
+                                        onValueChange={
+                                            handlePaymentTermTemplateChange
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            id="payment_term_template_id"
+                                            className="w-full"
+                                        >
+                                            <SelectValue placeholder="Select a template" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">
+                                                No template
+                                            </SelectItem>
+                                            {paymentTermTemplates.map(
+                                                (template) => (
+                                                    <SelectItem
+                                                        key={template.id}
+                                                        value={String(
+                                                            template.id,
+                                                        )}
+                                                    >
+                                                        {template.name}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        message={
+                                            errors.payment_term_template_id
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="payment_terms_html">
+                                        Terms &amp; conditions
+                                    </Label>
+                                    <RichTextEditor
+                                        id="payment_terms_html"
+                                        name="payment_terms_html"
+                                        value={paymentTermsHtml}
+                                        onChange={setPaymentTermsHtml}
+                                        error={errors.payment_terms_html}
+                                    />
+                                    <InputError
+                                        message={errors.payment_terms_html}
+                                    />
                                 </div>
                             </div>
 

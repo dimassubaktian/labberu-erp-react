@@ -10,11 +10,13 @@ use App\Http\Requests\QuotationUpdateRequest;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomSubgroup;
+use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\PaymentTermTemplate;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -22,9 +24,11 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Tax;
 use App\Services\BomService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -158,10 +162,13 @@ class QuotationController extends Controller
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
+        $paymentTermTemplates = PaymentTermTemplate::query()->orderBy('name')->get(['id', 'uuid', 'name', 'content']);
+
         return Inertia::render('quotations/create', [
             'initialProject' => $initialProject,
             'currencies' => $currencies,
             'taxes' => $taxes,
+            'paymentTermTemplates' => $paymentTermTemplates,
         ]);
     }
 
@@ -182,6 +189,8 @@ class QuotationController extends Controller
                 'discount_value' => $data['discount_value'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
                 'remarks' => $data['remarks'] ?? null,
+                'payment_term_template_id' => $data['payment_term_template_id'] ?? null,
+                'payment_terms_html' => $data['payment_terms_html'] ?? null,
             ]);
 
             $this->syncGroupsAndItems($quotation, $data);
@@ -219,6 +228,7 @@ class QuotationController extends Controller
             'currency',
             'tax',
             'approver',
+            'paymentTermTemplate',
             'groups.tax',
             'groups.items.product',
             'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
@@ -266,6 +276,71 @@ class QuotationController extends Controller
     }
 
     /**
+     * Stream or download the quotation as a PDF.
+     *
+     * Accepts an optional `group_ids[]` and `include_ungrouped` selection to print only part of
+     * the quotation. When a subset is selected, the overall discount/tax and grand total are not
+     * recomputed against the smaller base (that would misrepresent the quotation's real terms) —
+     * instead the PDF shows a plain sum of the selected sections, clearly labeled as such.
+     */
+    public function print(Request $request, Quotation $quotation): HttpResponse
+    {
+        $quotation->load([
+            'project.customer',
+            'currency',
+            'tax',
+            'approver',
+            'paymentTermTemplate',
+            'groups.tax',
+            'groups.items.product',
+            'items' => fn ($query) => $query->whereNull('quotation_group_id')->with('product'),
+        ]);
+
+        $allGroupIds = $quotation->groups->pluck('id')->all();
+        $selectedGroupIds = $request->has('group_ids')
+            ? array_map('intval', (array) $request->query('group_ids'))
+            : $allGroupIds;
+        $includeUngrouped = $request->boolean('include_ungrouped', true);
+
+        $isPartialPrint = $request->has('group_ids') && (
+            count(array_diff($allGroupIds, $selectedGroupIds)) > 0
+            || ($quotation->items->isNotEmpty() && ! $includeUngrouped)
+        );
+
+        $quotation->setRelation('groups', $quotation->groups->whereIn('id', $selectedGroupIds)->values());
+
+        if (! $includeUngrouped) {
+            $quotation->setRelation('items', $quotation->items->take(0));
+        }
+
+        $partialTotal = $quotation->groups->sum('total') + $quotation->items->sum('total_price');
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.quotation', compact('quotation', 'company', 'isPartialPrint', 'partialTotal'))
+            ->setPaper('a4', 'portrait');
+
+        // dompdf's CSS `counter(pages)` never resolves to the total page count, so the
+        // "X / Y" page number is drawn directly on the canvas instead, which does. This
+        // requires an explicit render() first: page_text() only reaches pages that
+        // already exist and only knows the page count at the moment it is called.
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.5;
+        $textWidth = $fontMetrics->getTextWidth('99 / 99', $font, $fontSize);
+        $dompdf->getCanvas()->page_text(563.28 - $textWidth, 816, '{PAGE_NUM} / {PAGE_COUNT}', $font, $fontSize, [0.53, 0.53, 0.53]);
+
+        $filename = "quotation-{$quotation->quotation_code}.pdf";
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
+    }
+
+    /**
      * Show the form for editing the specified quotation.
      */
     public function edit(Quotation $quotation): Response
@@ -285,10 +360,13 @@ class QuotationController extends Controller
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
+        $paymentTermTemplates = PaymentTermTemplate::query()->orderBy('name')->get(['id', 'uuid', 'name', 'content']);
+
         return Inertia::render('quotations/edit', [
             'quotation' => $quotation,
             'currencies' => $currencies,
             'taxes' => $taxes,
+            'paymentTermTemplates' => $paymentTermTemplates,
         ]);
     }
 
@@ -310,6 +388,8 @@ class QuotationController extends Controller
                 'discount_value' => $data['discount_value'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
                 'remarks' => $data['remarks'] ?? null,
+                'payment_term_template_id' => $data['payment_term_template_id'] ?? null,
+                'payment_terms_html' => $data['payment_terms_html'] ?? null,
             ]);
 
             $this->syncGroupsAndItems($quotation, $data);
@@ -495,6 +575,8 @@ class QuotationController extends Controller
                 'tax_amount' => $quotation->tax_amount,
                 'total' => $quotation->total,
                 'remarks' => $quotation->remarks,
+                'payment_term_template_id' => $quotation->payment_term_template_id,
+                'payment_terms_html' => $quotation->payment_terms_html,
             ]);
 
             foreach ($quotation->groups as $group) {

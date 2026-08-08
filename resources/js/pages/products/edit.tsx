@@ -80,7 +80,7 @@ export default function ProductsEdit({ product }: Props) {
         <>
             <Head title={`Edit ${product.name}`} />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Product"
                     description="Update this product's details"

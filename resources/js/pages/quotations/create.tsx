@@ -8,6 +8,7 @@ import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
 import { ImportBomStructureDialog } from '@/components/import-bom-structure-dialog';
 import InputError from '@/components/input-error';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -80,6 +81,13 @@ type TaxOption = {
     type: string;
 };
 
+type PaymentTermTemplateOption = {
+    id: number;
+    uuid: string;
+    name: string;
+    content: string;
+};
+
 type LineItem = {
     product_id: string;
     product: ProductOption | null;
@@ -106,6 +114,7 @@ type Props = {
     initialProject: ProjectOption | null;
     currencies: CurrencyOption[];
     taxes: TaxOption[];
+    paymentTermTemplates: PaymentTermTemplateOption[];
 };
 
 function defaultValidUntil(): string {
@@ -600,6 +609,7 @@ export default function QuotationsCreate({
     initialProject,
     currencies,
     taxes,
+    paymentTermTemplates,
 }: Props) {
     const [activeTab, setActiveTab] = useState<'quotation' | 'bom'>('quotation');
     const [bomImportDialogOpen, setBomImportDialogOpen] = useState(false);
@@ -623,6 +633,20 @@ export default function QuotationsCreate({
         null,
     );
     const [groups, setGroups] = useState<GroupState[]>([]);
+    const [paymentTermTemplateId, setPaymentTermTemplateId] = useState('none');
+    const [paymentTermsHtml, setPaymentTermsHtml] = useState('');
+
+    function handlePaymentTermTemplateChange(value: string): void {
+        setPaymentTermTemplateId(value);
+
+        const template = paymentTermTemplates.find(
+            (t) => String(t.id) === value,
+        );
+
+        if (template) {
+            setPaymentTermsHtml(template.content);
+        }
+    }
 
     async function handleBomImport(uuid: string): Promise<void> {
         const response = await fetch(`/boms/${uuid}/import-data`);
@@ -957,6 +981,78 @@ export default function QuotationsCreate({
                                         placeholder="Optional"
                                     />
                                     <InputError message={errors.remarks} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h2 className="text-base font-semibold">
+                                    Payment Terms
+                                </h2>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="payment_term_template_id">
+                                        Template
+                                    </Label>
+                                    <input
+                                        type="hidden"
+                                        name="payment_term_template_id"
+                                        value={
+                                            paymentTermTemplateId === 'none'
+                                                ? ''
+                                                : paymentTermTemplateId
+                                        }
+                                    />
+                                    <Select
+                                        value={paymentTermTemplateId}
+                                        onValueChange={
+                                            handlePaymentTermTemplateChange
+                                        }
+                                    >
+                                        <SelectTrigger
+                                            id="payment_term_template_id"
+                                            className="w-full"
+                                        >
+                                            <SelectValue placeholder="Select a template" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">
+                                                No template
+                                            </SelectItem>
+                                            {paymentTermTemplates.map(
+                                                (template) => (
+                                                    <SelectItem
+                                                        key={template.id}
+                                                        value={String(
+                                                            template.id,
+                                                        )}
+                                                    >
+                                                        {template.name}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError
+                                        message={
+                                            errors.payment_term_template_id
+                                        }
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="payment_terms_html">
+                                        Terms &amp; conditions
+                                    </Label>
+                                    <RichTextEditor
+                                        id="payment_terms_html"
+                                        name="payment_terms_html"
+                                        value={paymentTermsHtml}
+                                        onChange={setPaymentTermsHtml}
+                                        error={errors.payment_terms_html}
+                                    />
+                                    <InputError
+                                        message={errors.payment_terms_html}
+                                    />
                                 </div>
                             </div>
 

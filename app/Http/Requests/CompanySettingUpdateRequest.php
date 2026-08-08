@@ -36,6 +36,7 @@ class CompanySettingUpdateRequest extends FormRequest
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:100'],
             'logo' => ['nullable', 'image', 'max:2048'],
+            'certified_picture' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

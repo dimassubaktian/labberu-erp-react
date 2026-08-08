@@ -37,6 +37,7 @@ class RoleSeeder extends Seeder
             'job-titles' => ['view'],
             'currencies' => ['view'],
             'taxes' => ['view'],
+            'payment-term-templates' => ['view'],
             'stock-movements' => ['view'],
             'stock-adjustments' => ['view'],
             'company-settings' => ['view'],
@@ -65,6 +66,7 @@ class RoleSeeder extends Seeder
         $this->assignPermissions('Finance', [
             'invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.delete'],
             'taxes' => ['view', 'create', 'update', 'delete'],
+            'payment-term-templates' => ['view', 'create', 'update', 'delete'],
             'currencies' => ['view', 'create', 'update', 'delete'],
             'purchase-orders' => ['view'],
             'quotations' => ['view'],

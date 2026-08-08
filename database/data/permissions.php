@@ -6,6 +6,7 @@ return [
     'workforces' => ['view', 'create', 'update', 'delete'],
     'currencies' => ['view', 'create', 'update', 'delete'],
     'taxes' => ['view', 'create', 'update', 'delete'],
+    'payment-term-templates' => ['view', 'create', 'update', 'delete'],
     'company-settings' => ['view', 'update'],
     'products' => ['view', 'create', 'update', 'delete'],
     'stock-movements' => ['view'],

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Currency;
+use App\Models\PaymentTermTemplate;
 use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
@@ -132,6 +133,29 @@ test('groups are replaced and totals recalculated on update', function () {
     expect((float) $quotation->subtotal)->toBe(220_000.0);
     expect((float) $quotation->total)->toBe(220_000.0);
     expect($quotation->items()->whereNull('quotation_group_id')->count())->toBe(0);
+});
+
+test('quotation payment terms snapshot can be updated from a template', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create();
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id]);
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create();
+    $template = PaymentTermTemplate::factory()->create(['content' => '<p>Updated terms.</p>']);
+
+    $this->actingAs($user)->put(route('quotations.update', $quotation), [
+        'currency_id' => $currency->id,
+        'payment_term_template_id' => $template->id,
+        'payment_terms_html' => '<p>Updated terms.</p>',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000, 'unit_cost' => 500],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $quotation->refresh();
+
+    expect($quotation->payment_term_template_id)->toBe($template->id);
+    expect($quotation->payment_terms_html)->toBe('<p>Updated terms.</p>');
 });
 
 test('required fields are validated on update', function () {

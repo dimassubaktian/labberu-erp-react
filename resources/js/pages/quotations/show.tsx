@@ -3,6 +3,7 @@ import { ArrowLeft, Ban, Check, ClipboardCheck, GitBranch, ListPlus, PenLine, Pe
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import { PrintQuotationDialog } from '@/components/print-quotation-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -218,6 +219,7 @@ type Quotation = {
     tax_amount: string;
     total: string;
     remarks: string | null;
+    payment_terms_html: string | null;
     approved_at: string | null;
     created_at: string;
     updated_at: string;
@@ -235,6 +237,7 @@ type Quotation = {
         symbol: string | null;
     };
     tax: { id: number; name: string; rate: string; type: string } | null;
+    payment_term_template: { id: number; uuid: string; name: string } | null;
     approver: { id: number; name: string } | null;
     items: QuotationItem[];
     groups: QuotationGroup[];
@@ -355,6 +358,12 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 Back to Quotations
                             </Link>
                         </Button>
+
+                        <PrintQuotationDialog
+                            quotation={quotation}
+                            groups={quotation.groups}
+                            hasUngroupedItems={quotation.items.length > 0}
+                        />
 
                         {quotation.status === 'draft' && (
                             <Button asChild className="w-full sm:w-auto">
@@ -793,6 +802,34 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                             </dt>
                             <dd className="font-medium whitespace-pre-line">
                                 {quotation.remarks ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div className="sm:col-span-2">
+                            <dt className="text-sm text-muted-foreground">
+                                Payment Terms
+                                {quotation.payment_term_template && (
+                                    <>
+                                        {' '}
+                                        (from template:{' '}
+                                        {quotation.payment_term_template.name}
+                                        )
+                                    </>
+                                )}
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.payment_terms_html ? (
+                                    <div
+                                        className="rich-text-content"
+                                        dangerouslySetInnerHTML={{
+                                            __html: quotation.payment_terms_html,
+                                        }}
+                                    />
+                                ) : (
                                     <span className="text-muted-foreground">
                                         &mdash;
                                     </span>

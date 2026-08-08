@@ -82,7 +82,7 @@ export default function WorkforcesEdit({ workforce, jobTitles }: Props) {
         <>
             <Head title={`Edit ${workforce.full_name}`} />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Edit Workforce"
                     description="Update this employee's details"

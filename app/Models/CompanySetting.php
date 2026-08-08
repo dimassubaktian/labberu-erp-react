@@ -28,7 +28,9 @@ use Illuminate\Support\Str;
  * @property string|null $postal_code
  * @property string|null $country
  * @property string|null $logo
+ * @property string|null $certified_picture
  * @property-read string|null $logo_url
+ * @property-read string|null $certified_picture_url
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -47,6 +49,7 @@ use Illuminate\Support\Str;
     'postal_code',
     'country',
     'logo',
+    'certified_picture',
 ])]
 class CompanySetting extends Model
 {
@@ -58,7 +61,7 @@ class CompanySetting extends Model
      *
      * @var list<string>
      */
-    protected $appends = ['logo_url'];
+    protected $appends = ['logo_url', 'certified_picture_url'];
 
     /**
      * Bootstrap the model and its traits.
@@ -81,11 +84,21 @@ class CompanySetting extends Model
     }
 
     /**
+     * Get the publicly accessible URL for the certified picture.
+     *
+     * @return Attribute<string|null, mixed>
+     */
+    protected function certifiedPictureUrl(): Attribute
+    {
+        return Attribute::make(get: fn (): ?string => $this->certified_picture ? Storage::disk('public')->url($this->certified_picture) : null);
+    }
+
+    /**
      * Get the single company settings record, or an empty unsaved instance if none exists yet.
      */
     public static function current(): self
     {
-        return static::first() ?? new self(array_fill_keys((new self())->getFillable(), null));
+        return static::first() ?? new self(array_fill_keys((new self)->getFillable(), null));
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoicePaymentController;
 use App\Http\Controllers\JobTitleController;
+use App\Http\Controllers\PaymentTermTemplateController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
@@ -70,6 +71,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('taxes/{tax}/edit', [TaxController::class, 'edit'])->name('taxes.edit')->middleware('permission:taxes.update');
     Route::put('taxes/{tax}', [TaxController::class, 'update'])->name('taxes.update')->middleware('permission:taxes.update');
     Route::delete('taxes/{tax}', [TaxController::class, 'destroy'])->name('taxes.destroy')->middleware('permission:taxes.delete');
+
+    Route::get('payment-term-templates', [PaymentTermTemplateController::class, 'index'])->name('payment-term-templates.index')->middleware('permission:payment-term-templates.view');
+    Route::get('payment-term-templates/create', [PaymentTermTemplateController::class, 'create'])->name('payment-term-templates.create')->middleware('permission:payment-term-templates.create');
+    Route::post('payment-term-templates', [PaymentTermTemplateController::class, 'store'])->name('payment-term-templates.store')->middleware('permission:payment-term-templates.create');
+    Route::get('payment-term-templates/{paymentTermTemplate}', [PaymentTermTemplateController::class, 'show'])->name('payment-term-templates.show')->middleware('permission:payment-term-templates.view');
+    Route::get('payment-term-templates/{paymentTermTemplate}/edit', [PaymentTermTemplateController::class, 'edit'])->name('payment-term-templates.edit')->middleware('permission:payment-term-templates.update');
+    Route::put('payment-term-templates/{paymentTermTemplate}', [PaymentTermTemplateController::class, 'update'])->name('payment-term-templates.update')->middleware('permission:payment-term-templates.update');
+    Route::delete('payment-term-templates/{paymentTermTemplate}', [PaymentTermTemplateController::class, 'destroy'])->name('payment-term-templates.destroy')->middleware('permission:payment-term-templates.delete');
 
     Route::get('company-settings', [CompanySettingController::class, 'edit'])->name('company-settings.edit')->middleware('permission:company-settings.view');
     Route::put('company-settings', [CompanySettingController::class, 'update'])->name('company-settings.update')->middleware('permission:company-settings.update');
@@ -136,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('quotations/{quotation}', [QuotationController::class, 'destroy'])->name('quotations.destroy')->middleware('permission:quotations.delete');
     Route::get('quotations/{quotation}/bom-items', [QuotationController::class, 'bomItems'])->name('quotations.bom-items.index')->middleware('permission:quotations.view');
     Route::get('quotations/{quotation}/items', [QuotationController::class, 'items'])->name('quotations.items.index')->middleware('permission:quotations.view');
+    Route::get('quotations/{quotation}/print', [QuotationController::class, 'print'])->name('quotations.print')->middleware('permission:quotations.view');
 
     Route::get('delivery-orders', [DeliveryOrderController::class, 'index'])->name('delivery-orders.index')->middleware('permission:delivery-orders.view');
     Route::get('delivery-orders/create', [DeliveryOrderController::class, 'create'])->name('delivery-orders.create')->middleware('permission:delivery-orders.create');

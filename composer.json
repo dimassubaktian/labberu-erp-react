@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.1",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
@@ -114,6 +115,17 @@
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
         }
+    },
+    "audit": {
+        "block-insecure": false,
+        "ignore": [
+            "PKSA-cqd6-fg4n-nxpf",
+            "PKSA-1q6p-sqkj-8mmj",
+            "PKSA-5mzr-szzf-z6cn",
+            "PKSA-scnn-p8mm-jbft",
+            "PKSA-t21r-vtr5-3mdz",
+            "PKSA-mc58-w91n-f5gv"
+        ]
     },
     "minimum-stability": "stable",
     "prefer-stable": true

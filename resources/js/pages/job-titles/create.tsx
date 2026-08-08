@@ -22,7 +22,7 @@ export default function JobTitlesCreate() {
         <>
             <Head title="New Job Title" />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Job Title"
                     description="Add a new job title for your organization"

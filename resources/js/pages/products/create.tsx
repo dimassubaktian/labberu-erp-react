@@ -53,7 +53,7 @@ export default function ProductsCreate() {
         <>
             <Head title="New Product" />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="New Product"
                     description="Add a new product for your organization"

@@ -24,6 +24,7 @@ type CompanySetting = {
     postal_code: string | null;
     country: string | null;
     logo_url: string | null;
+    certified_picture_url: string | null;
 };
 
 type Props = {
@@ -32,14 +33,18 @@ type Props = {
 
 export default function CompanySettingsEdit({ companySetting }: Props) {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [certifiedPicturePreview, setCertifiedPicturePreview] = useState<string | null>(null);
 
     useEffect(() => {
         return () => {
             if (logoPreview) {
                 URL.revokeObjectURL(logoPreview);
             }
+            if (certifiedPicturePreview) {
+                URL.revokeObjectURL(certifiedPicturePreview);
+            }
         };
-    }, [logoPreview]);
+    }, [logoPreview, certifiedPicturePreview]);
 
     function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
         const file = event.target.files?.[0];
@@ -53,11 +58,23 @@ export default function CompanySettingsEdit({ companySetting }: Props) {
         });
     }
 
+    function handleCertifiedPictureChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+
+        setCertifiedPicturePreview((previous) => {
+            if (previous) {
+                URL.revokeObjectURL(previous);
+            }
+
+            return file ? URL.createObjectURL(file) : null;
+        });
+    }
+
     return (
         <>
             <Head title="Company Settings" />
 
-            <div className="mx-auto w-full max-w-2xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <Heading
                     title="Company Settings"
                     description="Manage your organization's company information"
@@ -279,6 +296,42 @@ export default function CompanySettingsEdit({ companySetting }: Props) {
                                     Leave empty to keep the current logo.
                                 </p>
                                 <InputError message={errors.logo} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="certified_picture">
+                                    Certified picture
+                                </Label>
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="size-14 rounded-md">
+                                        {(certifiedPicturePreview ||
+                                            companySetting.certified_picture_url) && (
+                                            <AvatarImage
+                                                src={
+                                                    certifiedPicturePreview ??
+                                                    companySetting.certified_picture_url ??
+                                                    undefined
+                                                }
+                                                alt="Certified picture"
+                                            />
+                                        )}
+                                        <AvatarFallback className="rounded-md">
+                                            —
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <Input
+                                        id="certified_picture"
+                                        type="file"
+                                        name="certified_picture"
+                                        accept="image/*"
+                                        className="flex-1"
+                                        onChange={handleCertifiedPictureChange}
+                                    />
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Leave empty to keep the current certified picture.
+                                </p>
+                                <InputError message={errors.certified_picture} />
                             </div>
 
                             <div className="flex justify-end">

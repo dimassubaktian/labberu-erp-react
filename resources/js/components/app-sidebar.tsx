@@ -14,6 +14,7 @@ import {
     PackageCheck,
     Percent,
     Receipt,
+    ScrollText,
     Settings,
     ShieldCheck,
     ShoppingCart,
@@ -42,6 +43,7 @@ import { index as goodsReceiptNotesIndex } from '@/routes/goods-receipt-notes';
 import { index as invoicesIndex } from '@/routes/invoices';
 import { index as businessLinesIndex } from '@/routes/business-lines';
 import { index as jobTitlesIndex } from '@/routes/job-titles';
+import { index as paymentTermTemplatesIndex } from '@/routes/payment-term-templates';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
 import { index as purchaseOrdersIndex } from '@/routes/purchase-orders';
@@ -82,7 +84,7 @@ const navGroups: NavGroup[] = [
                 permission: 'quotations.view',
             },
             {
-                title: 'Deliver Orders',
+                title: 'Delivery Orders',
                 href: deliveryOrdersIndex(),
                 icon: Truck,
                 permission: 'delivery-orders.view',
@@ -161,6 +163,12 @@ const navGroups: NavGroup[] = [
                 href: taxesIndex(),
                 icon: Percent,
                 permission: 'taxes.view',
+            },
+            {
+                title: 'Payment Term Templates',
+                href: paymentTermTemplatesIndex(),
+                icon: ScrollText,
+                permission: 'payment-term-templates.view',
             },
             {
                 title: 'Currencies',

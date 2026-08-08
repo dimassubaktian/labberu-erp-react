@@ -40,6 +40,14 @@ class CompanySettingController extends Controller
             $data['logo'] = $request->file('logo')->store('company-logos', 'public');
         }
 
+        if ($request->hasFile('certified_picture')) {
+            if ($companySetting->certified_picture) {
+                Storage::disk('public')->delete($companySetting->certified_picture);
+            }
+
+            $data['certified_picture'] = $request->file('certified_picture')->store('company-logos', 'public');
+        }
+
         $companySetting->fill($data)->save();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Company settings updated.')]);

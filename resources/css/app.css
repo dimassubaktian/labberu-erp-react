@@ -9,8 +9,10 @@
 
 @theme {
     --font-sans:
-        'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-heading: 'Plus Jakarta Sans Variable', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -137,8 +139,27 @@
         @apply border-border;
     }
 
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
     body {
         @apply bg-background text-foreground;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-heading);
+    }
+
+    h1 { @apply text-2xl font-bold; }
+    h2 { @apply text-xl font-bold; }
+    h3 { @apply text-lg font-semibold; }
+    h4 { @apply text-base font-semibold; }
+    h5, h6 { @apply text-sm font-semibold; }
+
+    code, pre, kbd, .mono, .id-display, .invoice-number, .sku {
+        font-family: var(--font-mono);
     }
 
     button:not(:disabled),
@@ -193,4 +214,58 @@
 
 .table-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: var(--ring);
+}
+
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+}
+
+.rich-text-content h1 {
+    font-size: 1.25rem;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.rich-text-content h2 {
+    font-size: 1.125rem;
+    margin: 0.75rem 0 0.5rem;
+}
+
+.rich-text-content h3 {
+    font-size: 1rem;
+    margin: 0.5rem 0 0.25rem;
+}
+
+.rich-text-content p {
+    margin: 0.5rem 0;
+}
+
+.rich-text-content ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin: 0.5rem 0;
+}
+
+.rich-text-content ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+    margin: 0.5rem 0;
+}
+
+.rich-text-content strong {
+    font-weight: 600;
+}
+
+.rich-text-content em {
+    font-style: italic;
+}
+
+.rich-text-content :first-child {
+    margin-top: 0;
+}
+
+.rich-text-content :last-child {
+    margin-bottom: 0;
 }
