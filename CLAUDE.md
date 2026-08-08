@@ -1,3 +1,7 @@
+## Design & UI
+If the task involves building or editing UI/UX, read `ANTISLOP.md` (as a filter) before generating anything.
+
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

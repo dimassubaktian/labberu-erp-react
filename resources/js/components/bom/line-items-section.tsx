@@ -6,9 +6,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import type { LineItem } from './types';
 import { BomLineItemForm } from './line-item-form';
 import { BomLineItemRow } from './line-item-row';
+import type { LineItem } from './types';
 
 type Props = {
     idPrefix: string;
@@ -19,11 +19,14 @@ type Props = {
     editingItemIndex: number | null;
     errors: Partial<Record<string, string>>;
     emptyMessage: string;
+    currentLocation: string;
+    destinations: { value: string; label: string }[];
     onDraftChange: (changes: Partial<LineItem>) => void;
     onSubmitItem: () => void;
     onCancelItemEdit: () => void;
     onEditItem: (itemIndex: number) => void;
     onRemoveItem: (itemIndex: number) => void;
+    onMoveItem: (itemIndex: number, destination: string) => void;
 };
 
 export function BomLineItemsSection({
@@ -35,12 +38,19 @@ export function BomLineItemsSection({
     editingItemIndex,
     errors,
     emptyMessage,
+    currentLocation,
+    destinations,
     onDraftChange,
     onSubmitItem,
     onCancelItemEdit,
     onEditItem,
     onRemoveItem,
+    onMoveItem,
 }: Props) {
+    const availableDestinations = destinations.filter(
+        (destination) => destination.value !== currentLocation,
+    );
+
     return (
         <div className="space-y-4">
             <InputError message={errors[errorPrefix]} />
@@ -71,10 +81,14 @@ export function BomLineItemsSection({
                             <TableRow>
                                 <TableHead>Product</TableHead>
                                 <TableHead className="w-24">Qty</TableHead>
-                                <TableHead className="w-28">Unit cost</TableHead>
+                                <TableHead className="w-28">
+                                    Unit cost
+                                </TableHead>
                                 <TableHead className="w-24">Discount</TableHead>
-                                <TableHead className="w-28 text-right">Total cost</TableHead>
-                                <TableHead className="w-16" />
+                                <TableHead className="w-28 text-right">
+                                    Total cost
+                                </TableHead>
+                                <TableHead className="w-24" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -86,8 +100,12 @@ export function BomLineItemsSection({
                                     item={item}
                                     errors={errors}
                                     isEditing={editingItemIndex === itemIndex}
+                                    destinations={availableDestinations}
                                     onEdit={() => onEditItem(itemIndex)}
                                     onRemove={() => onRemoveItem(itemIndex)}
+                                    onMove={(destination) =>
+                                        onMoveItem(itemIndex, destination)
+                                    }
                                 />
                             ))}
                         </TableBody>

@@ -13,12 +13,15 @@ type Props = {
     errorPrefix: string;
     subgroup: SubgroupState;
     errors: Partial<Record<string, string>>;
+    currentLocation: string;
+    destinations: { value: string; label: string }[];
     onNameChange: (name: string) => void;
     onDraftChange: (changes: Partial<LineItem>) => void;
     onSubmitItem: () => void;
     onCancelItemEdit: () => void;
     onEditItem: (itemIndex: number) => void;
     onRemoveItem: (itemIndex: number) => void;
+    onMoveItem: (itemIndex: number, destination: string) => void;
     onRemove: () => void;
 };
 
@@ -27,12 +30,15 @@ export function BomSubgroupFields({
     errorPrefix,
     subgroup,
     errors,
+    currentLocation,
+    destinations,
     onNameChange,
     onDraftChange,
     onSubmitItem,
     onCancelItemEdit,
     onEditItem,
     onRemoveItem,
+    onMoveItem,
     onRemove,
 }: Props) {
     const subtotal = calculateItemsSubtotal(subgroup.items);
@@ -74,11 +80,14 @@ export function BomSubgroupFields({
                     editingItemIndex={subgroup.editingItemIndex}
                     errors={errors}
                     emptyMessage="No materials in this phase yet. Add one above."
+                    currentLocation={currentLocation}
+                    destinations={destinations}
                     onDraftChange={onDraftChange}
                     onSubmitItem={onSubmitItem}
                     onCancelItemEdit={onCancelItemEdit}
                     onEditItem={onEditItem}
                     onRemoveItem={onRemoveItem}
+                    onMoveItem={onMoveItem}
                 />
 
                 <dl className="flex justify-between border-t border-border pt-4 font-semibold">

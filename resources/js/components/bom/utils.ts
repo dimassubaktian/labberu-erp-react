@@ -1,6 +1,7 @@
 import { formatNumber } from '@/lib/utils';
 import type {
     BomItemProp,
+    BomLocationKey,
     BomSubgroupProp,
     GroupState,
     LineItem,
@@ -106,9 +107,84 @@ export function calculateItemTotalCost(item: LineItem): number {
     const quantity = Number(item.quantity) || 0;
     const unitCost = Number(item.unit_cost) || 0;
 
-    return applyDiscount(quantity * unitCost, item.discount_type, item.discount_value);
+    return applyDiscount(
+        quantity * unitCost,
+        item.discount_type,
+        item.discount_value,
+    );
 }
 
 export function calculateItemsSubtotal(items: LineItem[]): number {
     return items.reduce((sum, item) => sum + calculateItemTotalCost(item), 0);
+}
+
+export function encodeBomLocation(location: BomLocationKey): string {
+    switch (location.type) {
+        case 'ungrouped':
+            return 'ungrouped';
+        case 'subgroup':
+            return `subgroup:${location.subgroupIndex}`;
+        case 'group':
+            return `group:${location.groupIndex}`;
+        case 'group-subgroup':
+            return `group-subgroup:${location.groupIndex}:${location.subgroupIndex}`;
+    }
+}
+
+export function decodeBomLocation(value: string): BomLocationKey {
+    const [type, a, b] = value.split(':');
+
+    switch (type) {
+        case 'subgroup':
+            return { type: 'subgroup', subgroupIndex: Number(a) };
+        case 'group':
+            return { type: 'group', groupIndex: Number(a) };
+        case 'group-subgroup':
+            return {
+                type: 'group-subgroup',
+                groupIndex: Number(a),
+                subgroupIndex: Number(b),
+            };
+        default:
+            return { type: 'ungrouped' };
+    }
+}
+
+export function bomLocationsEqual(
+    a: BomLocationKey,
+    b: BomLocationKey,
+): boolean {
+    return encodeBomLocation(a) === encodeBomLocation(b);
+}
+
+export function listBomDestinations(
+    groups: GroupState[],
+    subgroups: SubgroupState[],
+): { value: string; label: string }[] {
+    const destinations: { value: string; label: string }[] = [
+        { value: 'ungrouped', label: 'Ungrouped materials' },
+    ];
+
+    groups.forEach((group, groupIndex) => {
+        const groupName = group.name || `Group ${groupIndex + 1}`;
+        destinations.push({ value: `group:${groupIndex}`, label: groupName });
+
+        group.subgroups.forEach((subgroup, subgroupIndex) => {
+            const phaseName = subgroup.name || `Phase ${subgroupIndex + 1}`;
+            destinations.push({
+                value: `group-subgroup:${groupIndex}:${subgroupIndex}`,
+                label: `${groupName} → ${phaseName}`,
+            });
+        });
+    });
+
+    subgroups.forEach((subgroup, subgroupIndex) => {
+        const phaseName = subgroup.name || `Phase ${subgroupIndex + 1}`;
+        destinations.push({
+            value: `subgroup:${subgroupIndex}`,
+            label: phaseName,
+        });
+    });
+
+    return destinations;
 }

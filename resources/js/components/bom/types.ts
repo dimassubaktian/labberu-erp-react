@@ -12,6 +12,12 @@ export type LineItem = {
     discount_value: string;
 };
 
+export type BomLocationKey =
+    | { type: 'ungrouped' }
+    | { type: 'subgroup'; subgroupIndex: number }
+    | { type: 'group'; groupIndex: number }
+    | { type: 'group-subgroup'; groupIndex: number; subgroupIndex: number };
+
 export type SubgroupState = {
     name: string;
     items: LineItem[];

@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
@@ -16,6 +16,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -89,6 +97,9 @@ type GroupState = {
     draft: LineItem;
     editingItemIndex: number | null;
 };
+
+type LocationKey =
+    { type: 'ungrouped' } | { type: 'group'; groupIndex: number };
 
 type QuotationItemProp = {
     id: number;
@@ -183,6 +194,36 @@ function calculateItemsSubtotal(items: LineItem[]): number {
         (sum, item) => sum + calculateItemTotals(item).totalPrice,
         0,
     );
+}
+
+function encodeLocation(location: LocationKey): string {
+    return location.type === 'ungrouped'
+        ? 'ungrouped'
+        : `group:${location.groupIndex}`;
+}
+
+function decodeLocation(value: string): LocationKey {
+    const [type, groupIndex] = value.split(':');
+
+    return type === 'group'
+        ? { type: 'group', groupIndex: Number(groupIndex) }
+        : { type: 'ungrouped' };
+}
+
+function locationsEqual(a: LocationKey, b: LocationKey): boolean {
+    return encodeLocation(a) === encodeLocation(b);
+}
+
+function listDestinations(
+    groups: GroupState[],
+): { value: string; label: string }[] {
+    return [
+        { value: 'ungrouped', label: 'Ungrouped items' },
+        ...groups.map((group, groupIndex) => ({
+            value: `group:${groupIndex}`,
+            label: group.name || `Group ${groupIndex + 1}`,
+        })),
+    ];
 }
 
 function calculateGroupTotals(group: GroupState, taxes: TaxOption[]) {
@@ -506,8 +547,10 @@ type LineItemRowProps = {
     item: LineItem;
     errors: Partial<Record<string, string>>;
     isEditing: boolean;
+    destinations: { value: string; label: string }[];
     onEdit: () => void;
     onRemove: () => void;
+    onMove: (destination: string) => void;
 };
 
 function LineItemRow({
@@ -516,8 +559,10 @@ function LineItemRow({
     item,
     errors,
     isEditing,
+    destinations,
     onEdit,
     onRemove,
+    onMove,
 }: LineItemRowProps) {
     const totals = calculateItemTotals(item);
     const fieldNames = [
@@ -600,42 +645,76 @@ function LineItemRow({
                 {formatNumber(totals.totalPrice)}
             </TableCell>
             <TableCell>
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent onClick={(e) => e.stopPropagation()}>
-                        <DialogTitle>Remove line item?</DialogTitle>
-                        <DialogDescription>
-                            This will remove &quot;
-                            {productLabel(item.product)}&quot; from the
-                            quotation. This cannot be undone.
-                        </DialogDescription>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogClose>
-                            <DialogClose asChild>
+                <div className="flex items-center justify-end gap-1">
+                    {destinations.length > 0 && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="destructive"
-                                    onClick={onRemove}
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Move to..."
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    Remove
+                                    <ArrowRightLeft />
                                 </Button>
-                            </DialogClose>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <DropdownMenuLabel>Move to</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {destinations.map((destination) => (
+                                    <DropdownMenuItem
+                                        key={destination.value}
+                                        onSelect={() =>
+                                            onMove(destination.value)
+                                        }
+                                    >
+                                        {destination.label}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent onClick={(e) => e.stopPropagation()}>
+                            <DialogTitle>Remove line item?</DialogTitle>
+                            <DialogDescription>
+                                This will remove &quot;
+                                {productLabel(item.product)}&quot; from the
+                                quotation. This cannot be undone.
+                            </DialogDescription>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">
+                                        Cancel
+                                    </Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        onClick={onRemove}
+                                    >
+                                        Remove
+                                    </Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </TableCell>
         </TableRow>
     );
@@ -855,6 +934,50 @@ export default function QuotationsEdit({
             }),
         );
     }
+
+    function addItemAt(location: LocationKey, item: LineItem): void {
+        if (location.type === 'ungrouped') {
+            setItems((current) => [...current, item]);
+
+            return;
+        }
+
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === location.groupIndex
+                    ? { ...group, items: [...group.items, item] }
+                    : group,
+            ),
+        );
+    }
+
+    function removeItemAt(location: LocationKey, itemIndex: number): void {
+        if (location.type === 'ungrouped') {
+            removeItem(itemIndex);
+
+            return;
+        }
+
+        removeGroupItem(location.groupIndex, itemIndex);
+    }
+
+    function moveItem(
+        from: LocationKey,
+        itemIndex: number,
+        item: LineItem,
+        destinationValue: string,
+    ): void {
+        const to = decodeLocation(destinationValue);
+
+        if (locationsEqual(from, to)) {
+            return;
+        }
+
+        removeItemAt(from, itemIndex);
+        addItemAt(to, item);
+    }
+
+    const destinations = listDestinations(groups);
 
     const ungroupedSubtotal = calculateItemsSubtotal(items);
     const groupTotals = groups.map((group) =>
@@ -1341,7 +1464,7 @@ export default function QuotationsEdit({
                                                                 <TableHead className="w-28 text-right">
                                                                     Total price
                                                                 </TableHead>
-                                                                <TableHead className="w-16" />
+                                                                <TableHead className="w-24" />
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
@@ -1366,6 +1489,13 @@ export default function QuotationsEdit({
                                                                             group.editingItemIndex ===
                                                                             itemIndex
                                                                         }
+                                                                        destinations={destinations.filter(
+                                                                            (
+                                                                                destination,
+                                                                            ) =>
+                                                                                destination.value !==
+                                                                                `group:${groupIndex}`,
+                                                                        )}
                                                                         onEdit={() =>
                                                                             editGroupItem(
                                                                                 groupIndex,
@@ -1376,6 +1506,19 @@ export default function QuotationsEdit({
                                                                             removeGroupItem(
                                                                                 groupIndex,
                                                                                 itemIndex,
+                                                                            )
+                                                                        }
+                                                                        onMove={(
+                                                                            destination,
+                                                                        ) =>
+                                                                            moveItem(
+                                                                                {
+                                                                                    type: 'group',
+                                                                                    groupIndex,
+                                                                                },
+                                                                                itemIndex,
+                                                                                item,
+                                                                                destination,
                                                                             )
                                                                         }
                                                                     />
@@ -1482,7 +1625,7 @@ export default function QuotationsEdit({
                                                     <TableHead className="w-28 text-right">
                                                         Total price
                                                     </TableHead>
-                                                    <TableHead className="w-16" />
+                                                    <TableHead className="w-24" />
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -1497,11 +1640,26 @@ export default function QuotationsEdit({
                                                             editingItemIndex ===
                                                             index
                                                         }
+                                                        destinations={destinations.filter(
+                                                            (destination) =>
+                                                                destination.value !==
+                                                                'ungrouped',
+                                                        )}
                                                         onEdit={() =>
                                                             editItem(index)
                                                         }
                                                         onRemove={() =>
                                                             removeItem(index)
+                                                        }
+                                                        onMove={(destination) =>
+                                                            moveItem(
+                                                                {
+                                                                    type: 'ungrouped',
+                                                                },
+                                                                index,
+                                                                item,
+                                                                destination,
+                                                            )
                                                         }
                                                     />
                                                 ))}

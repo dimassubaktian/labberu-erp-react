@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -14,6 +14,14 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -85,6 +93,12 @@ type GroupState = {
     editingItemIndex: number | null;
     subgroups: SubgroupState[];
 };
+
+type LocationKey =
+    | { type: 'ungrouped' }
+    | { type: 'subgroup'; subgroupIndex: number }
+    | { type: 'group'; groupIndex: number }
+    | { type: 'group-subgroup'; groupIndex: number; subgroupIndex: number };
 
 type BomItemProp = {
     id: number;
@@ -221,6 +235,74 @@ function calculateItemTotalCost(item: LineItem): number {
 
 function calculateItemsSubtotal(items: LineItem[]): number {
     return items.reduce((sum, item) => sum + calculateItemTotalCost(item), 0);
+}
+
+function encodeLocation(location: LocationKey): string {
+    switch (location.type) {
+        case 'ungrouped':
+            return 'ungrouped';
+        case 'subgroup':
+            return `subgroup:${location.subgroupIndex}`;
+        case 'group':
+            return `group:${location.groupIndex}`;
+        case 'group-subgroup':
+            return `group-subgroup:${location.groupIndex}:${location.subgroupIndex}`;
+    }
+}
+
+function decodeLocation(value: string): LocationKey {
+    const [type, a, b] = value.split(':');
+
+    switch (type) {
+        case 'subgroup':
+            return { type: 'subgroup', subgroupIndex: Number(a) };
+        case 'group':
+            return { type: 'group', groupIndex: Number(a) };
+        case 'group-subgroup':
+            return {
+                type: 'group-subgroup',
+                groupIndex: Number(a),
+                subgroupIndex: Number(b),
+            };
+        default:
+            return { type: 'ungrouped' };
+    }
+}
+
+function locationsEqual(a: LocationKey, b: LocationKey): boolean {
+    return encodeLocation(a) === encodeLocation(b);
+}
+
+function listDestinations(
+    groups: GroupState[],
+    subgroups: SubgroupState[],
+): { value: string; label: string }[] {
+    const destinations: { value: string; label: string }[] = [
+        { value: 'ungrouped', label: 'Ungrouped materials' },
+    ];
+
+    groups.forEach((group, groupIndex) => {
+        const groupName = group.name || `Group ${groupIndex + 1}`;
+        destinations.push({ value: `group:${groupIndex}`, label: groupName });
+
+        group.subgroups.forEach((subgroup, subgroupIndex) => {
+            const phaseName = subgroup.name || `Phase ${subgroupIndex + 1}`;
+            destinations.push({
+                value: `group-subgroup:${groupIndex}:${subgroupIndex}`,
+                label: `${groupName} → ${phaseName}`,
+            });
+        });
+    });
+
+    subgroups.forEach((subgroup, subgroupIndex) => {
+        const phaseName = subgroup.name || `Phase ${subgroupIndex + 1}`;
+        destinations.push({
+            value: `subgroup:${subgroupIndex}`,
+            label: phaseName,
+        });
+    });
+
+    return destinations;
 }
 
 type LineItemFormProps = {
@@ -442,8 +524,10 @@ type LineItemRowProps = {
     item: LineItem;
     errors: Partial<Record<string, string>>;
     isEditing: boolean;
+    destinations: { value: string; label: string }[];
     onEdit: () => void;
     onRemove: () => void;
+    onMove: (destination: string) => void;
 };
 
 function LineItemRow({
@@ -452,8 +536,10 @@ function LineItemRow({
     item,
     errors,
     isEditing,
+    destinations,
     onEdit,
     onRemove,
+    onMove,
 }: LineItemRowProps) {
     const totalCost = calculateItemTotalCost(item);
     const fieldNames = [
@@ -536,42 +622,76 @@ function LineItemRow({
                 {formatNumber(totalCost)}
             </TableCell>
             <TableCell>
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent onClick={(e) => e.stopPropagation()}>
-                        <DialogTitle>Remove line item?</DialogTitle>
-                        <DialogDescription>
-                            This will remove &quot;
-                            {productLabel(item.product)}&quot; from the bill of
-                            materials. This cannot be undone.
-                        </DialogDescription>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogClose>
-                            <DialogClose asChild>
+                <div className="flex items-center justify-end gap-1">
+                    {destinations.length > 0 && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="destructive"
-                                    onClick={onRemove}
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label="Move to..."
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    Remove
+                                    <ArrowRightLeft />
                                 </Button>
-                            </DialogClose>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <DropdownMenuLabel>Move to</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {destinations.map((destination) => (
+                                    <DropdownMenuItem
+                                        key={destination.value}
+                                        onSelect={() =>
+                                            onMove(destination.value)
+                                        }
+                                    >
+                                        {destination.label}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent onClick={(e) => e.stopPropagation()}>
+                            <DialogTitle>Remove line item?</DialogTitle>
+                            <DialogDescription>
+                                This will remove &quot;
+                                {productLabel(item.product)}&quot; from the bill
+                                of materials. This cannot be undone.
+                            </DialogDescription>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="outline">
+                                        Cancel
+                                    </Button>
+                                </DialogClose>
+                                <DialogClose asChild>
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        onClick={onRemove}
+                                    >
+                                        Remove
+                                    </Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </TableCell>
         </TableRow>
     );
@@ -586,11 +706,14 @@ type LineItemsSectionProps = {
     editingItemIndex: number | null;
     errors: Partial<Record<string, string>>;
     emptyMessage: string;
+    currentLocation: string;
+    destinations: { value: string; label: string }[];
     onDraftChange: (changes: Partial<LineItem>) => void;
     onSubmitItem: () => void;
     onCancelItemEdit: () => void;
     onEditItem: (itemIndex: number) => void;
     onRemoveItem: (itemIndex: number) => void;
+    onMoveItem: (itemIndex: number, destination: string) => void;
 };
 
 function LineItemsSection({
@@ -602,12 +725,19 @@ function LineItemsSection({
     editingItemIndex,
     errors,
     emptyMessage,
+    currentLocation,
+    destinations,
     onDraftChange,
     onSubmitItem,
     onCancelItemEdit,
     onEditItem,
     onRemoveItem,
+    onMoveItem,
 }: LineItemsSectionProps) {
+    const availableDestinations = destinations.filter(
+        (destination) => destination.value !== currentLocation,
+    );
+
     return (
         <div className="space-y-4">
             <InputError message={errors[errorPrefix]} />
@@ -645,7 +775,7 @@ function LineItemsSection({
                                 <TableHead className="w-28 text-right">
                                     Total cost
                                 </TableHead>
-                                <TableHead className="w-16" />
+                                <TableHead className="w-24" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -657,8 +787,12 @@ function LineItemsSection({
                                     item={item}
                                     errors={errors}
                                     isEditing={editingItemIndex === itemIndex}
+                                    destinations={availableDestinations}
                                     onEdit={() => onEditItem(itemIndex)}
                                     onRemove={() => onRemoveItem(itemIndex)}
+                                    onMove={(destination) =>
+                                        onMoveItem(itemIndex, destination)
+                                    }
                                 />
                             ))}
                         </TableBody>
@@ -674,12 +808,15 @@ type SubgroupFieldsProps = {
     errorPrefix: string;
     subgroup: SubgroupState;
     errors: Partial<Record<string, string>>;
+    currentLocation: string;
+    destinations: { value: string; label: string }[];
     onNameChange: (name: string) => void;
     onDraftChange: (changes: Partial<LineItem>) => void;
     onSubmitItem: () => void;
     onCancelItemEdit: () => void;
     onEditItem: (itemIndex: number) => void;
     onRemoveItem: (itemIndex: number) => void;
+    onMoveItem: (itemIndex: number, destination: string) => void;
     onRemove: () => void;
 };
 
@@ -688,12 +825,15 @@ function SubgroupFields({
     errorPrefix,
     subgroup,
     errors,
+    currentLocation,
+    destinations,
     onNameChange,
     onDraftChange,
     onSubmitItem,
     onCancelItemEdit,
     onEditItem,
     onRemoveItem,
+    onMoveItem,
     onRemove,
 }: SubgroupFieldsProps) {
     const subtotal = calculateItemsSubtotal(subgroup.items);
@@ -735,11 +875,14 @@ function SubgroupFields({
                     editingItemIndex={subgroup.editingItemIndex}
                     errors={errors}
                     emptyMessage="No materials in this phase yet. Add one above."
+                    currentLocation={currentLocation}
+                    destinations={destinations}
                     onDraftChange={onDraftChange}
                     onSubmitItem={onSubmitItem}
                     onCancelItemEdit={onCancelItemEdit}
                     onEditItem={onEditItem}
                     onRemoveItem={onRemoveItem}
+                    onMoveItem={onMoveItem}
                 />
 
                 <dl className="flex justify-between border-t border-border pt-4 font-semibold">
@@ -1273,6 +1416,100 @@ export default function BomsEdit({ quotation, bom }: Props) {
         );
     }
 
+    function addItemAt(location: LocationKey, item: LineItem): void {
+        switch (location.type) {
+            case 'ungrouped':
+                setItems((current) => [...current, item]);
+
+                return;
+            case 'subgroup':
+                setSubgroups((current) =>
+                    current.map((subgroup, i) =>
+                        i === location.subgroupIndex
+                            ? { ...subgroup, items: [...subgroup.items, item] }
+                            : subgroup,
+                    ),
+                );
+
+                return;
+            case 'group':
+                setGroups((current) =>
+                    current.map((group, i) =>
+                        i === location.groupIndex
+                            ? { ...group, items: [...group.items, item] }
+                            : group,
+                    ),
+                );
+
+                return;
+            case 'group-subgroup':
+                setGroups((current) =>
+                    current.map((group, i) => {
+                        if (i !== location.groupIndex) {
+                            return group;
+                        }
+
+                        return {
+                            ...group,
+                            subgroups: group.subgroups.map((subgroup, j) =>
+                                j === location.subgroupIndex
+                                    ? {
+                                          ...subgroup,
+                                          items: [...subgroup.items, item],
+                                      }
+                                    : subgroup,
+                            ),
+                        };
+                    }),
+                );
+
+                return;
+        }
+    }
+
+    function removeItemAt(location: LocationKey, itemIndex: number): void {
+        switch (location.type) {
+            case 'ungrouped':
+                removeItem(itemIndex);
+
+                return;
+            case 'subgroup':
+                removeSubgroupItem(location.subgroupIndex, itemIndex);
+
+                return;
+            case 'group':
+                removeGroupItem(location.groupIndex, itemIndex);
+
+                return;
+            case 'group-subgroup':
+                removeGroupSubgroupItem(
+                    location.groupIndex,
+                    location.subgroupIndex,
+                    itemIndex,
+                );
+
+                return;
+        }
+    }
+
+    function moveItem(
+        from: LocationKey,
+        itemIndex: number,
+        item: LineItem,
+        destinationValue: string,
+    ): void {
+        const to = decodeLocation(destinationValue);
+
+        if (locationsEqual(from, to)) {
+            return;
+        }
+
+        removeItemAt(from, itemIndex);
+        addItemAt(to, item);
+    }
+
+    const destinations = listDestinations(groups, subgroups);
+
     const ungroupedSubtotal = calculateItemsSubtotal(items);
     const topSubgroupSubtotals = subgroups.map((subgroup) =>
         calculateItemsSubtotal(subgroup.items),
@@ -1396,6 +1633,8 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                     }
                                                     errors={errors}
                                                     emptyMessage="No materials directly in this group. Add one above, or put materials inside a phase below."
+                                                    currentLocation={`group:${groupIndex}`}
+                                                    destinations={destinations}
                                                     onDraftChange={(changes) =>
                                                         updateGroupDraft(
                                                             groupIndex,
@@ -1422,6 +1661,22 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                         removeGroupItem(
                                                             groupIndex,
                                                             itemIndex,
+                                                        )
+                                                    }
+                                                    onMoveItem={(
+                                                        itemIndex,
+                                                        destination,
+                                                    ) =>
+                                                        moveItem(
+                                                            {
+                                                                type: 'group',
+                                                                groupIndex,
+                                                            },
+                                                            itemIndex,
+                                                            group.items[
+                                                                itemIndex
+                                                            ],
+                                                            destination,
                                                         )
                                                     }
                                                 />
@@ -1455,6 +1710,10 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                             errorPrefix={`${groupErrorPrefix}.subgroups.${subgroupIndex}`}
                                                             subgroup={subgroup}
                                                             errors={errors}
+                                                            currentLocation={`group-subgroup:${groupIndex}:${subgroupIndex}`}
+                                                            destinations={
+                                                                destinations
+                                                            }
                                                             onNameChange={(
                                                                 name,
                                                             ) =>
@@ -1501,6 +1760,24 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                                     groupIndex,
                                                                     subgroupIndex,
                                                                     itemIndex,
+                                                                )
+                                                            }
+                                                            onMoveItem={(
+                                                                itemIndex,
+                                                                destination,
+                                                            ) =>
+                                                                moveItem(
+                                                                    {
+                                                                        type: 'group-subgroup',
+                                                                        groupIndex,
+                                                                        subgroupIndex,
+                                                                    },
+                                                                    itemIndex,
+                                                                    subgroup
+                                                                        .items[
+                                                                        itemIndex
+                                                                    ],
+                                                                    destination,
                                                                 )
                                                             }
                                                             onRemove={() =>
@@ -1554,6 +1831,8 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                         errorPrefix={`subgroups.${subgroupIndex}`}
                                         subgroup={subgroup}
                                         errors={errors}
+                                        currentLocation={`subgroup:${subgroupIndex}`}
+                                        destinations={destinations}
                                         onNameChange={(name) =>
                                             updateSubgroupName(
                                                 subgroupIndex,
@@ -1588,6 +1867,17 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                                 itemIndex,
                                             )
                                         }
+                                        onMoveItem={(itemIndex, destination) =>
+                                            moveItem(
+                                                {
+                                                    type: 'subgroup',
+                                                    subgroupIndex,
+                                                },
+                                                itemIndex,
+                                                subgroup.items[itemIndex],
+                                                destination,
+                                            )
+                                        }
                                         onRemove={() =>
                                             removeSubgroup(subgroupIndex)
                                         }
@@ -1608,11 +1898,21 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                     editingItemIndex={editingItemIndex}
                                     errors={errors}
                                     emptyMessage="No ungrouped materials. Add one above, or put materials inside a group or phase."
+                                    currentLocation="ungrouped"
+                                    destinations={destinations}
                                     onDraftChange={updateItemDraft}
                                     onSubmitItem={submitItemDraft}
                                     onCancelItemEdit={cancelItemEdit}
                                     onEditItem={editItem}
                                     onRemoveItem={removeItem}
+                                    onMoveItem={(itemIndex, destination) =>
+                                        moveItem(
+                                            { type: 'ungrouped' },
+                                            itemIndex,
+                                            items[itemIndex],
+                                            destination,
+                                        )
+                                    }
                                 />
                             </div>
 
