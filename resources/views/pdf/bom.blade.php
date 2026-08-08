@@ -76,32 +76,32 @@
 
     $wrap = 'word-wrap:break-word; overflow-wrap:break-word;';
 
-    $tableOpen = '<table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse; table-layout:fixed; margin-bottom:10px;">'
-        . '<thead><tr style="background:#1a1a1a; color:#fff; font-size:8pt; font-weight:bold;">'
-        . '<th width="' . $noWidth . '%" style="border:1px solid #555; text-align:center; padding:5px 2px; ' . $wrap . '">No</th>'
-        . '<th width="' . $refWidth . '%" style="border:1px solid #555; text-align:center; padding:5px 4px; ' . $wrap . '">Reference Number</th>'
-        . '<th width="' . $brandWidth . '%" style="border:1px solid #555; text-align:center; padding:5px 4px; ' . $wrap . '">Brand</th>'
-        . '<th width="' . $descWidth . '%" style="border:1px solid #555; text-align:center; padding:5px 4px; ' . $wrap . '">Description</th>'
-        . '<th width="' . $qtyWidth . '%" style="border:1px solid #555; text-align:center; padding:5px 2px; ' . $wrap . '">QTY</th>'
+    $tableOpen = '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; table-layout:fixed; margin-bottom:6px;">'
+        . '<thead><tr style="background:#1a1a1a; color:#fff; font-size:8pt; font-weight:bold; line-height:1.1;">'
+        . '<th width="' . $noWidth . '%" style="border:1px solid #555; text-align:center; padding:2px 2px; ' . $wrap . '">No</th>'
+        . '<th width="' . $refWidth . '%" style="border:1px solid #555; text-align:center; padding:2px 3px; ' . $wrap . '">Reference Number</th>'
+        . '<th width="' . $brandWidth . '%" style="border:1px solid #555; text-align:center; padding:2px 3px; ' . $wrap . '">Brand</th>'
+        . '<th width="' . $descWidth . '%" style="border:1px solid #555; text-align:center; padding:2px 3px; ' . $wrap . '">Description</th>'
+        . '<th width="' . $qtyWidth . '%" style="border:1px solid #555; text-align:center; padding:2px 2px; ' . $wrap . '">QTY</th>'
         . '</tr></thead><tbody>';
 
     $renderItemRow = function ($item, $no) use ($wrap) {
         $quantity = (float) $item->quantity;
         $decimals = $quantity == floor($quantity) ? 0 : 2;
 
-        return '<tr style="font-size:8.5pt;">'
-            . '<td style="border:1px solid #ccc; text-align:center; padding:8px 2px; ' . $wrap . '">' . $no . '</td>'
-            . '<td style="border:1px solid #ccc; text-align:center; padding:8px 4px; ' . $wrap . '">' . e($item->product->reference_number ?? '-') . '</td>'
-            . '<td style="border:1px solid #ccc; text-align:center; padding:8px 4px; ' . $wrap . '">' . e($item->brand) . '</td>'
-            . '<td style="border:1px solid #ccc; padding:8px 4px; ' . $wrap . '">' . e($item->product->name ?? '-') . '</td>'
-            . '<td style="border:1px solid #ccc; text-align:center; padding:8px 2px; ' . $wrap . '">' . number_format($quantity, $decimals) . ' ' . e($item->unit) . '</td>'
+        return '<tr style="font-size:8.5pt; line-height:1.1;">'
+            . '<td style="border:1px solid #ccc; text-align:center; padding:2px 2px; ' . $wrap . '">' . $no . '</td>'
+            . '<td style="border:1px solid #ccc; text-align:center; padding:2px 3px; ' . $wrap . '">' . e($item->product->reference_number ?? '-') . '</td>'
+            . '<td style="border:1px solid #ccc; text-align:center; padding:2px 3px; ' . $wrap . '">' . e($item->brand) . '</td>'
+            . '<td style="border:1px solid #ccc; padding:2px 3px; ' . $wrap . '">' . e($item->product->name ?? '-') . '</td>'
+            . '<td style="border:1px solid #ccc; text-align:center; padding:2px 2px; ' . $wrap . '">' . number_format($quantity, $decimals) . ' ' . e($item->unit) . '</td>'
             . '</tr>';
     };
 
     $renderSectionRow = function ($label) use ($wrap) {
-        return '<tr style="background:#f0f0f0; font-size:8.5pt; font-weight:bold;">'
-            . '<td style="border:1px solid #ccc; padding:8px 4px;"></td>'
-            . '<td colspan="4" style="border:1px solid #ccc; padding:8px 8px; ' . $wrap . '">' . e($label) . '</td>'
+        return '<tr style="background:#f0f0f0; font-size:8.5pt; font-weight:bold; line-height:1.1;">'
+            . '<td style="border:1px solid #ccc; padding:2px 3px;"></td>'
+            . '<td colspan="4" style="border:1px solid #ccc; padding:2px 6px; ' . $wrap . '">' . e($label) . '</td>'
             . '</tr>';
     };
 
