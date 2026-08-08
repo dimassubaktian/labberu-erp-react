@@ -175,6 +175,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('quotations/{quotation}/bom/create', [BomController::class, 'create'])->name('quotations.bom.create')->middleware('permission:bom.create');
     Route::post('quotations/{quotation}/bom', [BomController::class, 'store'])->name('quotations.bom.store')->middleware('permission:bom.create');
     Route::get('quotations/{quotation}/bom', [BomController::class, 'show'])->name('quotations.bom.show')->middleware('permission:bom.view');
+    Route::get('quotations/{quotation}/bom/print', [BomController::class, 'print'])->name('quotations.bom.print')->middleware('permission:bom.view');
     Route::get('quotations/{quotation}/bom/edit', [BomController::class, 'edit'])->name('quotations.bom.edit')->middleware('permission:bom.update');
     Route::put('quotations/{quotation}/bom', [BomController::class, 'update'])->name('quotations.bom.update')->middleware('permission:bom.update');
     Route::delete('quotations/{quotation}/bom', [BomController::class, 'destroy'])->name('quotations.bom.destroy')->middleware('permission:bom.delete');

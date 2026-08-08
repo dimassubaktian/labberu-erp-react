@@ -813,12 +813,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                             <dt className="text-sm text-muted-foreground">
                                 Payment Terms
                                 {quotation.payment_term_template && (
-                                    <>
-                                        {' '}
-                                        (from template:{' '}
-                                        {quotation.payment_term_template.name}
-                                        )
-                                    </>
+                                    <>: {quotation.payment_term_template.name}</>
                                 )}
                             </dt>
                             <dd className="font-medium">

@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
+import { PrintBomDialog } from '@/components/print-bom-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -221,6 +222,19 @@ export default function BomsShow({ quotation, bom }: Props) {
                                 Back to Quotation
                             </Link>
                         </Button>
+
+                        <PrintBomDialog
+                            quotation={quotation}
+                            groups={bom.groups.map((group) => ({
+                                id: group.id,
+                                name: group.name,
+                            }))}
+                            subgroups={bom.subgroups.map((subgroup) => ({
+                                id: subgroup.id,
+                                name: subgroup.name,
+                            }))}
+                            hasUngroupedItems={bom.items.length > 0}
+                        />
 
                         {quotation.status === 'draft' && (
                             <Button asChild className="w-full sm:w-auto">

@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\BomStoreRequest;
 use App\Http\Requests\BomUpdateRequest;
 use App\Models\Bom;
+use App\Models\CompanySetting;
 use App\Models\Quotation;
 use App\Services\BomService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -186,6 +189,64 @@ class BomController extends Controller
             'quotation' => $quotation,
             'bom' => $bom,
         ]);
+    }
+
+    /**
+     * Print the quotation's BOM as a PDF, optionally limited to a selection of hardware
+     * groups, standalone phase subgroups, and ungrouped items. The printed document is a
+     * plain materials list (description/brand/quantity/unit) with no cost figures.
+     */
+    public function print(Request $request, Quotation $quotation): HttpResponse
+    {
+        $quotation->load('project.customer');
+
+        $bom = $quotation->bom()
+            ->with([
+                'groups.items.product',
+                'groups.subgroups.items.product',
+                'subgroups.items.product',
+                'items' => fn ($query) => $query->whereNull('bom_group_id')->whereNull('bom_subgroup_id')->with('product'),
+            ])
+            ->firstOrFail();
+
+        $selectedGroupIds = $request->has('group_ids')
+            ? array_map('intval', (array) $request->query('group_ids'))
+            : $bom->groups->pluck('id')->all();
+        $selectedSubgroupIds = $request->has('subgroup_ids')
+            ? array_map('intval', (array) $request->query('subgroup_ids'))
+            : $bom->subgroups->pluck('id')->all();
+        $includeUngrouped = $request->boolean('include_ungrouped', true);
+
+        $bom->setRelation('groups', $bom->groups->whereIn('id', $selectedGroupIds)->values());
+        $bom->setRelation('subgroups', $bom->subgroups->whereIn('id', $selectedSubgroupIds)->values());
+
+        if (! $includeUngrouped) {
+            $bom->setRelation('items', $bom->items->take(0));
+        }
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.bom', compact('quotation', 'bom', 'company'))
+            ->setPaper('a4', 'portrait');
+
+        // dompdf's CSS `counter(pages)` never resolves to the total page count, so the
+        // "X / Y" page number is drawn directly on the canvas instead, which does. This
+        // requires an explicit render() first: page_text() only reaches pages that
+        // already exist and only knows the page count at the moment it is called.
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.5;
+        $textWidth = $fontMetrics->getTextWidth('99 / 99', $font, $fontSize);
+        $dompdf->getCanvas()->page_text(563.28 - $textWidth, 816, '{PAGE_NUM} / {PAGE_COUNT}', $font, $fontSize, [0.53, 0.53, 0.53]);
+
+        $filename = "bom-{$quotation->quotation_code}.pdf";
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
     }
 
     /**
