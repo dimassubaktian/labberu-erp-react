@@ -123,51 +123,51 @@
 {{-- GROUPED: one table per group --}}
 @foreach ($quotation->groups as $gi => $group)
     @php $itemCount = $group->items->count(); @endphp
-    <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse; margin-bottom:8px;">
+    <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse; margin-bottom:6px;">
         <thead>
-            <tr style="background:#1a1a1a; color:#fff; font-size:8pt; font-weight:bold;">
-                <th width="24"  style="border:1px solid #555; text-align:center; padding:5px 4px;">No</th>
-                <th            style="border:1px solid #555; text-align:left;   padding:5px 4px;">Description</th>
-                <th width="55"  style="border:1px solid #555; text-align:center; padding:5px 4px;">Brand</th>
-                <th width="38"  style="border:1px solid #555; text-align:right;  padding:5px 4px;">QTY</th>
-                <th width="34"  style="border:1px solid #555; text-align:center; padding:5px 4px;">UOM</th>
-                <th width="78"  style="border:1px solid #555; text-align:right;  padding:5px 4px;">Unit Price</th>
-                <th width="78"  style="border:1px solid #555; text-align:right;  padding:5px 4px;">Amount</th>
+            <tr style="background:#1a1a1a; color:#fff; font-size:8pt; font-weight:bold; line-height:1.1;">
+                <th width="24"  style="border:1px solid #555; text-align:center; padding:2px 3px;">No</th>
+                <th            style="border:1px solid #555; text-align:left;   padding:2px 3px;">Description</th>
+                <th width="55"  style="border:1px solid #555; text-align:center; padding:2px 3px;">Brand</th>
+                <th width="38"  style="border:1px solid #555; text-align:right;  padding:2px 3px;">QTY</th>
+                <th width="34"  style="border:1px solid #555; text-align:center; padding:2px 3px;">UOM</th>
+                <th width="78"  style="border:1px solid #555; text-align:right;  padding:2px 3px;">Unit Price</th>
+                <th width="78"  style="border:1px solid #555; text-align:right;  padding:2px 3px;">Amount</th>
             </tr>
-            <tr style="background:#f0f0f0; font-size:8.5pt; font-weight:bold;">
-                <td style="border:1px solid #ccc; padding:5px 4px;"></td>
-                <td colspan="6" style="border:1px solid #ccc; padding:5px 8px;">{{ $group->name }}</td>
+            <tr style="background:#f0f0f0; font-size:8.5pt; font-weight:bold; line-height:1.1;">
+                <td style="border:1px solid #ccc; padding:2px 3px;"></td>
+                <td colspan="6" style="border:1px solid #ccc; padding:2px 6px;">{{ $group->name }}</td>
             </tr>
         </thead>
         <tbody>
             @foreach ($group->items as $i => $item)
-                <tr style="font-size:8.5pt;">
-                    <td style="border:1px solid #ccc; text-align:center; padding:8px 4px;">{{ $i + 1 }}</td>
-                    <td style="border:1px solid #ccc; padding:8px 4px;">{{ $item->product->name ?? $item->description ?? '-' }}</td>
-                    <td style="border:1px solid #ccc; padding:8px 4px;">{{ $item->product->brand ?? '-' }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:8px 4px;">{{ number_format((float)$item->quantity, 2) }}</td>
-                    <td style="border:1px solid #ccc; text-align:center; padding:8px 4px;">{{ $item->unit }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:8px 4px;">{{ number_format((float)$item->unit_price, 0) }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:8px 4px;">{{ number_format((float)$item->total_price, 0) }}</td>
+                <tr style="font-size:8.5pt; line-height:1.1;">
+                    <td style="border:1px solid #ccc; text-align:center; padding:2px 3px;">{{ $i + 1 }}</td>
+                    <td style="border:1px solid #ccc; padding:2px 3px;">{{ $item->product->name ?? $item->description ?? '-' }}</td>
+                    <td style="border:1px solid #ccc; padding:2px 3px;">{{ $item->product->brand ?? '-' }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 3px;">{{ number_format((float)$item->quantity, 2) }}</td>
+                    <td style="border:1px solid #ccc; text-align:center; padding:2px 3px;">{{ $item->unit }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 3px;">{{ number_format((float)$item->unit_price, 0) }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 3px;">{{ number_format((float)$item->total_price, 0) }}</td>
                 </tr>
             @endforeach
-            <tr style="background:#f5f5f5; font-size:8.5pt; font-weight:bold;">
-                <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:5px 8px;">TOTAL</td>
-                <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $currencyCode }}</td>
-                <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ number_format((float)$group->subtotal, 0) }}</td>
+            <tr style="background:#f5f5f5; font-size:8.5pt; font-weight:bold; line-height:1.1;">
+                <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:2px 6px;">TOTAL</td>
+                <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $currencyCode }}</td>
+                <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ number_format((float)$group->subtotal, 0) }}</td>
             </tr>
             @if ($group->tax)
-                <tr style="background:#f5f5f5; font-size:8.5pt;">
-                    <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $group->tax->name }} {{ $group->tax->rate }}%</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $currencyCode }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ number_format((float)$group->tax_amount, 0) }}</td>
+                <tr style="background:#f5f5f5; font-size:8.5pt; line-height:1.1;">
+                    <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $group->tax->name }} {{ $group->tax->rate }}%</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $currencyCode }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ number_format((float)$group->tax_amount, 0) }}</td>
                 </tr>
             @endif
             @php $groupLabel = 'TOTAL ' . chr(65 + $gi); @endphp
-            <tr style="background:#e8e8e8; font-size:8.5pt; font-weight:bold;">
-                <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $groupLabel }}</td>
-                <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $currencyCode }}</td>
-                <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ number_format((float)$group->total, 0) }}</td>
+            <tr style="background:#e8e8e8; font-size:8.5pt; font-weight:bold; line-height:1.1;">
+                <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $groupLabel }}</td>
+                <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $currencyCode }}</td>
+                <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ number_format((float)$group->total, 0) }}</td>
             </tr>
         </tbody>
     </table>
@@ -175,34 +175,34 @@
 
 {{-- UNGROUPED ITEMS --}}
 @if ($hasUngrouped)
-    <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse; margin-bottom:8px;">
+    <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse; margin-bottom:6px;">
         <thead>
-            <tr style="background:#1a1a1a; color:#fff; font-size:8pt; font-weight:bold;">
-                <th width="24"  style="border:1px solid #555; text-align:center; padding:5px 4px;">No</th>
-                <th            style="border:1px solid #555; text-align:left;   padding:5px 4px;">Description</th>
-                <th width="55"  style="border:1px solid #555; text-align:center; padding:5px 4px;">Brand</th>
-                <th width="38"  style="border:1px solid #555; text-align:right;  padding:5px 4px;">QTY</th>
-                <th width="34"  style="border:1px solid #555; text-align:center; padding:5px 4px;">UOM</th>
-                <th width="78"  style="border:1px solid #555; text-align:right;  padding:5px 4px;">Unit Price</th>
-                <th width="78"  style="border:1px solid #555; text-align:right;  padding:5px 4px;">Amount</th>
+            <tr style="background:#1a1a1a; color:#fff; font-size:8pt; font-weight:bold; line-height:1.1;">
+                <th width="24"  style="border:1px solid #555; text-align:center; padding:2px 3px;">No</th>
+                <th            style="border:1px solid #555; text-align:left;   padding:2px 3px;">Description</th>
+                <th width="55"  style="border:1px solid #555; text-align:center; padding:2px 3px;">Brand</th>
+                <th width="38"  style="border:1px solid #555; text-align:right;  padding:2px 3px;">QTY</th>
+                <th width="34"  style="border:1px solid #555; text-align:center; padding:2px 3px;">UOM</th>
+                <th width="78"  style="border:1px solid #555; text-align:right;  padding:2px 3px;">Unit Price</th>
+                <th width="78"  style="border:1px solid #555; text-align:right;  padding:2px 3px;">Amount</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($quotation->items as $i => $item)
-                <tr style="font-size:8.5pt;">
-                    <td style="border:1px solid #ccc; text-align:center; padding:8px 4px;">{{ $i + 1 }}</td>
-                    <td style="border:1px solid #ccc; padding:8px 4px;">{{ $item->product->name ?? $item->description ?? '-' }}</td>
-                    <td style="border:1px solid #ccc; padding:8px 4px;">{{ $item->product->brand ?? '-' }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:8px 4px;">{{ number_format((float)$item->quantity, 2) }}</td>
-                    <td style="border:1px solid #ccc; text-align:center; padding:8px 4px;">{{ $item->unit }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:8px 4px;">{{ number_format((float)$item->unit_price, 0) }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:8px 4px;">{{ number_format((float)$item->total_price, 0) }}</td>
+                <tr style="font-size:8.5pt; line-height:1.1;">
+                    <td style="border:1px solid #ccc; text-align:center; padding:2px 3px;">{{ $i + 1 }}</td>
+                    <td style="border:1px solid #ccc; padding:2px 3px;">{{ $item->product->name ?? $item->description ?? '-' }}</td>
+                    <td style="border:1px solid #ccc; padding:2px 3px;">{{ $item->product->brand ?? '-' }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 3px;">{{ number_format((float)$item->quantity, 2) }}</td>
+                    <td style="border:1px solid #ccc; text-align:center; padding:2px 3px;">{{ $item->unit }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 3px;">{{ number_format((float)$item->unit_price, 0) }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 3px;">{{ number_format((float)$item->total_price, 0) }}</td>
                 </tr>
             @endforeach
-            <tr style="background:#f5f5f5; font-size:8.5pt; font-weight:bold;">
-                <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:5px 8px;">TOTAL</td>
-                <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $currencyCode }}</td>
-                <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ number_format($isPartialPrint ? (float)$quotation->items->sum('total_price') : (float)$quotation->subtotal, 0) }}</td>
+            <tr style="background:#f5f5f5; font-size:8.5pt; font-weight:bold; line-height:1.1;">
+                <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:2px 6px;">TOTAL</td>
+                <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $currencyCode }}</td>
+                <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ number_format($isPartialPrint ? (float)$quotation->items->sum('total_price') : (float)$quotation->subtotal, 0) }}</td>
             </tr>
             @if (! $isPartialPrint && (float)$quotation->discount_amount > 0)
                 @php
@@ -211,17 +211,17 @@
                         $discLabel .= ' (' . $quotation->discount_value . '%)';
                     }
                 @endphp
-                <tr style="background:#f5f5f5; font-size:8.5pt;">
-                    <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $discLabel }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $currencyCode }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">- {{ number_format((float)$quotation->discount_amount, 0) }}</td>
+                <tr style="background:#f5f5f5; font-size:8.5pt; line-height:1.1;">
+                    <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $discLabel }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $currencyCode }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">- {{ number_format((float)$quotation->discount_amount, 0) }}</td>
                 </tr>
             @endif
             @if (! $isPartialPrint && $quotation->tax)
-                <tr style="background:#f5f5f5; font-size:8.5pt;">
-                    <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $quotation->tax->name }} {{ $quotation->tax->rate }}%</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ $currencyCode }}</td>
-                    <td style="border:1px solid #ccc; text-align:right; padding:5px 8px;">{{ number_format((float)$quotation->tax_amount, 0) }}</td>
+                <tr style="background:#f5f5f5; font-size:8.5pt; line-height:1.1;">
+                    <td colspan="5" style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $quotation->tax->name }} {{ $quotation->tax->rate }}%</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ $currencyCode }}</td>
+                    <td style="border:1px solid #ccc; text-align:right; padding:2px 6px;">{{ number_format((float)$quotation->tax_amount, 0) }}</td>
                 </tr>
             @endif
         </tbody>
@@ -230,10 +230,10 @@
 
 {{-- GRAND TOTAL --}}
 <table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse; margin-bottom:{{ $isPartialPrint ? '4px' : '12px' }};">
-    <tr style="background:#1a1a1a; color:#fff; font-size:9.5pt; font-weight:bold;">
-        <td style="border:1px solid #555; text-align:right; padding:6px 8px;">{{ $isPartialPrint ? 'TOTAL' : 'GRAND TOTAL' }}</td>
-        <td width="78" style="border:1px solid #555; text-align:right; padding:6px 8px;">{{ $currencyCode }}</td>
-        <td width="78" style="border:1px solid #555; text-align:right; padding:6px 8px;">{{ number_format($isPartialPrint ? (float)$partialTotal : (float)$quotation->total, 0) }}</td>
+    <tr style="background:#1a1a1a; color:#fff; font-size:9.5pt; font-weight:bold; line-height:1.1;">
+        <td style="border:1px solid #555; text-align:right; padding:3px 6px;">{{ $isPartialPrint ? 'TOTAL' : 'GRAND TOTAL' }}</td>
+        <td width="78" style="border:1px solid #555; text-align:right; padding:3px 6px;">{{ $currencyCode }}</td>
+        <td width="78" style="border:1px solid #555; text-align:right; padding:3px 6px;">{{ number_format($isPartialPrint ? (float)$partialTotal : (float)$quotation->total, 0) }}</td>
     </tr>
 </table>
 @if ($isPartialPrint)
