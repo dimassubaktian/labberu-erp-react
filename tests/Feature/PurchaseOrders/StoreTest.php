@@ -73,6 +73,20 @@ test('the attention field is saved', function () {
     expect(PurchaseOrder::sole()->attention)->toBe('Jane Doe');
 });
 
+test('the notes html field is saved', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)->post(route('purchase-orders.store'), purchaseOrderPayload([
+        'notes_html' => '<ol><li><p>Custom note.</p></li></ol>',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
+        ],
+    ]))->assertSessionHasNoErrors();
+
+    expect(PurchaseOrder::sole()->notes_html)->toBe('<ol><li><p>Custom note.</p></li></ol>');
+});
+
 test('a line item imported from a bom remembers its source bom item', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create();

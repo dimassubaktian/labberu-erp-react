@@ -197,6 +197,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('purchase-orders/{purchaseOrder}/void', [PurchaseOrderController::class, 'void'])->name('purchase-orders.void')->middleware('permission:purchase-orders.void');
     Route::patch('purchase-orders/{purchaseOrder}/progress', [PurchaseOrderController::class, 'updateProgress'])->name('purchase-orders.progress.update')->middleware('permission:purchase-orders.progress.update');
     Route::get('purchase-orders/{purchaseOrder}/items', [PurchaseOrderController::class, 'items'])->name('purchase-orders.items.index')->middleware('permission:purchase-orders.view');
+    Route::get('purchase-orders/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print')->middleware('permission:purchase-orders.view');
 
     Route::get('goods-receipt-notes', [GoodsReceiptNoteController::class, 'index'])->name('goods-receipt-notes.index')->middleware('permission:goods-receipt-notes.view');
     Route::get('goods-receipt-notes/create', [GoodsReceiptNoteController::class, 'create'])->name('goods-receipt-notes.create')->middleware('permission:goods-receipt-notes.create');

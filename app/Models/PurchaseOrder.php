@@ -32,6 +32,7 @@ use Illuminate\Support\Str;
  * @property int|null $tax_id
  * @property string|null $shipping_method
  * @property string|null $shipping_terms
+ * @property string|null $notes_html
  * @property Carbon|null $delivery_date
  * @property string $subtotal
  * @property string $discount_total
@@ -70,6 +71,7 @@ use Illuminate\Support\Str;
     'tax_id',
     'shipping_method',
     'shipping_terms',
+    'notes_html',
     'delivery_date',
     'subtotal',
     'discount_total',

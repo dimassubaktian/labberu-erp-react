@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Send, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Printer, Send, Trash2, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
@@ -39,6 +39,7 @@ import {
     edit,
     index,
     issue,
+    print,
     reject,
     voidMethod as voidPurchaseOrder,
 } from '@/routes/purchase-orders';
@@ -139,6 +140,7 @@ type PurchaseOrder = {
     delivery_date: string | null;
     shipping_method: string | null;
     shipping_terms: string | null;
+    notes_html: string | null;
     subtotal: string;
     discount_total: string;
     net_after_discount: string;
@@ -235,6 +237,21 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                 <ArrowLeft />
                                 Back to Purchase Orders
                             </Link>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            asChild
+                            className="w-full sm:w-auto"
+                        >
+                            <a
+                                href={print.url(purchaseOrder)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <Printer />
+                                Print
+                            </a>
                         </Button>
 
                         {(purchaseOrder.status === 'draft' ||
@@ -521,6 +538,22 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             </dd>
                         </div>
                     </dl>
+                </div>
+
+                <div>
+                    <h2 className="mb-4 text-base font-semibold">Notes</h2>
+                    {purchaseOrder.notes_html ? (
+                        <div
+                            className="rich-text-content"
+                            dangerouslySetInnerHTML={{
+                                __html: purchaseOrder.notes_html,
+                            }}
+                        />
+                    ) : (
+                        <span className="text-sm text-muted-foreground">
+                            &mdash;
+                        </span>
+                    )}
                 </div>
 
                 <div>

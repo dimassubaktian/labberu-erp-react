@@ -6,6 +6,7 @@ import Heading from '@/components/heading';
 import { ImportBomItemsDialog } from '@/components/import-bom-items-dialog';
 import type { ImportedBomItem } from '@/components/import-bom-items-dialog';
 import InputError from '@/components/input-error';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -145,6 +146,7 @@ type PurchaseOrder = {
     tax_id: number | null;
     shipping_method: string | null;
     shipping_terms: string | null;
+    notes_html: string | null;
     project: ProjectOption;
     customer: { id: number; name: string };
     vendor: VendorOption;
@@ -156,6 +158,7 @@ type Props = {
     purchaseOrder: PurchaseOrder;
     currencies: CurrencyOption[];
     taxes: TaxOption[];
+    defaultNotesHtml: string;
 };
 
 function emptyItem(): LineItem {
@@ -417,6 +420,7 @@ export default function PurchaseOrdersEdit({
     purchaseOrder,
     currencies,
     taxes,
+    defaultNotesHtml,
 }: Props) {
     setLayoutProps({
         breadcrumbs: [
@@ -461,6 +465,9 @@ export default function PurchaseOrdersEdit({
     const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
     const [discounts, setDiscounts] = useState<DiscountLevel[]>(
         purchaseOrder.discounts.map(toDiscountLevel),
+    );
+    const [notesHtml, setNotesHtml] = useState(
+        purchaseOrder.notes_html ?? defaultNotesHtml,
     );
 
     useEffect(() => {
@@ -1012,6 +1019,21 @@ export default function PurchaseOrdersEdit({
                                             message={errors.shipping_terms}
                                         />
                                     </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h2 className="text-base font-semibold">
+                                    Notes
+                                </h2>
+                                <div className="grid gap-2">
+                                    <RichTextEditor
+                                        name="notes_html"
+                                        value={notesHtml}
+                                        onChange={setNotesHtml}
+                                        error={errors.notes_html}
+                                    />
+                                    <InputError message={errors.notes_html} />
                                 </div>
                             </div>
 

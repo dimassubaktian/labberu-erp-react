@@ -11,15 +11,18 @@ use App\Http\Requests\PurchaseOrderRejectRequest;
 use App\Http\Requests\PurchaseOrderStoreRequest;
 use App\Http\Requests\PurchaseOrderUpdateRequest;
 use App\Http\Requests\PurchaseOrderVoidRequest;
+use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\GoodsReceiptNoteItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
 use App\Models\Tax;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -136,6 +139,7 @@ class PurchaseOrderController extends Controller
             'initialQuotation' => $initialQuotation,
             'currencies' => $currencies,
             'taxes' => $taxes,
+            'defaultNotesHtml' => $this->defaultNotesHtml(),
         ]);
     }
 
@@ -164,6 +168,7 @@ class PurchaseOrderController extends Controller
                 'tax_id' => $data['tax_id'] ?? null,
                 'shipping_method' => $data['shipping_method'] ?? null,
                 'shipping_terms' => $data['shipping_terms'] ?? null,
+                'notes_html' => $data['notes_html'] ?? null,
                 'delivery_date' => $data['delivery_date'] ?? null,
                 'status' => 'draft',
             ]);
@@ -234,6 +239,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'currencies' => $currencies,
             'taxes' => $taxes,
+            'defaultNotesHtml' => $this->defaultNotesHtml(),
         ]);
     }
 
@@ -266,6 +272,7 @@ class PurchaseOrderController extends Controller
                 'tax_id' => $data['tax_id'] ?? null,
                 'shipping_method' => $data['shipping_method'] ?? null,
                 'shipping_terms' => $data['shipping_terms'] ?? null,
+                'notes_html' => $data['notes_html'] ?? null,
                 'delivery_date' => $data['delivery_date'] ?? null,
                 ...($wasApproved ? [
                     'status' => 'draft',
@@ -295,13 +302,65 @@ class PurchaseOrderController extends Controller
     }
 
     /**
+     * Stream the purchase order as a printable PDF document.
+     */
+    public function print(Request $request, PurchaseOrder $purchaseOrder): HttpResponse
+    {
+        $purchaseOrder->load([
+            'vendor',
+            'currency',
+            'items.product',
+            'discounts',
+            'issuedBy',
+            'checkedByFirst',
+            'checkedBySecond',
+            'approvedBy',
+        ]);
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.purchase-order', [
+            'purchaseOrder' => $purchaseOrder,
+            'company' => $company,
+            'notesHtml' => $purchaseOrder->notes_html ?? $this->defaultNotesHtml(),
+        ])->setPaper('a4', 'portrait');
+
+        // dompdf's CSS `counter(pages)` never resolves to the total page count, so the
+        // "X / Y" page number is drawn directly on the canvas instead, which does. This
+        // requires an explicit render() first: page_text() only reaches pages that
+        // already exist and only knows the page count at the moment it is called.
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.5;
+        $textWidth = $fontMetrics->getTextWidth('99 / 99', $font, $fontSize);
+        $dompdf->getCanvas()->page_text(563.28 - $textWidth, 816, '{PAGE_NUM} / {PAGE_COUNT}', $font, $fontSize, [0.53, 0.53, 0.53]);
+
+        $filename = "purchase-order-{$purchaseOrder->purchase_order_code}.pdf";
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
+    }
+
+    /**
      * Remove the specified purchase order.
      */
     public function destroy(PurchaseOrder $purchaseOrder): RedirectResponse
     {
         abort_if($purchaseOrder->status !== 'draft', 403, 'Only draft purchase orders can be deleted.');
+        abort_if(
+            $purchaseOrder->goodsReceiptNotes()->where('status', 'confirmed')->exists(),
+            403,
+            'Cannot delete a purchase order that has a confirmed goods receipt note.'
+        );
 
-        $purchaseOrder->delete();
+        DB::transaction(function () use ($purchaseOrder): void {
+            $purchaseOrder->goodsReceiptNotes()->where('status', 'draft')->get()->each->delete();
+            $purchaseOrder->delete();
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order deleted.')]);
 
@@ -398,7 +457,16 @@ class PurchaseOrderController extends Controller
      */
     public function cancel(PurchaseOrderCancelRequest $request, PurchaseOrder $purchaseOrder): RedirectResponse
     {
-        $purchaseOrder->update(['status' => 'cancelled']);
+        abort_if(
+            $purchaseOrder->goodsReceiptNotes()->where('status', 'confirmed')->exists(),
+            403,
+            'Cannot cancel a purchase order that has a confirmed goods receipt note.'
+        );
+
+        DB::transaction(function () use ($purchaseOrder): void {
+            $purchaseOrder->update(['status' => 'cancelled']);
+            $purchaseOrder->goodsReceiptNotes()->where('status', 'draft')->update(['status' => 'cancelled']);
+        });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order cancelled.')]);
 
@@ -415,6 +483,22 @@ class PurchaseOrderController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order voided.')]);
 
         return to_route('purchase-orders.show', $purchaseOrder);
+    }
+
+    /**
+     * Get the standard notes HTML pre-filled into the notes editor on the create/edit forms,
+     * and used as the print fallback for purchase orders saved before this field existed.
+     */
+    private function defaultNotesHtml(): string
+    {
+        return <<<'HTML'
+        <ol>
+        <li><p>Please send two copies of your invoice.</p></li>
+        <li><p>Enter this order in accordance with the prices, term, delivery method and specification listed above.</p></li>
+        <li><p>Please notify us immediately if you are unable to ship</p></li>
+        <li><p>Send all correspondence to:</p><p>PT. LABBERU<br>Kawasan Industri Tunas 2, Type 11 H<br>Kelurahan Belian, Kecamatan Batam Kota<br>Batam Center 29464 - Indonesia<br>Phone : +62 778 451 444<br>Fax : +62 778 451 497</p></li>
+        </ol>
+        HTML;
     }
 
     /**

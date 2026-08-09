@@ -50,6 +50,7 @@ class PurchaseOrderUpdateRequest extends FormRequest
             'tax_id' => ['nullable', Rule::exists('taxes', 'id')->whereNull('deleted_at')],
             'shipping_method' => ['nullable', 'string', 'max:255'],
             'shipping_terms' => ['nullable', 'string', 'max:255'],
+            'notes_html' => ['nullable', 'string'],
             'delivery_date' => ['nullable', 'date'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', Rule::exists('products', 'id')->whereNull('deleted_at')],
