@@ -59,9 +59,9 @@
                         <td style="font-size:8.5pt; font-weight:bold;">{{ $customer->name }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size:8.5pt;">Address</td>
-                        <td style="font-size:8.5pt;">:</td>
-                        <td style="font-size:8.5pt;">{{ $customer->address }}</td>
+                        <td valign="top" style="font-size:8.5pt;">Address</td>
+                        <td valign="top" style="font-size:8.5pt;">:</td>
+                        <td valign="top" style="font-size:8.5pt;">{{ $customer->address }}</td>
                     </tr>
                     <tr>
                         <td style="font-size:8.5pt;">Phone/Fax</td>
@@ -86,7 +86,7 @@
                 </table>
             </td>
             <td valign="top" width="50%" style="text-align:right;">
-                <div style="font-size:14pt; font-weight:bold; margin-bottom:6px;">delivery order</div>
+                <div style="font-size:14pt; font-weight:bold; margin-bottom:6px;">DELIVERY ORDER</div>
                 <table cellpadding="2" cellspacing="0" style="margin-left:auto;">
                     <tr>
                         <td style="font-size:8pt;">DO No</td>

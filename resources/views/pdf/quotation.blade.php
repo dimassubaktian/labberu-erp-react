@@ -63,9 +63,9 @@
                         ]);
                     @endphp
                     <tr>
-                        <td style="font-size:8.5pt;">Address</td>
-                        <td style="font-size:8.5pt;">:</td>
-                        <td style="font-size:8.5pt;">{{ implode(', ', $customerAddressParts) }}</td>
+                        <td valign="top" style="font-size:8.5pt;">Address</td>
+                        <td valign="top" style="font-size:8.5pt;">:</td>
+                        <td valign="top" style="font-size:8.5pt;">{{ implode(', ', $customerAddressParts) }}</td>
                     </tr>
                     <tr>
                         <td style="font-size:8.5pt;">Phone / Fax</td>
@@ -85,7 +85,7 @@
                 </table>
             </td>
             <td valign="top" width="50%" style="text-align:right;">
-                <div style="font-size:14pt; font-weight:bold; margin-bottom:6px;">quotation</div>
+                <div style="font-size:14pt; font-weight:bold; margin-bottom:6px;">QUOTATION</div>
                 <table cellpadding="2" cellspacing="0" style="margin-left:auto;">
                     <tr>
                         <td style="font-size:8pt;">Rev. No &amp; Date</td>

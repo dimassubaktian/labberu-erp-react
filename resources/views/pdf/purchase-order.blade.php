@@ -57,9 +57,9 @@
                         <td style="font-size:8.5pt; font-weight:bold;">{{ $purchaseOrder->vendor->name }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size:8.5pt;">Address</td>
-                        <td style="font-size:8.5pt;">:</td>
-                        <td style="font-size:8.5pt;">{{ $purchaseOrder->address }}</td>
+                        <td valign="top" style="font-size:8.5pt;">Address</td>
+                        <td valign="top" style="font-size:8.5pt;">:</td>
+                        <td valign="top" style="font-size:8.5pt;">{{ $purchaseOrder->address }}</td>
                     </tr>
                     <tr>
                         <td style="font-size:8.5pt;">Phone/Fax</td>
@@ -89,7 +89,7 @@
                 </table>
             </td>
             <td valign="top" width="50%" style="text-align:right;">
-                <div style="font-size:14pt; font-weight:bold; margin-bottom:6px;">purchase order</div>
+                <div style="font-size:14pt; font-weight:bold; margin-bottom:6px;">PURCHASE ORDER</div>
                 <table cellpadding="2" cellspacing="0" style="margin-left:auto;">
                     <tr>
                         <td style="font-size:8pt;">PO No</td>
@@ -128,9 +128,9 @@
     </thead>
     <tbody>
         <tr style="font-size:8.5pt; line-height:1.1;">
-            <td style="border:1px solid #ccc; padding:2px 3px;">{{ $purchaseOrder->shipping_method }}</td>
-            <td style="border:1px solid #ccc; padding:2px 3px;">{{ $purchaseOrder->shipping_terms }}</td>
-            <td style="border:1px solid #ccc; padding:2px 3px;">{{ $purchaseOrder->delivery_date?->format('d.m.Y') }}</td>
+            <td style="border:1px solid #ccc; padding:2px 3px;">{{ $purchaseOrder->shipping_method ?: '-' }}</td>
+            <td style="border:1px solid #ccc; padding:2px 3px;">{{ $purchaseOrder->shipping_terms ?: '-' }}</td>
+            <td style="border:1px solid #ccc; padding:2px 3px;">{{ $purchaseOrder->delivery_date?->format('d.m.Y') ?: '-' }}</td>
         </tr>
     </tbody>
 </table>
@@ -204,11 +204,11 @@
 </table>
 
 {{-- NOTES --}}
-<div style="font-size:8pt; color:#333; line-height:1.7; margin-bottom:20px;">
+<div style="font-size:8pt; color:#333; line-height:1.3; margin-bottom:12px;">
     <style>
-        .notes-content p { margin: 0 0 6px; }
+        .notes-content p { margin: 0 0 3px; }
         .notes-content ol { margin: 0; padding-left: 16px; }
-        .notes-content li { margin-bottom: 6px; }
+        .notes-content li { margin-bottom: 3px; }
         .notes-content li:last-child { margin-bottom: 0; }
     </style>
     <div class="notes-content">{!! $notesHtml !!}</div>
@@ -232,8 +232,7 @@
                     <tr>
                         <td style="border-top:1px solid #333; padding-top:4px; text-align:center;">
                             <div style="font-size:8pt; font-weight:bold;">{{ $signature['name'] ?: ' ' }}</div>
-                            <div style="font-size:7.5pt; color:#555; margin-top:6px;">Date</div>
-                            <div style="font-size:7.5pt; color:#555;">{{ $signature['date']?->format('d.m.Y') }}</div>
+                            <div style="font-size:7.5pt; color:#555; margin-top:6px;">{{ $signature['date']?->format('d.m.Y') }}</div>
                         </td>
                     </tr>
                 </table>

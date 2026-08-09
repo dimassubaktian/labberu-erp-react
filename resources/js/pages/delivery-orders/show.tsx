@@ -1,7 +1,8 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Printer, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PrintDocumentDialog } from '@/components/print-document-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -104,20 +105,14 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                             </Link>
                         </Button>
 
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="w-full sm:w-auto"
-                        >
-                            <a
-                                href={print.url(deliveryOrder)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <Printer />
-                                Print
-                            </a>
-                        </Button>
+                        <PrintDocumentDialog
+                            title="Print delivery order"
+                            description="Preview or download the delivery order as a PDF."
+                            previewUrl={print.url(deliveryOrder)}
+                            downloadUrl={print.url(deliveryOrder, {
+                                query: { download: true },
+                            })}
+                        />
 
                         {deliveryOrder.status === 'draft' && (
                             <Button asChild className="w-full sm:w-auto">

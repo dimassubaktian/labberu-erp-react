@@ -1,8 +1,9 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Printer, Send, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Send, Trash2, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import { PrintDocumentDialog } from '@/components/print-document-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -239,20 +240,14 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             </Link>
                         </Button>
 
-                        <Button
-                            variant="outline"
-                            asChild
-                            className="w-full sm:w-auto"
-                        >
-                            <a
-                                href={print.url(purchaseOrder)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <Printer />
-                                Print
-                            </a>
-                        </Button>
+                        <PrintDocumentDialog
+                            title="Print purchase order"
+                            description="Preview or download the purchase order as a PDF."
+                            previewUrl={print.url(purchaseOrder)}
+                            downloadUrl={print.url(purchaseOrder, {
+                                query: { download: true },
+                            })}
+                        />
 
                         {(purchaseOrder.status === 'draft' ||
                             purchaseOrder.status === 'approved') && (
