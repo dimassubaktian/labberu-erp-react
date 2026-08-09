@@ -396,7 +396,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-quantity`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0.01"
                         value={draft.quantity}
                         onChange={(e) =>
@@ -436,7 +436,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-unit-cost`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.unit_cost}
                         onChange={(e) =>
@@ -482,7 +482,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-discount-value`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.discount_value}
                         onChange={(e) =>
@@ -1611,7 +1611,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                     description={`For quotation ${quotation.quotation_code}`}
                 />
 
-                <Form {...update.form(quotation)} className="space-y-6">
+                <Form noValidate {...update.form(quotation)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             {groups.map((group, groupIndex) => {
@@ -2034,7 +2034,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                         <Input
                                             id="overhead_percentage"
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             min="0"
                                             name="overhead_percentage"
                                             value={overheadPercentage}
@@ -2057,7 +2057,7 @@ export default function BomsEdit({ quotation, bom }: Props) {
                                         <Input
                                             id="selling_percentage"
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             min="0"
                                             name="selling_percentage"
                                             value={sellingPercentage}

@@ -342,7 +342,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-quantity`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0.01"
                         value={draft.quantity}
                         onChange={(e) =>
@@ -382,7 +382,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-unit-price`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.unit_price}
                         onChange={(e) =>
@@ -397,7 +397,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-unit-cost`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.unit_cost}
                         onChange={(e) =>
@@ -443,7 +443,7 @@ function LineItemForm({
                     <Input
                         id={`${idPrefix}-discount-value`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.discount_value}
                         onChange={(e) =>
@@ -981,7 +981,7 @@ export default function QuotationsCreate({
                     description="Create a quotation for a project"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <Tabs
@@ -1392,7 +1392,7 @@ export default function QuotationsCreate({
                                                         <Input
                                                             id={`group-${groupIndex}-discount-value`}
                                                             type="number"
-                                                            step="0.01"
+                                                            step="1"
                                                             min="0"
                                                             name={`${groupNamePrefix}[discount_value]`}
                                                             value={
@@ -1889,7 +1889,7 @@ export default function QuotationsCreate({
                                                 <Input
                                                     id="discount_value"
                                                     type="number"
-                                                    step="0.01"
+                                                    step="1"
                                                     min="0"
                                                     name="discount_value"
                                                     value={discountValue}

@@ -28,6 +28,11 @@ function purchaseOrderWithItemQuantities(array $quantities): PurchaseOrder
     return $purchaseOrder->fresh('items');
 }
 
+function workforceFor(User $user): Workforce
+{
+    return Workforce::factory()->create(['user_id' => $user->id]);
+}
+
 function draftGoodsReceiptNoteFor(PurchaseOrderItem $item, float $accepted): GoodsReceiptNote
 {
     $goodsReceiptNote = GoodsReceiptNote::factory()->create([
@@ -48,7 +53,7 @@ function draftGoodsReceiptNoteFor(PurchaseOrderItem $item, float $accepted): Goo
 
 test('confirming a goods receipt note sets partially_received when not everything has arrived', function () {
     $user = User::factory()->create();
-    $workforce = Workforce::factory()->create();
+    $workforce = workforceFor($user);
     $purchaseOrder = purchaseOrderWithItemQuantities([10]);
     $item = $purchaseOrder->items->first();
     $goodsReceiptNote = draftGoodsReceiptNoteFor($item, 4);
@@ -66,17 +71,18 @@ test('confirming a goods receipt note sets partially_received when not everythin
 
 test('confirming enough goods receipt notes to cover every line sets fully_received', function () {
     $user = User::factory()->create();
+    $workforce = workforceFor($user);
     $purchaseOrder = purchaseOrderWithItemQuantities([10, 5]);
     [$itemA, $itemB] = $purchaseOrder->items;
 
     $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', draftGoodsReceiptNoteFor($itemA, 10)), [
-        'received_by_id' => Workforce::factory()->create()->id,
+        'received_by_id' => $workforce->id,
     ])->assertSessionHasNoErrors();
 
     expect($purchaseOrder->refresh()->progress)->toBe('partially_received');
 
     $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', draftGoodsReceiptNoteFor($itemB, 5)), [
-        'received_by_id' => Workforce::factory()->create()->id,
+        'received_by_id' => $workforce->id,
     ])->assertSessionHasNoErrors();
 
     expect($purchaseOrder->refresh()->progress)->toBe('fully_received');
@@ -87,14 +93,55 @@ test('progress derivation compares per line item, not an aggregate total', funct
     $purchaseOrder = purchaseOrderWithItemQuantities([5, 5]);
     [$itemA, $itemB] = $purchaseOrder->items;
 
-    // Item A is over-received to 10 (double its order); item B never arrives.
-    // An aggregate sum (10 accepted / 10 ordered) would wrongly read as fully received.
-    $goodsReceiptNote = draftGoodsReceiptNoteFor($itemA, 10);
+    // Item A is fully received (5/5); item B never arrives. An aggregate sum
+    // (5 accepted / 10 ordered) reads as 50%, but per-line it's "one done, one untouched" —
+    // this asserts the derivation actually walks each line rather than summing totals.
+    $goodsReceiptNote = draftGoodsReceiptNoteFor($itemA, 5);
 
     $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', $goodsReceiptNote), [
-        'received_by_id' => Workforce::factory()->create()->id,
+        'received_by_id' => workforceFor($user)->id,
     ])->assertSessionHasNoErrors();
 
+    expect($purchaseOrder->refresh()->progress)->toBe('partially_received');
+});
+
+test('confirming a goods receipt note cannot accept more than remains on the purchase order line', function () {
+    $user = User::factory()->create();
+    $purchaseOrder = purchaseOrderWithItemQuantities([5]);
+    $item = $purchaseOrder->items->first();
+
+    // Bypasses store/update validation the way a direct DB write or a stale draft would,
+    // so this exercises confirm() as the final backstop against over-accepting.
+    $goodsReceiptNote = draftGoodsReceiptNoteFor($item, 10);
+
+    $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', $goodsReceiptNote), [
+        'received_by_id' => workforceFor($user)->id,
+    ])->assertSessionHasErrors(['items']);
+
+    expect($goodsReceiptNote->refresh()->status)->toBe('draft');
+    expect($purchaseOrder->refresh()->progress)->toBeNull();
+});
+
+test('two draft goods receipt notes that individually look valid cannot both over-accept once confirmed', function () {
+    $user = User::factory()->create();
+    $workforce = workforceFor($user);
+    $purchaseOrder = purchaseOrderWithItemQuantities([10]);
+    $item = $purchaseOrder->items->first();
+
+    // Each draft alone is within the ordered quantity; "remaining" only counts confirmed
+    // notes, so nothing stops both from being created. Confirming the first is fine.
+    $firstNote = draftGoodsReceiptNoteFor($item, 8);
+    $secondNote = draftGoodsReceiptNoteFor($item, 8);
+
+    $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', $firstNote), [
+        'received_by_id' => $workforce->id,
+    ])->assertSessionHasNoErrors();
+
+    $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', $secondNote), [
+        'received_by_id' => $workforce->id,
+    ])->assertSessionHasErrors(['items']);
+
+    expect($secondNote->refresh()->status)->toBe('draft');
     expect($purchaseOrder->refresh()->progress)->toBe('partially_received');
 });
 
@@ -116,7 +163,7 @@ test('goods receipt note cannot be confirmed once the purchase order is no longe
 
     $this->actingAs($user)
         ->patch(route('goods-receipt-notes.confirm', $goodsReceiptNote), [
-            'received_by_id' => Workforce::factory()->create()->id,
+            'received_by_id' => workforceFor($user)->id,
         ])
         ->assertForbidden();
 
@@ -132,7 +179,7 @@ test('a confirmed goods receipt note cannot be confirmed again', function () {
 
     $this->actingAs($user)
         ->patch(route('goods-receipt-notes.confirm', $goodsReceiptNote), [
-            'received_by_id' => Workforce::factory()->create()->id,
+            'received_by_id' => workforceFor($user)->id,
         ])
         ->assertForbidden();
 });
@@ -189,7 +236,7 @@ test('confirming a goods receipt note creates an in stock movement for each acce
     ]);
 
     $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', $goodsReceiptNote), [
-        'received_by_id' => Workforce::factory()->create()->id,
+        'received_by_id' => workforceFor($user)->id,
     ])->assertSessionHasNoErrors();
 
     $movement = StockMovement::sole();
@@ -225,7 +272,7 @@ test('a fully-rejected goods receipt note line creates no stock movement', funct
     ]);
 
     $this->actingAs($user)->patch(route('goods-receipt-notes.confirm', $goodsReceiptNote), [
-        'received_by_id' => Workforce::factory()->create()->id,
+        'received_by_id' => workforceFor($user)->id,
     ])->assertSessionHasNoErrors();
 
     expect(StockMovement::count())->toBe(0);

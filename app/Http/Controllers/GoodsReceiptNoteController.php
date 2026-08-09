@@ -308,6 +308,6 @@ class GoodsReceiptNoteController extends Controller
             return;
         }
 
-        $purchaseOrder->update(['progress' => $allFullyReceived ? 'closed' : 'partially_received']);
+        $purchaseOrder->update(['progress' => $allFullyReceived ? 'fully_received' : 'partially_received']);
     }
 }

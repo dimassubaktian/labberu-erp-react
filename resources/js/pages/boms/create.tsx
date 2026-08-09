@@ -769,7 +769,7 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                     }
                 />
 
-                <Form {...store.form(quotation)} className="space-y-6">
+                <Form noValidate {...store.form(quotation)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             {groups.map((group, groupIndex) => {
@@ -1191,7 +1191,7 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                                         <Input
                                             id="overhead_percentage"
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             min="0"
                                             name="overhead_percentage"
                                             value={overheadPercentage}
@@ -1214,7 +1214,7 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                                         <Input
                                             id="selling_percentage"
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             min="0"
                                             name="selling_percentage"
                                             value={sellingPercentage}

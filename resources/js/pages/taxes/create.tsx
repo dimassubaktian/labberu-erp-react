@@ -28,7 +28,7 @@ export default function TaxesCreate() {
                     description="Add a new tax for your organization"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2 sm:grid-cols-2">
@@ -64,7 +64,7 @@ export default function TaxesCreate() {
                                         id="rate"
                                         name="rate"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         required
                                         placeholder="e.g. 11"

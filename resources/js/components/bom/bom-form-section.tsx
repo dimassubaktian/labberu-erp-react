@@ -1028,7 +1028,7 @@ export function BomFormSection({
                         <Input
                             id={`${namePrefix}-overhead-percentage`}
                             type="number"
-                            step="0.01"
+                            step="1"
                             min="0"
                             name={n('overhead_percentage')}
                             value={overheadPercentage}
@@ -1049,7 +1049,7 @@ export function BomFormSection({
                         <Input
                             id={`${namePrefix}-selling-percentage`}
                             type="number"
-                            step="0.01"
+                            step="1"
                             min="0"
                             name={n('selling_percentage')}
                             value={sellingPercentage}

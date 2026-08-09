@@ -47,6 +47,26 @@ test('draft goods receipt note can be updated', function () {
     expect((float) $goodsReceiptNote->items()->sole()->quantity_accepted)->toBe(4.0);
 });
 
+test('quantity accepted cannot be updated to exceed what remains on the purchase order line', function () {
+    $user = User::factory()->create();
+    $purchaseOrder = purchaseOrderWithItem();
+    $item = $purchaseOrder->items->first();
+    $goodsReceiptNote = GoodsReceiptNote::factory()->create([
+        'purchase_order_id' => $purchaseOrder->id,
+        'status' => 'draft',
+    ]);
+
+    $this->actingAs($user)->put(route('goods-receipt-notes.update', $goodsReceiptNote), [
+        'purchase_order_id' => $purchaseOrder->id,
+        'received_date' => now()->toDateString(),
+        'items' => [
+            ['purchase_order_item_id' => $item->id, 'quantity_accepted' => 11],
+        ],
+    ])->assertSessionHasErrors(['items.0.quantity_accepted']);
+
+    expect($goodsReceiptNote->refresh()->items()->count())->toBe(0);
+});
+
 test('the purchase order cannot be changed once a goods receipt note is created', function () {
     $user = User::factory()->create();
     $purchaseOrder = purchaseOrderWithItem();

@@ -160,12 +160,7 @@ export function ImportBomItemsDialog({
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={disabled}
-                >
+                <Button type="button" size="sm" disabled={disabled}>
                     <Import />
                     Import from BOM
                 </Button>
@@ -244,7 +239,7 @@ export function ImportBomItemsDialog({
                                         <TableCell>
                                             <Input
                                                 type="number"
-                                                step="0.01"
+                                                step="1"
                                                 min="0"
                                                 className="w-28"
                                                 disabled={!selected[row.id]}

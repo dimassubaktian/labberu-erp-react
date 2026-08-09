@@ -43,7 +43,7 @@ export default function StockAdjustmentsCreate() {
                     description="Correct a product's stock on hand for a stock count, damage, loss, or initial load"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -106,7 +106,7 @@ export default function StockAdjustmentsCreate() {
                                     <Input
                                         id="quantity"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0.01"
                                         name="quantity"
                                         required

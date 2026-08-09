@@ -79,6 +79,16 @@ class CustomerController extends Controller
     }
 
     /**
+     * Store a newly created customer from another module's quick-create dialog, returning it as JSON.
+     */
+    public function quickStore(CustomerStoreRequest $request): JsonResponse
+    {
+        $customer = Customer::create($request->validated());
+
+        return response()->json(['data' => $customer->only(['id', 'name', 'customer_code'])], 201);
+    }
+
+    /**
      * Display the specified customer.
      */
     public function show(Customer $customer): Response

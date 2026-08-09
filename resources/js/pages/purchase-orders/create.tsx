@@ -276,7 +276,7 @@ function LineItemForm({
                     <Label>Quantity</Label>
                     <Input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0.01"
                         value={draft.quantity}
                         onChange={(e) => onChange({ quantity: e.target.value })}
@@ -287,7 +287,7 @@ function LineItemForm({
                     <Label>Unit price</Label>
                     <Input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.unit_price}
                         onChange={(e) =>
@@ -321,7 +321,7 @@ function LineItemForm({
                     <Label>Line discount value</Label>
                     <Input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.discount_value}
                         onChange={(e) =>
@@ -570,7 +570,7 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                     description="Raise a purchase order against a vendor"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -1387,7 +1387,7 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                                             <TableCell>
                                                                 <Input
                                                                     type="number"
-                                                                    step="0.01"
+                                                                    step="1"
                                                                     min="0"
                                                                     name={`${namePrefix}[discount_value]`}
                                                                     value={discount.discount_value}

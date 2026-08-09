@@ -49,7 +49,7 @@ export default function TaxesEdit({ tax }: Props) {
                     description="Update this tax's details"
                 />
 
-                <Form {...update.form(tax)} className="space-y-6">
+                <Form noValidate {...update.form(tax)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2 sm:grid-cols-2">
@@ -87,7 +87,7 @@ export default function TaxesEdit({ tax }: Props) {
                                         id="rate"
                                         name="rate"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         required
                                         defaultValue={tax.rate}

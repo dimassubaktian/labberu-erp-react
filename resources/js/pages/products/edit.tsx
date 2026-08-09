@@ -86,7 +86,7 @@ export default function ProductsEdit({ product }: Props) {
                     description="Update this product's details"
                 />
 
-                <Form {...update.form(product)} className="space-y-6">
+                <Form noValidate {...update.form(product)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -200,7 +200,7 @@ export default function ProductsEdit({ product }: Props) {
                                     <Input
                                         id="price"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="price"
                                         defaultValue={product.price}
@@ -214,7 +214,7 @@ export default function ProductsEdit({ product }: Props) {
                                     <Input
                                         id="cost"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="cost"
                                         defaultValue={product.cost}

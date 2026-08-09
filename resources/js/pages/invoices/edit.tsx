@@ -257,7 +257,7 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
                     description="Update this invoice"
                 />
 
-                <Form {...update.form(invoice)} className="space-y-6">
+                <Form noValidate {...update.form(invoice)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -445,7 +445,7 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
                                                             <TableCell>
                                                                 <Input
                                                                     type="number"
-                                                                    step="0.01"
+                                                                    step="1"
                                                                     min="0"
                                                                     className="w-24"
                                                                     value={
@@ -599,7 +599,7 @@ export default function InvoicesEdit({ invoice, taxes }: Props) {
                                         <Input
                                             id="discount_value"
                                             type="number"
-                                            step="0.01"
+                                            step="1"
                                             min="0"
                                             name="discount_value"
                                             value={discountValue}

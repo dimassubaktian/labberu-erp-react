@@ -101,6 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('customers', [CustomerController::class, 'index'])->name('customers.index')->middleware('permission:customers.view');
     Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create')->middleware('permission:customers.create');
     Route::post('customers', [CustomerController::class, 'store'])->name('customers.store')->middleware('permission:customers.create');
+    Route::post('customers/quick-create', [CustomerController::class, 'quickStore'])->name('customers.quick-create')->middleware('permission:customers.create');
     Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search')->middleware('permission:customers.view');
     Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show')->middleware('permission:customers.view');
     Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit')->middleware('permission:customers.update');

@@ -59,7 +59,7 @@ export default function ProductsCreate() {
                     description="Add a new product for your organization"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -170,7 +170,7 @@ export default function ProductsCreate() {
                                     <Input
                                         id="price"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="price"
                                         placeholder="Optional"
@@ -183,7 +183,7 @@ export default function ProductsCreate() {
                                     <Input
                                         id="cost"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="cost"
                                         placeholder="Optional"

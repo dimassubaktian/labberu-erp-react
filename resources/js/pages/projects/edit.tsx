@@ -96,7 +96,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                     description="Update this project's details"
                 />
 
-                <Form {...update.form(project)} className="space-y-6">
+                <Form noValidate {...update.form(project)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -355,7 +355,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                                     <Input
                                         id="estimate_contract_value"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="estimate_contract_value"
                                         defaultValue={
@@ -376,7 +376,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                                     <Input
                                         id="estimate_cost"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="estimate_cost"
                                         defaultValue={
@@ -398,7 +398,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                                     <Input
                                         id="actual_cost"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="actual_cost"
                                         defaultValue={project.actual_cost ?? ''}
@@ -414,7 +414,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                                     <Input
                                         id="actual_contract_value"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="actual_contract_value"
                                         defaultValue={

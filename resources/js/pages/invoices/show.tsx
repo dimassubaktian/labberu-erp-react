@@ -498,6 +498,7 @@ export default function InvoicesShow({ invoice }: Props) {
                         )}
 
                         {balanceDue > 0 && <Form
+                            noValidate
                             {...storePayment.form(invoice)}
                             options={{ preserveScroll: true }}
                             resetOnSuccess
@@ -530,7 +531,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                                 ref={amountRef}
                                                 id="amount"
                                                 type="number"
-                                                step="0.01"
+                                                step="1"
                                                 name="amount"
                                                 defaultValue="0"
                                             />

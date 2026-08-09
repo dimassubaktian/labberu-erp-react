@@ -184,7 +184,7 @@ export default function DeliveryOrdersCreate({ initialQuotation }: Props) {
                     description="Record goods delivered against an approved quotation"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -356,7 +356,7 @@ export default function DeliveryOrdersCreate({ initialQuotation }: Props) {
                                                                 <TableCell>
                                                                     <Input
                                                                         type="number"
-                                                                        step="0.01"
+                                                                        step="1"
                                                                         min="0"
                                                                         className="w-24"
                                                                         value={

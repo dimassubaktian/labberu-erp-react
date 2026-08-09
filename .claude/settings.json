@@ -7,6 +7,11 @@
             "type": "command",
             "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"CAVEMAN MODE DEFAULT: Respond like caveman throughout this session. Ultra-compressed, ~65% fewer tokens, full technical accuracy. No pleasantries, no padding, no verbose explanations. Short sentences. Grunt-level brevity.\"}}'",
             "shell": "bash"
+          },
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"ADHD MODE DEFAULT (i-have-adhd skill): Shape every response for a reader with ADHD, for the rest of the session. Lead with the next action (command/path/snippet) before any context or explanation. Number multi-step work, one bounded action per step. Restate progress every turn (e.g. Step 2 of 4 done). End with one concrete next action when anything is left open. No preamble, no recap, no closing pleasantries. Cap lists at 5 items. Give concrete time estimates, never vague ones. State errors as cause+fix, matter-of-fact, no Uh oh. Off only on stop adhd mode or normal mode.\"}}'",
+            "shell": "bash"
           }
         ]
       }

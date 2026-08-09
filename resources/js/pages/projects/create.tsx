@@ -1,9 +1,11 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { QuickCreateCustomerDialog } from '@/components/quick-create-customer-dialog';
+import type { QuickCreatedCustomer } from '@/components/quick-create-customer-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,11 +47,21 @@ type Props = {
 };
 
 export default function ProjectsCreate({ workforces, businessLines }: Props) {
+    const { auth } = usePage().props;
+    const canCreateCustomer = auth.permissions.includes('customers.create');
+
     const [customerId, setCustomerId] = useState('');
+    const [selectedCustomer, setSelectedCustomer] =
+        useState<CustomerOption | null>(null);
     const [personInChargeId, setPersonInChargeId] = useState('');
     const [businessLineId, setBusinessLineId] = useState('');
     const [status, setStatus] = useState('new');
     const [priority, setPriority] = useState('medium');
+
+    function handleCustomerCreated(customer: QuickCreatedCustomer): void {
+        setCustomerId(String(customer.id));
+        setSelectedCustomer(customer);
+    }
 
     return (
         <>
@@ -61,7 +73,7 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                     description="Add a new project for your organization"
                 />
 
-                <Form {...store.form()} className="space-y-6">
+                <Form noValidate {...store.form()} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -78,9 +90,18 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
 
                             <div className="grid gap-2 sm:grid-cols-2">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="customer_id">
-                                        Customer
-                                    </Label>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="customer_id">
+                                            Customer
+                                        </Label>
+                                        {canCreateCustomer && (
+                                            <QuickCreateCustomerDialog
+                                                onCreated={
+                                                    handleCustomerCreated
+                                                }
+                                            />
+                                        )}
+                                    </div>
                                     <input
                                         type="hidden"
                                         name="customer_id"
@@ -89,7 +110,12 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                     <AsyncCombobox<CustomerOption>
                                         id="customer_id"
                                         value={customerId}
-                                        onValueChange={setCustomerId}
+                                        onValueChange={(value, option) => {
+                                            setCustomerId(value);
+                                            setSelectedCustomer(
+                                                option ?? null,
+                                            );
+                                        }}
                                         searchUrl={searchCustomers().url}
                                         getOptionId={(customer) =>
                                             String(customer.id)
@@ -97,15 +123,18 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                         getOptionLabel={(customer) =>
                                             customer.name
                                         }
+                                        initialOption={selectedCustomer}
                                         placeholder="Select a customer"
                                     />
                                     <InputError message={errors.customer_id} />
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="request_date">
-                                        Request date
-                                    </Label>
+                                    <div className="flex h-8 items-center gap-2">
+                                        <Label htmlFor="request_date">
+                                            Request date
+                                        </Label>
+                                    </div>
                                     <Input
                                         id="request_date"
                                         type="date"
@@ -296,7 +325,7 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                     <Input
                                         id="estimate_contract_value"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="estimate_contract_value"
                                         placeholder="Optional"
@@ -313,7 +342,7 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                     <Input
                                         id="estimate_cost"
                                         type="number"
-                                        step="0.01"
+                                        step="1"
                                         min="0"
                                         name="estimate_cost"
                                         placeholder="Optional"

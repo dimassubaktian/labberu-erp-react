@@ -84,6 +84,48 @@ test('items must belong to the selected purchase order', function () {
     ])->assertSessionHasErrors(['items.0.purchase_order_item_id']);
 });
 
+test('quantity accepted cannot exceed what remains on the purchase order line', function () {
+    $user = User::factory()->create();
+    $purchaseOrder = approvedPurchaseOrderWithItem();
+    $item = $purchaseOrder->items->first();
+
+    $this->actingAs($user)->post(route('goods-receipt-notes.store'), [
+        'purchase_order_id' => $purchaseOrder->id,
+        'received_date' => now()->toDateString(),
+        'items' => [
+            ['purchase_order_item_id' => $item->id, 'quantity_accepted' => 11],
+        ],
+    ])->assertSessionHasErrors(['items.0.quantity_accepted']);
+
+    expect(GoodsReceiptNote::count())->toBe(0);
+});
+
+test('quantity accepted is capped by what other confirmed goods receipt notes already took', function () {
+    $user = User::factory()->create();
+    $purchaseOrder = approvedPurchaseOrderWithItem();
+    $item = $purchaseOrder->items->first();
+
+    $confirmedNote = GoodsReceiptNote::factory()->create([
+        'purchase_order_id' => $purchaseOrder->id,
+        'status' => 'confirmed',
+    ]);
+    $confirmedNote->items()->create([
+        'product_id' => $item->product_id,
+        'purchase_order_item_id' => $item->id,
+        'quantity_ordered' => $item->quantity,
+        'unit' => $item->unit,
+        'quantity_accepted' => 7,
+    ]);
+
+    $this->actingAs($user)->post(route('goods-receipt-notes.store'), [
+        'purchase_order_id' => $purchaseOrder->id,
+        'received_date' => now()->toDateString(),
+        'items' => [
+            ['purchase_order_item_id' => $item->id, 'quantity_accepted' => 4],
+        ],
+    ])->assertSessionHasErrors(['items.0.quantity_accepted']);
+});
+
 test('at least one item is required', function () {
     $user = User::factory()->create();
     $purchaseOrder = approvedPurchaseOrderWithItem();

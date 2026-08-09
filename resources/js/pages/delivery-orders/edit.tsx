@@ -184,7 +184,7 @@ export default function DeliveryOrdersEdit({ deliveryOrder }: Props) {
                     description="Update this delivery order"
                 />
 
-                <Form {...update.form(deliveryOrder)} className="space-y-6">
+                <Form noValidate {...update.form(deliveryOrder)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -341,7 +341,7 @@ export default function DeliveryOrdersEdit({ deliveryOrder }: Props) {
                                                             <TableCell>
                                                                 <Input
                                                                     type="number"
-                                                                    step="0.01"
+                                                                    step="1"
                                                                     min="0"
                                                                     className="w-24"
                                                                     value={

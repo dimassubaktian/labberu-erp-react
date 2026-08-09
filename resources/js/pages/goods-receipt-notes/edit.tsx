@@ -216,7 +216,7 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                     description="Update this goods receipt note"
                 />
 
-                <Form {...update.form(goodsReceiptNote)} className="space-y-6">
+                <Form noValidate {...update.form(goodsReceiptNote)} className="space-y-6">
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -396,8 +396,11 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                                                             <TableCell>
                                                                 <Input
                                                                     type="number"
-                                                                    step="0.01"
+                                                                    step="1"
                                                                     min="0"
+                                                                    max={
+                                                                        item.remaining
+                                                                    }
                                                                     className="w-24"
                                                                     value={
                                                                         state.quantity_accepted
@@ -429,7 +432,7 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                                                             <TableCell>
                                                                 <Input
                                                                     type="number"
-                                                                    step="0.01"
+                                                                    step="1"
                                                                     min="0"
                                                                     className="w-24"
                                                                     value={

@@ -102,7 +102,7 @@ export function BomLineItemForm({
                     <Input
                         id={`${idPrefix}-quantity`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0.01"
                         value={draft.quantity}
                         onChange={(e) => onDraftChange({ quantity: e.target.value })}
@@ -135,7 +135,7 @@ export function BomLineItemForm({
                     <Input
                         id={`${idPrefix}-unit-cost`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.unit_cost}
                         onChange={(e) => onDraftChange({ unit_cost: e.target.value })}
@@ -168,7 +168,7 @@ export function BomLineItemForm({
                     <Input
                         id={`${idPrefix}-discount-value`}
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         value={draft.discount_value}
                         onChange={(e) => onDraftChange({ discount_value: e.target.value })}
