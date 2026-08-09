@@ -60,7 +60,6 @@ type QuotationOption = {
     quotation_code: string;
     version_major: number;
     version_minor: number;
-    status: string;
     is_current: boolean;
 };
 
