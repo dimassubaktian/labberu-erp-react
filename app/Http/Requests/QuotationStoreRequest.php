@@ -28,6 +28,8 @@ class QuotationStoreRequest extends FormRequest
             'project_id' => ['required', Rule::exists('projects', 'id')->whereNull('deleted_at')],
             'currency_id' => ['required', Rule::exists('currencies', 'id')->whereNull('deleted_at')],
             'valid_until' => ['nullable', 'date'],
+            'po_number' => ['nullable', 'string', 'max:255'],
+            'po_date' => ['nullable', 'date'],
             'discount_type' => ['nullable', 'string', 'in:percentage,fixed'],
             'discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:discount_type'],
             'tax_id' => ['nullable', Rule::exists('taxes', 'id')->whereNull('deleted_at')],

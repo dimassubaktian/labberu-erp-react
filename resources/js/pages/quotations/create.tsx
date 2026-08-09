@@ -8,6 +8,7 @@ import { Combobox } from '@/components/combobox';
 import Heading from '@/components/heading';
 import { ImportBomStructureDialog } from '@/components/import-bom-structure-dialog';
 import InputError from '@/components/input-error';
+import { ReorderButtons } from '@/components/reorder-buttons';
 import { RichTextEditor } from '@/components/rich-text-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,7 +50,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type { ProductOption } from '@/lib/product-options';
 import { productLabel } from '@/lib/product-options';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, swapAdjacent } from '@/lib/utils';
 import { search as searchProducts } from '@/routes/products';
 import { search as searchProjects } from '@/routes/projects';
 import { create, index, store } from '@/routes/quotations';
@@ -786,6 +787,10 @@ export default function QuotationsCreate({
         setGroups((current) => current.filter((_, i) => i !== groupIndex));
     }
 
+    function moveGroup(groupIndex: number, direction: 'up' | 'down'): void {
+        setGroups((current) => swapAdjacent(current, groupIndex, direction));
+    }
+
     function updateGroup(
         groupIndex: number,
         changes: Partial<GroupState>,
@@ -1114,6 +1119,37 @@ export default function QuotationsCreate({
                                             </div>
                                         </div>
 
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="po_number">
+                                                    Customer PO number
+                                                </Label>
+                                                <Input
+                                                    id="po_number"
+                                                    name="po_number"
+                                                    placeholder="Optional"
+                                                />
+                                                <InputError
+                                                    message={errors.po_number}
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="po_date">
+                                                    Date of PO
+                                                </Label>
+                                                <Input
+                                                    id="po_date"
+                                                    type="date"
+                                                    name="po_date"
+                                                    placeholder="Optional"
+                                                />
+                                                <InputError
+                                                    message={errors.po_date}
+                                                />
+                                            </div>
+                                        </div>
+
                                         <div className="grid gap-2">
                                             <Label htmlFor="remarks">
                                                 Remarks
@@ -1249,19 +1285,43 @@ export default function QuotationsCreate({
                                                             }
                                                         />
                                                     </div>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="mt-6"
-                                                        onClick={() =>
-                                                            removeGroup(
-                                                                groupIndex,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                                                    </Button>
+                                                    <div className="mt-6 flex items-center gap-1">
+                                                        <ReorderButtons
+                                                            label="group"
+                                                            canMoveUp={
+                                                                groupIndex > 0
+                                                            }
+                                                            canMoveDown={
+                                                                groupIndex <
+                                                                groups.length -
+                                                                    1
+                                                            }
+                                                            onMoveUp={() =>
+                                                                moveGroup(
+                                                                    groupIndex,
+                                                                    'up',
+                                                                )
+                                                            }
+                                                            onMoveDown={() =>
+                                                                moveGroup(
+                                                                    groupIndex,
+                                                                    'down',
+                                                                )
+                                                            }
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() =>
+                                                                removeGroup(
+                                                                    groupIndex,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                                 <div className="grid gap-2 sm:grid-cols-3">
                                                     <div className="grid gap-2">

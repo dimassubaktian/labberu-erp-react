@@ -1,11 +1,9 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Trash2 } from 'lucide-react';
-import InputError from '@/components/input-error';
+import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Printer, Trash2 } from 'lucide-react';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogClose,
@@ -15,6 +13,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -25,7 +25,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { cancel, confirm, destroy, edit, index, signedDocument } from '@/routes/delivery-orders';
+import { cancel, confirm, destroy, edit, index, print, signedDocument } from '@/routes/delivery-orders';
 import { show as showQuotation } from '@/routes/quotations';
 
 type WorkforceOption = {
@@ -102,6 +102,21 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 <ArrowLeft />
                                 Back to Delivery Orders
                             </Link>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            asChild
+                            className="w-full sm:w-auto"
+                        >
+                            <a
+                                href={print.url(deliveryOrder)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <Printer />
+                                Print
+                            </a>
                         </Button>
 
                         {deliveryOrder.status === 'draft' && (

@@ -27,6 +27,8 @@ use Illuminate\Support\Str;
  * @property string|null $progress
  * @property int $currency_id
  * @property Carbon|null $valid_until
+ * @property string|null $po_number
+ * @property Carbon|null $po_date
  * @property string|null $discount_type
  * @property string|null $discount_value
  * @property int|null $tax_id
@@ -53,6 +55,8 @@ use Illuminate\Support\Str;
     'progress',
     'currency_id',
     'valid_until',
+    'po_number',
+    'po_date',
     'discount_type',
     'discount_value',
     'tax_id',
@@ -291,6 +295,7 @@ class Quotation extends Model
         return [
             'is_current' => 'boolean',
             'valid_until' => 'date',
+            'po_date' => 'date',
             'discount_value' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'discount_amount' => 'decimal:2',

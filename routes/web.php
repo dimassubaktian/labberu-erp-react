@@ -157,6 +157,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('delivery-orders/{deliveryOrder}/confirm', [DeliveryOrderController::class, 'confirm'])->name('delivery-orders.confirm')->middleware('permission:delivery-orders.confirm');
     Route::patch('delivery-orders/{deliveryOrder}/cancel', [DeliveryOrderController::class, 'cancel'])->name('delivery-orders.cancel')->middleware('permission:delivery-orders.cancel');
     Route::get('delivery-orders/{deliveryOrder}/signed-document', [DeliveryOrderController::class, 'downloadSignedDocument'])->name('delivery-orders.signed-document')->middleware('permission:delivery-orders.view');
+    Route::get('delivery-orders/{deliveryOrder}/print', [DeliveryOrderController::class, 'print'])->name('delivery-orders.print')->middleware('permission:delivery-orders.view');
 
     Route::get('invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.view');
     Route::get('invoices/create', [InvoiceController::class, 'create'])->name('invoices.create')->middleware('permission:invoices.create');

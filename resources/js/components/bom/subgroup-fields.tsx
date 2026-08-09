@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import InputError from '@/components/input-error';
+import { ReorderButtons } from '@/components/reorder-buttons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,8 @@ type Props = {
     errors: Partial<Record<string, string>>;
     currentLocation: string;
     destinations: { value: string; label: string }[];
+    canMoveUp: boolean;
+    canMoveDown: boolean;
     onNameChange: (name: string) => void;
     onDraftChange: (changes: Partial<LineItem>) => void;
     onSubmitItem: () => void;
@@ -22,6 +25,8 @@ type Props = {
     onEditItem: (itemIndex: number) => void;
     onRemoveItem: (itemIndex: number) => void;
     onMoveItem: (itemIndex: number, destination: string) => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
     onRemove: () => void;
 };
 
@@ -32,6 +37,8 @@ export function BomSubgroupFields({
     errors,
     currentLocation,
     destinations,
+    canMoveUp,
+    canMoveDown,
     onNameChange,
     onDraftChange,
     onSubmitItem,
@@ -39,6 +46,8 @@ export function BomSubgroupFields({
     onEditItem,
     onRemoveItem,
     onMoveItem,
+    onMoveUp,
+    onMoveDown,
     onRemove,
 }: Props) {
     const subtotal = calculateItemsSubtotal(subgroup.items);
@@ -58,15 +67,23 @@ export function BomSubgroupFields({
                     />
                     <InputError message={errors[`${errorPrefix}.name`]} />
                 </div>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="mt-6"
-                    onClick={onRemove}
-                >
-                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                </Button>
+                <div className="mt-6 flex items-center gap-1">
+                    <ReorderButtons
+                        label="phase"
+                        canMoveUp={canMoveUp}
+                        canMoveDown={canMoveDown}
+                        onMoveUp={onMoveUp}
+                        onMoveDown={onMoveDown}
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onRemove}
+                    >
+                        <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                    </Button>
+                </div>
             </div>
             <div className="space-y-4">
                 <Label>Materials</Label>

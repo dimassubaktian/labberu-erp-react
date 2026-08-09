@@ -6,13 +6,16 @@ use App\Http\Requests\DeliveryOrderCancelRequest;
 use App\Http\Requests\DeliveryOrderConfirmRequest;
 use App\Http\Requests\DeliveryOrderStoreRequest;
 use App\Http\Requests\DeliveryOrderUpdateRequest;
+use App\Models\CompanySetting;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\StockMovement;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -236,6 +239,44 @@ class DeliveryOrderController extends Controller
         abort_if($deliveryOrder->signed_document_path === null, 404);
 
         return Storage::disk('local')->download($deliveryOrder->signed_document_path);
+    }
+
+    /**
+     * Stream the delivery order as a printable PDF document.
+     */
+    public function print(Request $request, DeliveryOrder $deliveryOrder): HttpResponse
+    {
+        $deliveryOrder->load([
+            'quotation.project.customer',
+            'items.product',
+        ]);
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.delivery-order', [
+            'deliveryOrder' => $deliveryOrder,
+            'company' => $company,
+            'loggedInUser' => $request->user(),
+        ])->setPaper('a4', 'portrait');
+
+        // dompdf's CSS `counter(pages)` never resolves to the total page count, so the
+        // "X / Y" page number is drawn directly on the canvas instead, which does. This
+        // requires an explicit render() first: page_text() only reaches pages that
+        // already exist and only knows the page count at the moment it is called.
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.5;
+        $textWidth = $fontMetrics->getTextWidth('99 / 99', $font, $fontSize);
+        $dompdf->getCanvas()->page_text(563.28 - $textWidth, 816, '{PAGE_NUM} / {PAGE_COUNT}', $font, $fontSize, [0.53, 0.53, 0.53]);
+
+        $filename = "delivery-order-{$deliveryOrder->do_code}.pdf";
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
     }
 
     /**

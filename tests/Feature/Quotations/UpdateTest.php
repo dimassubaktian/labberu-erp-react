@@ -68,6 +68,30 @@ test('quotation can be updated with totals recalculated', function () {
     expect($quotation->items()->count())->toBe(1);
 });
 
+test('a quotation can be updated with a customer po number and date', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create();
+    QuotationItem::factory()->create(['quotation_id' => $quotation->id]);
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create(['price' => 100_000, 'cost' => 60_000]);
+
+    $this->actingAs($user)
+        ->put(route('quotations.update', $quotation), [
+            'currency_id' => $currency->id,
+            'po_number' => 'PO-2026-002',
+            'po_date' => '2026-08-01',
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 100_000, 'unit_cost' => 60_000],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    $quotation->refresh();
+
+    expect($quotation->po_number)->toBe('PO-2026-002');
+    expect($quotation->po_date->toDateString())->toBe('2026-08-01');
+});
+
 test('quotation-level discount and tax are recalculated on update', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create();

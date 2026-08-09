@@ -30,13 +30,33 @@ export function formatCompact(value: number): string {
     if (value >= 1_000_000_000) {
         return `${(value / 1_000_000_000).toFixed(1)}B`;
     }
+
     if (value >= 1_000_000) {
         return `${(value / 1_000_000).toFixed(1)}M`;
     }
+
     if (value >= 1_000) {
         return `${(value / 1_000).toFixed(1)}K`;
     }
+
     return value.toFixed(0);
+}
+
+export function swapAdjacent<T>(
+    items: T[],
+    index: number,
+    direction: 'up' | 'down',
+): T[] {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= items.length) {
+        return items;
+    }
+
+    const next = [...items];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+
+    return next;
 }
 
 export function formatDateTime(value: string): string {

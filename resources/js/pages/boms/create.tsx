@@ -25,12 +25,13 @@ import {
 import Heading from '@/components/heading';
 import { ImportBomStructureDialog } from '@/components/import-bom-structure-dialog';
 import InputError from '@/components/input-error';
+import { ReorderButtons } from '@/components/reorder-buttons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { formatNumber } from '@/lib/utils';
+import { formatNumber, swapAdjacent } from '@/lib/utils';
 import { index, show as showQuotation } from '@/routes/quotations';
 import { create, store } from '@/routes/quotations/bom';
 
@@ -131,6 +132,15 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
     function removeSubgroup(subgroupIndex: number): void {
         setSubgroups((current) =>
             current.filter((_, i) => i !== subgroupIndex),
+        );
+    }
+
+    function moveSubgroup(
+        subgroupIndex: number,
+        direction: 'up' | 'down',
+    ): void {
+        setSubgroups((current) =>
+            swapAdjacent(current, subgroupIndex, direction),
         );
     }
 
@@ -254,6 +264,10 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
 
     function removeGroup(groupIndex: number): void {
         setGroups((current) => current.filter((_, i) => i !== groupIndex));
+    }
+
+    function moveGroup(groupIndex: number, direction: 'up' | 'down'): void {
+        setGroups((current) => swapAdjacent(current, groupIndex, direction));
     }
 
     function updateGroup(
@@ -384,6 +398,27 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                           ...group,
                           subgroups: group.subgroups.filter(
                               (_, j) => j !== subgroupIndex,
+                          ),
+                      }
+                    : group,
+            ),
+        );
+    }
+
+    function moveGroupSubgroup(
+        groupIndex: number,
+        subgroupIndex: number,
+        direction: 'up' | 'down',
+    ): void {
+        setGroups((current) =>
+            current.map((group, i) =>
+                i === groupIndex
+                    ? {
+                          ...group,
+                          subgroups: swapAdjacent(
+                              group.subgroups,
+                              subgroupIndex,
+                              direction,
                           ),
                       }
                     : group,
@@ -778,17 +813,38 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                                                     }
                                                 />
                                             </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="mt-6"
-                                                onClick={() =>
-                                                    removeGroup(groupIndex)
-                                                }
-                                            >
-                                                <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                                            </Button>
+                                            <div className="mt-6 flex items-center gap-1">
+                                                <ReorderButtons
+                                                    label="group"
+                                                    canMoveUp={groupIndex > 0}
+                                                    canMoveDown={
+                                                        groupIndex <
+                                                        groups.length - 1
+                                                    }
+                                                    onMoveUp={() =>
+                                                        moveGroup(
+                                                            groupIndex,
+                                                            'up',
+                                                        )
+                                                    }
+                                                    onMoveDown={() =>
+                                                        moveGroup(
+                                                            groupIndex,
+                                                            'down',
+                                                        )
+                                                    }
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        removeGroup(groupIndex)
+                                                    }
+                                                >
+                                                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                                                </Button>
+                                            </div>
                                         </div>
                                         <div className="space-y-4">
                                             <div className="space-y-4">
@@ -953,6 +1009,30 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                                                                     destination,
                                                                 )
                                                             }
+                                                            canMoveUp={
+                                                                subgroupIndex >
+                                                                0
+                                                            }
+                                                            canMoveDown={
+                                                                subgroupIndex <
+                                                                group.subgroups
+                                                                    .length -
+                                                                    1
+                                                            }
+                                                            onMoveUp={() =>
+                                                                moveGroupSubgroup(
+                                                                    groupIndex,
+                                                                    subgroupIndex,
+                                                                    'up',
+                                                                )
+                                                            }
+                                                            onMoveDown={() =>
+                                                                moveGroupSubgroup(
+                                                                    groupIndex,
+                                                                    subgroupIndex,
+                                                                    'down',
+                                                                )
+                                                            }
                                                             onRemove={() =>
                                                                 removeGroupSubgroup(
                                                                     groupIndex,
@@ -1050,6 +1130,16 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                                                 subgroup.items[itemIndex],
                                                 destination,
                                             )
+                                        }
+                                        canMoveUp={subgroupIndex > 0}
+                                        canMoveDown={
+                                            subgroupIndex < subgroups.length - 1
+                                        }
+                                        onMoveUp={() =>
+                                            moveSubgroup(subgroupIndex, 'up')
+                                        }
+                                        onMoveDown={() =>
+                                            moveSubgroup(subgroupIndex, 'down')
                                         }
                                         onRemove={() =>
                                             removeSubgroup(subgroupIndex)

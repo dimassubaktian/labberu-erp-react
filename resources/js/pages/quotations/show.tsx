@@ -212,6 +212,8 @@ type Quotation = {
     progress: string | null;
     is_current: boolean;
     valid_until: string | null;
+    po_number: string | null;
+    po_date: string | null;
     discount_type: string | null;
     discount_value: string | null;
     subtotal: string;
@@ -734,6 +736,34 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                             <dd className="font-medium">
                                 {quotation.valid_until ? (
                                     formatDate(quotation.valid_until)
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Customer PO number
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.po_number ?? (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Date of PO
+                            </dt>
+                            <dd className="font-medium">
+                                {quotation.po_date ? (
+                                    formatDate(quotation.po_date)
                                 ) : (
                                     <span className="text-muted-foreground">
                                         &mdash;

@@ -87,6 +87,28 @@ test('quotation can be created with totals calculated', function () {
     expect((float) $item->margin_percent)->toBe(40.0);
 });
 
+test('a quotation can be created with a customer po number and date', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $currency = Currency::factory()->create();
+    $product = Product::factory()->create(['price' => 100_000, 'cost' => 60_000]);
+
+    $this->actingAs($user)->post(route('quotations.store'), [
+        'project_id' => $project->id,
+        'currency_id' => $currency->id,
+        'po_number' => 'PO-2026-001',
+        'po_date' => '2026-08-01',
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 100_000, 'unit_cost' => 60_000],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $quotation = Quotation::sole();
+
+    expect($quotation->po_number)->toBe('PO-2026-001');
+    expect($quotation->po_date->toDateString())->toBe('2026-08-01');
+});
+
 test('a line item can override the product description', function () {
     $user = User::factory()->create();
     $project = Project::factory()->create();
