@@ -15,14 +15,14 @@ class WorkforceSeeder extends Seeder
     public function run(): void
     {
         $linkedWorkforces = [
-            ['name' => 'Super Admin', 'job_title' => 'Managing Director', 'gender' => 'male', 'user_email' => 'superadmin@labberu.test'],
-            ['name' => 'Admin User', 'job_title' => 'Admin Manager', 'gender' => 'female', 'user_email' => 'admin@labberu.test'],
-            ['name' => 'Manager User', 'job_title' => 'Operations Manager', 'gender' => 'male', 'user_email' => 'manager@labberu.test'],
-            ['name' => 'Project Manager User', 'job_title' => 'Project Manager', 'gender' => 'male', 'user_email' => 'pm@labberu.test'],
-            ['name' => 'HR User', 'job_title' => 'HR Manager', 'gender' => 'female', 'user_email' => 'hr@labberu.test'],
-            ['name' => 'Finance User', 'job_title' => 'Finance Manager', 'gender' => 'female', 'user_email' => 'finance@labberu.test'],
-            ['name' => 'Procurement User', 'job_title' => 'Procurement Manager', 'gender' => 'male', 'user_email' => 'procurement@labberu.test'],
-            ['name' => 'Staff User', 'job_title' => 'Warehouse Staff', 'gender' => 'male', 'user_email' => 'staff@labberu.test'],
+            ['name' => 'Hartono Wibowo', 'job_title' => 'Managing Director', 'gender' => 'male', 'user_email' => 'superadmin@labberu.test'],
+            ['name' => 'Siti Rahayu', 'job_title' => 'Admin Manager', 'gender' => 'female', 'user_email' => 'admin@labberu.test'],
+            ['name' => 'Joko Susanto', 'job_title' => 'Operations Manager', 'gender' => 'male', 'user_email' => 'manager@labberu.test'],
+            ['name' => 'Arief Kurniawan', 'job_title' => 'Project Manager', 'gender' => 'male', 'user_email' => 'pm@labberu.test'],
+            ['name' => 'Ratna Dewi', 'job_title' => 'HR Manager', 'gender' => 'female', 'user_email' => 'hr@labberu.test'],
+            ['name' => 'Indah Permatasari', 'job_title' => 'Finance Manager', 'gender' => 'female', 'user_email' => 'finance@labberu.test'],
+            ['name' => 'Teguh Santosa', 'job_title' => 'Procurement Manager', 'gender' => 'male', 'user_email' => 'procurement@labberu.test'],
+            ['name' => 'Dedi Firmansyah', 'job_title' => 'Warehouse Staff', 'gender' => 'male', 'user_email' => 'staff@labberu.test'],
         ];
 
         foreach ($linkedWorkforces as $workforce) {
