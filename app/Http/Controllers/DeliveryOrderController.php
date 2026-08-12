@@ -215,12 +215,15 @@ class DeliveryOrderController extends Controller
     {
         $deliveryOrder->load(['items', 'quotation.project', 'quotation.items']);
 
-        DB::transaction(function () use ($deliveryOrder): void {
+        DB::transaction(function () use ($request, $deliveryOrder): void {
             StockMovement::query()
                 ->whereIn('delivery_order_item_id', $deliveryOrder->items->pluck('id'))
                 ->delete();
 
-            $deliveryOrder->update(['status' => 'cancelled']);
+            $deliveryOrder->update([
+                'status' => 'cancelled',
+                'cancel_reason' => $request->validated('cancel_reason'),
+            ]);
 
             $this->updateQuotationProgress($deliveryOrder->quotation);
             $deliveryOrder->quotation->project->recomputeStatus();

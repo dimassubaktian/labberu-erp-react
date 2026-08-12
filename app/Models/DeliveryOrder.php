@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
  * @property int $quotation_id
  * @property Carbon $delivery_date
  * @property string|null $remarks
+ * @property string|null $cancel_reason
  * @property string $status
  * @property int|null $delivered_by_id
  * @property Carbon|null $delivered_at
@@ -31,6 +32,7 @@ use Illuminate\Support\Str;
     'quotation_id',
     'delivery_date',
     'remarks',
+    'cancel_reason',
     'status',
     'delivered_by_id',
     'delivered_at',

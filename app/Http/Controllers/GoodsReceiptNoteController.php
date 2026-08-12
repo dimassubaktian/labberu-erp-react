@@ -200,12 +200,15 @@ class GoodsReceiptNoteController extends Controller
     {
         $goodsReceiptNote->load(['items', 'purchaseOrder.project', 'purchaseOrder.items']);
 
-        DB::transaction(function () use ($goodsReceiptNote): void {
+        DB::transaction(function () use ($request, $goodsReceiptNote): void {
             StockMovement::query()
                 ->whereIn('goods_receipt_note_item_id', $goodsReceiptNote->items->pluck('id'))
                 ->delete();
 
-            $goodsReceiptNote->update(['status' => 'cancelled']);
+            $goodsReceiptNote->update([
+                'status' => 'cancelled',
+                'cancel_reason' => $request->validated('cancel_reason'),
+            ]);
 
             $this->updatePurchaseOrderProgress($goodsReceiptNote->purchaseOrder);
             $goodsReceiptNote->purchaseOrder->project->recomputePoStatus();

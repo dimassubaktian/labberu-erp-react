@@ -3,6 +3,7 @@ import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Send, Tras
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -148,6 +149,8 @@ type PurchaseOrder = {
     tax_amount: string;
     grand_total: string;
     rejection_reason: string | null;
+    cancel_reason: string | null;
+    void_reason: string | null;
     issued_at: string | null;
     checked_by_1_at: string | null;
     checked_by_2_at: string | null;
@@ -196,6 +199,8 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
     });
 
     const [rejectionReason, setRejectionReason] = useState('');
+    const [cancelReason, setCancelReason] = useState('');
+    const [voidReason, setVoidReason] = useState('');
 
     const currencySymbol =
         purchaseOrder.currency.symbol ?? purchaseOrder.currency.iso_code;
@@ -281,22 +286,48 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                         )}
                                         options={{ preserveScroll: true }}
                                     >
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Keep
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="grid gap-2 py-2">
+                                                    <Label htmlFor="void_reason">
+                                                        Void reason
+                                                    </Label>
+                                                    <Textarea
+                                                        id="void_reason"
+                                                        name="void_reason"
+                                                        value={voidReason}
+                                                        onChange={(e) =>
+                                                            setVoidReason(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        rows={3}
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.void_reason
+                                                        }
+                                                    />
+                                                </div>
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Keep
+                                                        </Button>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Void Purchase Order
                                                     </Button>
-                                                </DialogClose>
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    {processing && <Spinner />}
-                                                    Void Purchase Order
-                                                </Button>
-                                            </DialogFooter>
+                                                </DialogFooter>
+                                            </>
                                         )}
                                     </Form>
                                 </DialogContent>
@@ -713,7 +744,8 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         <h2 className="text-base font-semibold">
                             Goods Receipt Notes
                         </h2>
-                        {purchaseOrder.status === 'approved' && (
+                        {purchaseOrder.status === 'approved' &&
+                            purchaseOrder.progress === 'sent' && (
                             <Button size="sm" asChild>
                                 <Link
                                     href={createGoodsReceiptNote({
@@ -845,6 +877,28 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                 </dt>
                                 <dd className="font-medium whitespace-pre-line">
                                     {purchaseOrder.rejection_reason}
+                                </dd>
+                            </div>
+                        )}
+
+                        {purchaseOrder.cancel_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Cancellation reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {purchaseOrder.cancel_reason}
+                                </dd>
+                            </div>
+                        )}
+
+                        {purchaseOrder.void_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Void reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {purchaseOrder.void_reason}
                                 </dd>
                             </div>
                         )}
@@ -1113,22 +1167,48 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                         {...cancel.form(purchaseOrder)}
                                         options={{ preserveScroll: true }}
                                     >
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Keep
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="grid gap-2 py-2">
+                                                    <Label htmlFor="cancel_reason">
+                                                        Cancellation reason
+                                                    </Label>
+                                                    <Textarea
+                                                        id="cancel_reason"
+                                                        name="cancel_reason"
+                                                        value={cancelReason}
+                                                        onChange={(e) =>
+                                                            setCancelReason(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        rows={3}
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.cancel_reason
+                                                        }
+                                                    />
+                                                </div>
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Keep
+                                                        </Button>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Cancel Purchase Order
                                                     </Button>
-                                                </DialogClose>
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    {processing && <Spinner />}
-                                                    Cancel Purchase Order
-                                                </Button>
-                                            </DialogFooter>
+                                                </DialogFooter>
+                                            </>
                                         )}
                                     </Form>
                                 </DialogContent>

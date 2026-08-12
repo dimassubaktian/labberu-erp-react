@@ -50,6 +50,8 @@ use Illuminate\Support\Str;
  * @property int|null $approved_by_id
  * @property Carbon|null $approved_at
  * @property string|null $rejection_reason
+ * @property string|null $cancel_reason
+ * @property string|null $void_reason
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -89,6 +91,8 @@ use Illuminate\Support\Str;
     'approved_by_id',
     'approved_at',
     'rejection_reason',
+    'cancel_reason',
+    'void_reason',
 ])]
 class PurchaseOrder extends Model
 {

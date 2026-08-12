@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
  * @property int $purchase_order_id
  * @property Carbon $received_date
  * @property string|null $remarks
+ * @property string|null $cancel_reason
  * @property string $status
  * @property int|null $received_by_id
  * @property Carbon|null $received_at
@@ -30,6 +31,7 @@ use Illuminate\Support\Str;
     'purchase_order_id',
     'received_date',
     'remarks',
+    'cancel_reason',
     'status',
     'received_by_id',
     'received_at',

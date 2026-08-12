@@ -26,6 +26,8 @@ class DeliveryOrderCancelRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'cancel_reason' => ['required', 'string'],
+        ];
     }
 }

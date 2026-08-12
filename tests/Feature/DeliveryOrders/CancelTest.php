@@ -59,18 +59,31 @@ function confirmedDo(array $deliveredQuantities): array
     return ['do' => $deliveryOrder, 'quotation' => $quotation->fresh('items')];
 }
 
-test('cancelling a confirmed delivery order deletes its stock movements', function () {
+test('cancelling a confirmed delivery order deletes its stock movements and persists a reason', function () {
     $user = User::factory()->create();
     ['do' => $deliveryOrder] = confirmedDo([10]);
 
     expect(StockMovement::count())->toBe(1);
 
     $this->actingAs($user)
-        ->patch(route('delivery-orders.cancel', $deliveryOrder))
+        ->patch(route('delivery-orders.cancel', $deliveryOrder), ['cancel_reason' => 'Customer refused delivery.'])
         ->assertSessionHasNoErrors();
 
-    expect($deliveryOrder->refresh()->status)->toBe('cancelled');
+    $deliveryOrder->refresh();
+    expect($deliveryOrder->status)->toBe('cancelled');
+    expect($deliveryOrder->cancel_reason)->toBe('Customer refused delivery.');
     expect(StockMovement::count())->toBe(0);
+});
+
+test('cancelling a delivery order without a reason fails validation', function () {
+    $user = User::factory()->create();
+    ['do' => $deliveryOrder] = confirmedDo([10]);
+
+    $this->actingAs($user)
+        ->patch(route('delivery-orders.cancel', $deliveryOrder), [])
+        ->assertSessionHasErrors(['cancel_reason']);
+
+    expect($deliveryOrder->refresh()->status)->toBe('confirmed');
 });
 
 test('cancelling the only confirmed delivery order resets quotation progress to signed', function () {
@@ -79,7 +92,7 @@ test('cancelling the only confirmed delivery order resets quotation progress to 
     $quotation->update(['progress' => 'fully_delivered']);
 
     $this->actingAs($user)
-        ->patch(route('delivery-orders.cancel', $deliveryOrder))
+        ->patch(route('delivery-orders.cancel', $deliveryOrder), ['cancel_reason' => 'Wrong address provided.'])
         ->assertSessionHasNoErrors();
 
     expect($quotation->refresh()->progress)->toBe('signed');
@@ -156,7 +169,7 @@ test('cancelling one of two confirmed delivery orders recomputes quotation progr
 
     // Cancel DO B — item B no longer delivered → drops to partially_delivered
     $this->actingAs($user)
-        ->patch(route('delivery-orders.cancel', $doB))
+        ->patch(route('delivery-orders.cancel', $doB), ['cancel_reason' => 'Item B damaged in transit.'])
         ->assertSessionHasNoErrors();
 
     expect($quotation->refresh()->progress)->toBe('partially_delivered');

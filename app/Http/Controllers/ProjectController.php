@@ -190,7 +190,7 @@ class ProjectController extends Controller
      */
     public function cancel(ProjectCancelRequest $request, Project $project): RedirectResponse
     {
-        $project->update(['status' => 'cancelled']);
+        $project->update(['status' => 'cancelled', 'cancel_reason' => $request->validated('cancel_reason')]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project cancelled.')]);
 

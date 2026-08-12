@@ -25,6 +25,8 @@ class PurchaseOrderVoidRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'void_reason' => ['required', 'string'],
+        ];
     }
 }

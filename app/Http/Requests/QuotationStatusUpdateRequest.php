@@ -33,6 +33,7 @@ class QuotationStatusUpdateRequest extends FormRequest
 
         return [
             'status' => ['required', 'string', Rule::in($allowed)],
+            'cancel_reason' => [Rule::requiredIf($this->input('status') === 'cancelled'), 'nullable', 'string'],
         ];
     }
 }

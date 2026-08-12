@@ -3,6 +3,7 @@ import { ArrowLeft, Ban, Check, ClipboardCheck, GitBranch, ListPlus, PenLine, Pe
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
 import { PrintQuotationDialog } from '@/components/print-quotation-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import {
     create as createDeliveryOrder,
@@ -221,6 +223,7 @@ type Quotation = {
     tax_amount: string;
     total: string;
     remarks: string | null;
+    cancel_reason: string | null;
     payment_terms_html: string | null;
     approved_at: string | null;
     created_at: string;
@@ -558,13 +561,34 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                                 preserveScroll: true,
                                             }}
                                         >
-                                            {({ processing }) => (
+                                            {({ processing, errors }) => (
                                                 <>
                                                     <input
                                                         type="hidden"
                                                         name="status"
                                                         value={action.status}
                                                     />
+
+                                                    {action.status ===
+                                                        'cancelled' && (
+                                                        <div className="grid gap-2 py-2">
+                                                            <Label htmlFor="cancel_reason">
+                                                                Cancellation
+                                                                reason
+                                                            </Label>
+                                                            <Textarea
+                                                                id="cancel_reason"
+                                                                name="cancel_reason"
+                                                                required
+                                                            />
+                                                            <InputError
+                                                                message={
+                                                                    errors.cancel_reason
+                                                                }
+                                                            />
+                                                        </div>
+                                                    )}
+
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
                                                             <Button variant="secondary">
@@ -838,6 +862,17 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 )}
                             </dd>
                         </div>
+
+                        {quotation.cancel_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Cancellation reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {quotation.cancel_reason}
+                                </dd>
+                            </div>
+                        )}
 
                         <div className="sm:col-span-2">
                             <dt className="text-sm text-muted-foreground">

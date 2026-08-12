@@ -1,4 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
+import { InfoIcon } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
@@ -6,6 +7,7 @@ import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { QuickCreateCustomerDialog } from '@/components/quick-create-customer-dialog';
 import type { QuickCreatedCustomer } from '@/components/quick-create-customer-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import { create as businessLineCreate } from '@/routes/business-lines';
 import { search as searchCustomers } from '@/routes/customers';
 import { create, index, store } from '@/routes/projects';
 
@@ -49,6 +52,9 @@ type Props = {
 export default function ProjectsCreate({ workforces, businessLines }: Props) {
     const { auth } = usePage().props;
     const canCreateCustomer = auth.permissions.includes('customers.create');
+    const canCreateBusinessLine = auth.permissions.includes(
+        'business-lines.create',
+    );
 
     const [customerId, setCustomerId] = useState('');
     const [selectedCustomer, setSelectedCustomer] =
@@ -177,6 +183,30 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                 <Label htmlFor="business_line_id">
                                     Business line
                                 </Label>
+                                {businessLines.length === 0 && (
+                                    <Alert variant="info">
+                                        <InfoIcon />
+                                        <AlertTitle>
+                                            No business lines yet
+                                        </AlertTitle>
+                                        <AlertDescription>
+                                            {canCreateBusinessLine ? (
+                                                <span>
+                                                    Add one from{' '}
+                                                    <Link
+                                                        href={businessLineCreate()}
+                                                        className="underline"
+                                                    >
+                                                        Business Lines
+                                                    </Link>{' '}
+                                                    before assigning it here.
+                                                </span>
+                                            ) : (
+                                                'Ask an admin to add a business line before it can be assigned here.'
+                                            )}
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                                 <input
                                     type="hidden"
                                     name="business_line_id"

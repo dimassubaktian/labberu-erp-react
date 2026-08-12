@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ import { create, index, store } from '@/routes/business-lines';
 
 export default function BusinessLinesCreate() {
     const [status, setStatus] = useState('active');
+    const createAnotherRef = useRef(false);
+    const resetFieldsRef = useRef<(...fields: string[]) => void>(() => {});
 
     return (
         <>
@@ -29,71 +31,110 @@ export default function BusinessLinesCreate() {
                     description="Add a new business line to categorise projects"
                 />
 
-                <Form {...store.form()} className="space-y-6">
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    name="name"
-                                    required
-                                    autoFocus
-                                    placeholder="e.g. Lab Testing"
-                                />
-                                <InputError message={errors.name} />
-                            </div>
+                <Form
+                    {...store.form()}
+                    transform={(data) => ({
+                        ...data,
+                        create_another: createAnotherRef.current,
+                    })}
+                    onSuccess={() => {
+                        if (createAnotherRef.current) {
+                            resetFieldsRef.current('name', 'description');
+                        }
+                    }}
+                    className="space-y-6"
+                >
+                    {({ processing, errors, reset }) => {
+                        resetFieldsRef.current = reset;
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    name="description"
-                                    placeholder="Optional"
-                                />
-                                <InputError message={errors.description} />
-                            </div>
+                        return (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        required
+                                        autoFocus
+                                        placeholder="e.g. Lab Testing"
+                                    />
+                                    <InputError message={errors.name} />
+                                </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="status">Status</Label>
-                                <input
-                                    type="hidden"
-                                    name="status"
-                                    value={status}
-                                />
-                                <Select
-                                    value={status}
-                                    onValueChange={setStatus}
-                                >
-                                    <SelectTrigger
-                                        id="status"
-                                        className="w-full"
+                                <div className="grid gap-2">
+                                    <Label htmlFor="description">
+                                        Description
+                                    </Label>
+                                    <Textarea
+                                        id="description"
+                                        name="description"
+                                        placeholder="Optional"
+                                    />
+                                    <InputError message={errors.description} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="status">Status</Label>
+                                    <input
+                                        type="hidden"
+                                        name="status"
+                                        value={status}
+                                    />
+                                    <Select
+                                        value={status}
+                                        onValueChange={setStatus}
                                     >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="active">
-                                            Active
-                                        </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inactive
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.status} />
-                            </div>
+                                        <SelectTrigger
+                                            id="status"
+                                            className="w-full"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="active">
+                                                Active
+                                            </SelectItem>
+                                            <SelectItem value="inactive">
+                                                Inactive
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.status} />
+                                </div>
 
-                            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={index()}>Cancel</Link>
-                                </Button>
-                                <Button type="submit" disabled={processing}>
-                                    {processing && <Spinner />}
-                                    Create business line
-                                </Button>
-                            </div>
-                        </>
-                    )}
+                                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        asChild
+                                    >
+                                        <Link href={index()}>Cancel</Link>
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        disabled={processing}
+                                        onClick={() => {
+                                            createAnotherRef.current = true;
+                                        }}
+                                    >
+                                        {processing && <Spinner />}
+                                        Create & add another
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        onClick={() => {
+                                            createAnotherRef.current = false;
+                                        }}
+                                    >
+                                        {processing && <Spinner />}
+                                        Create business line
+                                    </Button>
+                                </div>
+                            </>
+                        );
+                    }}
                 </Form>
             </div>
         </>

@@ -513,6 +513,7 @@ class QuotationController extends Controller
             'status' => $status,
             'approved_by' => $status === 'approved' ? $request->user()->id : $quotation->approved_by,
             'approved_at' => $status === 'approved' ? now() : $quotation->approved_at,
+            'cancel_reason' => $status === 'cancelled' ? $request->validated('cancel_reason') : $quotation->cancel_reason,
         ]);
 
         $quotation->project->recomputeSalesStatus();

@@ -8,8 +8,8 @@ import {
     Contact,
     FileText,
     FolderKanban,
-    Layers,
     LayoutGrid,
+    Network,
     Package,
     PackageCheck,
     Percent,
@@ -98,7 +98,7 @@ const navGroups: NavGroup[] = [
             {
                 title: 'Business Lines',
                 href: businessLinesIndex(),
-                icon: Layers,
+                icon: Network,
                 permission: 'business-lines.view',
             },
         ],

@@ -19,6 +19,37 @@ test('draft quotation can be submitted for approval', function () {
     expect($quotation->refresh()->status)->toBe('request_for_approval');
 });
 
+test('draft quotation can be cancelled with a reason', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create(['status' => 'draft']);
+
+    $response = $this->actingAs($user)
+        ->patch(route('quotations.status.update', $quotation), [
+            'status' => 'cancelled',
+            'cancel_reason' => 'Customer withdrew the request.',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect(route('quotations.show', $quotation));
+
+    $quotation->refresh();
+    expect($quotation->status)->toBe('cancelled');
+    expect($quotation->cancel_reason)->toBe('Customer withdrew the request.');
+});
+
+test('cancelling a quotation without a reason fails validation', function () {
+    $user = User::factory()->create();
+    $quotation = Quotation::factory()->create(['status' => 'draft']);
+
+    $this->actingAs($user)
+        ->patch(route('quotations.status.update', $quotation), [
+            'status' => 'cancelled',
+        ])
+        ->assertSessionHasErrors(['cancel_reason']);
+
+    expect($quotation->refresh()->status)->toBe('draft');
+});
+
 test('quotation pending approval can be approved and records the approver', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create(['status' => 'request_for_approval']);

@@ -164,7 +164,9 @@ export default function BusinessLinesIndex({ businessLines, filters }: Props) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead className="w-[5%]">
+                                    Status
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

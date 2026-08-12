@@ -55,6 +55,35 @@ test('guests cannot view business lines', function () {
         ->assertRedirect(route('login'));
 });
 
+test('creating a business line redirects to the index page', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->post(route('business-lines.store'), [
+            'name' => 'Lab Testing',
+            'status' => 'active',
+        ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect(route('business-lines.index'));
+    $this->assertDatabaseHas('business_lines', ['name' => 'Lab Testing']);
+});
+
+test('creating a business line with create_another redirects back to the create page', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)
+        ->post(route('business-lines.store'), [
+            'name' => 'Lab Testing',
+            'status' => 'active',
+            'create_another' => true,
+        ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect(route('business-lines.create'));
+    $this->assertDatabaseHas('business_lines', ['name' => 'Lab Testing']);
+});
+
 test('project can be assigned a business line', function () {
     $businessLine = BusinessLine::factory()->create();
     $project = Project::factory()->create(['business_line_id' => $businessLine->id]);

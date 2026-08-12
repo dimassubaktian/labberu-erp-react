@@ -37,6 +37,7 @@ use Illuminate\Support\Str;
  * @property string $tax_amount
  * @property string $total
  * @property string|null $remarks
+ * @property string|null $cancel_reason
  * @property int|null $payment_term_template_id
  * @property string|null $payment_terms_html
  * @property int|null $approved_by
@@ -65,6 +66,7 @@ use Illuminate\Support\Str;
     'tax_amount',
     'total',
     'remarks',
+    'cancel_reason',
     'payment_term_template_id',
     'payment_terms_html',
     'approved_by',

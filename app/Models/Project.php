@@ -23,6 +23,7 @@ use Illuminate\Support\Str;
  * @property Carbon $request_date
  * @property int|null $person_in_charge_id
  * @property string|null $description
+ * @property string|null $cancel_reason
  * @property string $status
  * @property string|null $sales_status
  * @property string|null $po_status
@@ -46,6 +47,7 @@ use Illuminate\Support\Str;
     'request_date',
     'person_in_charge_id',
     'description',
+    'cancel_reason',
     'status',
     'priority',
     'start_date',

@@ -42,7 +42,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
+import { show as showCustomer } from '@/routes/customers';
 import { cancel, destroy, edit, index, show } from '@/routes/projects';
 import {
     destroy as destroyAttachment,
@@ -74,6 +76,7 @@ type Project = {
     name: string;
     request_date: string;
     description: string | null;
+    cancel_reason: string | null;
     status: string;
     sales_status: string | null;
     po_status: string | null;
@@ -90,6 +93,7 @@ type Project = {
     updated_at: string;
     customer: {
         id: number;
+        uuid: string;
         name: string;
     };
     person_in_charge: {
@@ -273,7 +277,12 @@ export default function ProjectsShow({
                                 Customer
                             </dt>
                             <dd className="font-medium">
-                                {project.customer.name}
+                                <Link
+                                    href={showCustomer(project.customer)}
+                                    className="hover:underline"
+                                >
+                                    {project.customer.name}
+                                </Link>
                             </dd>
                         </div>
 
@@ -509,6 +518,17 @@ export default function ProjectsShow({
                                 )}
                             </dd>
                         </div>
+
+                        {project.cancel_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Cancellation reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {project.cancel_reason}
+                                </dd>
+                            </div>
+                        )}
 
                         <div>
                             <dt className="text-sm text-muted-foreground">
@@ -1027,23 +1047,43 @@ export default function ProjectsShow({
                                         {...cancel.form(project)}
                                         options={{ preserveScroll: true }}
                                     >
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Keep
-                                                    </Button>
-                                                </DialogClose>
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="grid gap-2 py-2">
+                                                    <Label htmlFor="cancel_reason">
+                                                        Cancellation reason
+                                                    </Label>
+                                                    <Textarea
+                                                        id="cancel_reason"
+                                                        name="cancel_reason"
+                                                        required
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.cancel_reason
+                                                        }
+                                                    />
+                                                </div>
 
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    {processing && <Spinner />}
-                                                    Cancel Project
-                                                </Button>
-                                            </DialogFooter>
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Keep
+                                                        </Button>
+                                                    </DialogClose>
+
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Cancel Project
+                                                    </Button>
+                                                </DialogFooter>
+                                            </>
                                         )}
                                     </Form>
                                 </DialogContent>

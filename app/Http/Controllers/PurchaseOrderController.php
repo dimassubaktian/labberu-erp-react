@@ -463,8 +463,11 @@ class PurchaseOrderController extends Controller
             'Cannot cancel a purchase order that has a confirmed goods receipt note.'
         );
 
-        DB::transaction(function () use ($purchaseOrder): void {
-            $purchaseOrder->update(['status' => 'cancelled']);
+        DB::transaction(function () use ($request, $purchaseOrder): void {
+            $purchaseOrder->update([
+                'status' => 'cancelled',
+                'cancel_reason' => $request->validated('cancel_reason'),
+            ]);
             $purchaseOrder->goodsReceiptNotes()->where('status', 'draft')->update(['status' => 'cancelled']);
         });
 
@@ -478,7 +481,10 @@ class PurchaseOrderController extends Controller
      */
     public function void(PurchaseOrderVoidRequest $request, PurchaseOrder $purchaseOrder): RedirectResponse
     {
-        $purchaseOrder->update(['status' => 'voided']);
+        $purchaseOrder->update([
+            'status' => 'voided',
+            'void_reason' => $request->validated('void_reason'),
+        ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order voided.')]);
 

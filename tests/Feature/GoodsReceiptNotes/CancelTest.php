@@ -56,18 +56,31 @@ function confirmedGrn(array $acceptedQuantities): array
     return ['grn' => $grn, 'purchaseOrder' => $purchaseOrder->fresh('items')];
 }
 
-test('cancelling a confirmed grn deletes its stock movements', function () {
+test('cancelling a confirmed grn deletes its stock movements and persists a reason', function () {
     $user = User::factory()->create();
     ['grn' => $grn] = confirmedGrn([10]);
 
     expect(StockMovement::count())->toBe(1);
 
     $this->actingAs($user)
-        ->patch(route('goods-receipt-notes.cancel', $grn))
+        ->patch(route('goods-receipt-notes.cancel', $grn), ['cancel_reason' => 'Goods were damaged on arrival.'])
         ->assertSessionHasNoErrors();
 
-    expect($grn->refresh()->status)->toBe('cancelled');
+    $grn->refresh();
+    expect($grn->status)->toBe('cancelled');
+    expect($grn->cancel_reason)->toBe('Goods were damaged on arrival.');
     expect(StockMovement::count())->toBe(0);
+});
+
+test('cancelling a grn without a reason fails validation', function () {
+    $user = User::factory()->create();
+    ['grn' => $grn] = confirmedGrn([10]);
+
+    $this->actingAs($user)
+        ->patch(route('goods-receipt-notes.cancel', $grn), [])
+        ->assertSessionHasErrors(['cancel_reason']);
+
+    expect($grn->refresh()->status)->toBe('confirmed');
 });
 
 test('cancelling the only confirmed grn resets purchase order progress to null', function () {
@@ -76,7 +89,7 @@ test('cancelling the only confirmed grn resets purchase order progress to null',
     $purchaseOrder->update(['progress' => 'fully_received']);
 
     $this->actingAs($user)
-        ->patch(route('goods-receipt-notes.cancel', $grn))
+        ->patch(route('goods-receipt-notes.cancel', $grn), ['cancel_reason' => 'Wrong quantity delivered.'])
         ->assertSessionHasNoErrors();
 
     expect($purchaseOrder->refresh()->progress)->toBeNull();
@@ -147,7 +160,7 @@ test('cancelling one of two confirmed grns recomputes purchase order progress wi
 
     // Cancel GRN B — item B no longer received → drops to partially_received
     $this->actingAs($user)
-        ->patch(route('goods-receipt-notes.cancel', $grnB))
+        ->patch(route('goods-receipt-notes.cancel', $grnB), ['cancel_reason' => 'Item B was returned to vendor.'])
         ->assertSessionHasNoErrors();
 
     expect($purchaseOrder->refresh()->progress)->toBe('partially_received');

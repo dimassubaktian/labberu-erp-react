@@ -54,6 +54,10 @@ class BusinessLineController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Business line created.')]);
 
+        if ($request->boolean('create_another')) {
+            return to_route('business-lines.create');
+        }
+
         return to_route('business-lines.index');
     }
 

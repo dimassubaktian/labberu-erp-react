@@ -1,5 +1,6 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
 import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
@@ -25,6 +26,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { cancel, confirm, destroy, edit, index, print, signedDocument } from '@/routes/delivery-orders';
 import { show as showQuotation } from '@/routes/quotations';
@@ -53,6 +55,7 @@ type DeliveryOrder = {
     status: string;
     delivery_date: string;
     remarks: string | null;
+    cancel_reason: string | null;
     delivered_at: string | null;
     signed_document_path: string | null;
     quotation: {
@@ -74,6 +77,8 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
     const hasWorkforce = auth.workforce_id !== null;
     const canConfirm = hasWorkforce && auth.permissions.includes('delivery-orders.confirm');
     const canCancel = auth.permissions.includes('delivery-orders.cancel');
+
+    const [cancelReason, setCancelReason] = useState('');
 
     setLayoutProps({
         breadcrumbs: [
@@ -215,6 +220,17 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 </dt>
                                 <dd className="font-medium whitespace-pre-line">
                                     {deliveryOrder.remarks}
+                                </dd>
+                            </div>
+                        )}
+
+                        {deliveryOrder.cancel_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Cancellation reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {deliveryOrder.cancel_reason}
                                 </dd>
                             </div>
                         )}
@@ -370,22 +386,48 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                         {...cancel.form(deliveryOrder)}
                                         options={{ preserveScroll: true }}
                                     >
-                                        {({ processing }) => (
-                                            <DialogFooter className="gap-2">
-                                                <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Keep
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="grid gap-2 py-2">
+                                                    <Label htmlFor="cancel_reason">
+                                                        Cancellation reason
+                                                    </Label>
+                                                    <Textarea
+                                                        id="cancel_reason"
+                                                        name="cancel_reason"
+                                                        value={cancelReason}
+                                                        onChange={(e) =>
+                                                            setCancelReason(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        required
+                                                        rows={3}
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.cancel_reason
+                                                        }
+                                                    />
+                                                </div>
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Keep
+                                                        </Button>
+                                                    </DialogClose>
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Cancel Delivery Order
                                                     </Button>
-                                                </DialogClose>
-                                                <Button
-                                                    type="submit"
-                                                    variant="destructive"
-                                                    disabled={processing}
-                                                >
-                                                    {processing && <Spinner />}
-                                                    Cancel Delivery Order
-                                                </Button>
-                                            </DialogFooter>
+                                                </DialogFooter>
+                                            </>
                                         )}
                                     </Form>
                                 </DialogContent>
