@@ -186,7 +186,6 @@ type QuotationItem = {
     product: {
         id: number;
         uuid: string;
-        product_code: string;
         name: string;
     };
 };
@@ -945,10 +944,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                                 {index + 1}
                                             </TableCell>
                                             <TableCell className="font-medium">
-                                                <div>
-                                                    {item.product.product_code}{' '}
-                                                    &mdash; {item.product.name}
-                                                </div>
+                                                <div>{item.product.name}</div>
                                                 {item.description && (
                                                     <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
                                                         {item.description}
@@ -1057,10 +1053,7 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                                 {index + 1}
                                             </TableCell>
                                             <TableCell className="font-medium">
-                                                <div>
-                                                    {item.product.product_code}{' '}
-                                                    &mdash; {item.product.name}
-                                                </div>
+                                                <div>{item.product.name}</div>
                                                 {item.description && (
                                                     <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
                                                         {item.description}

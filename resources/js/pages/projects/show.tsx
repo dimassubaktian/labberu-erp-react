@@ -42,15 +42,19 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { show as showCustomer } from '@/routes/customers';
+import { show as showDeliveryOrder } from '@/routes/delivery-orders';
+import { show as showInvoice } from '@/routes/invoices';
 import { cancel, destroy, edit, index, show } from '@/routes/projects';
 import {
     destroy as destroyAttachment,
     download as downloadAttachment,
     store as storeAttachment,
 } from '@/routes/projects/attachments';
+import { show as showPurchaseInvoice } from '@/routes/purchase-invoices';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 import {
     create as createQuotation,
@@ -147,10 +151,59 @@ type PurchaseOrder = {
     };
 };
 
+type QuotationVersion = {
+    id: number;
+    quotation_code: string;
+    version_major: number;
+    version_minor: number;
+};
+
+type DeliveryOrder = {
+    id: number;
+    uuid: string;
+    do_code: string;
+    status: string;
+    delivery_date: string;
+    quotation: QuotationVersion;
+};
+
+type Invoice = {
+    id: number;
+    uuid: string;
+    invoice_code: string;
+    status: string;
+    payment_status: string | null;
+    invoice_date: string;
+    total: string;
+    quotation: QuotationVersion;
+};
+
+type PurchaseInvoice = {
+    id: number;
+    uuid: string;
+    purchase_invoice_code: string;
+    status: string;
+    payment_status: string | null;
+    invoice_date: string;
+    total: string;
+    purchase_order: {
+        id: number;
+        purchase_order_code: string;
+        currency: {
+            id: number;
+            iso_code: string;
+            symbol: string | null;
+        };
+    };
+};
+
 type Props = {
     project: Project;
     quotations: Quotation[];
     purchaseOrders: PurchaseOrder[];
+    deliveryOrders: DeliveryOrder[];
+    invoices: Invoice[];
+    purchaseInvoices: PurchaseInvoice[];
 };
 
 const QUOTATION_STATUS_OPTIONS = [
@@ -171,15 +224,56 @@ const PURCHASE_ORDER_STATUS_OPTIONS = [
     { value: 'voided', label: 'Voided' },
 ];
 
+const DELIVERY_ORDER_STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'cancelled', label: 'Cancelled' },
+];
+
+const INVOICE_STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'issued', label: 'Issued' },
+];
+
+const INVOICE_PAYMENT_OPTIONS = [
+    { value: 'paid', label: 'Paid' },
+    { value: 'partially_paid', label: 'Partially paid' },
+];
+
+const PURCHASE_INVOICE_STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'issued', label: 'Issued' },
+];
+
+const PURCHASE_INVOICE_PAYMENT_OPTIONS = [
+    { value: 'paid', label: 'Paid' },
+    { value: 'partially_paid', label: 'Partially paid' },
+];
+
 export default function ProjectsShow({
     project,
     quotations,
     purchaseOrders,
+    deliveryOrders,
+    invoices,
+    purchaseInvoices,
 }: Props) {
     const [quotationSearch, setQuotationSearch] = React.useState('');
     const [quotationStatus, setQuotationStatus] = React.useState('all');
     const [purchaseOrderSearch, setPurchaseOrderSearch] = React.useState('');
     const [purchaseOrderStatus, setPurchaseOrderStatus] = React.useState('all');
+    const [deliveryOrderSearch, setDeliveryOrderSearch] = React.useState('');
+    const [deliveryOrderStatus, setDeliveryOrderStatus] = React.useState('all');
+    const [invoiceSearch, setInvoiceSearch] = React.useState('');
+    const [invoiceStatus, setInvoiceStatus] = React.useState('all');
+    const [invoicePaymentStatus, setInvoicePaymentStatus] =
+        React.useState('all');
+    const [purchaseInvoiceSearch, setPurchaseInvoiceSearch] =
+        React.useState('');
+    const [purchaseInvoiceStatus, setPurchaseInvoiceStatus] =
+        React.useState('all');
+    const [purchaseInvoicePaymentStatus, setPurchaseInvoicePaymentStatus] =
+        React.useState('all');
 
     const filteredQuotations = React.useMemo(() => {
         const search = quotationSearch.trim().toLowerCase();
@@ -213,6 +307,66 @@ export default function ProjectsShow({
             return matchesSearch && matchesStatus;
         });
     }, [purchaseOrders, purchaseOrderSearch, purchaseOrderStatus]);
+
+    const filteredDeliveryOrders = React.useMemo(() => {
+        const search = deliveryOrderSearch.trim().toLowerCase();
+
+        return deliveryOrders.filter((deliveryOrder) => {
+            const matchesSearch =
+                search === '' ||
+                deliveryOrder.do_code.toLowerCase().includes(search);
+            const matchesStatus =
+                deliveryOrderStatus === 'all' ||
+                deliveryOrder.status === deliveryOrderStatus;
+
+            return matchesSearch && matchesStatus;
+        });
+    }, [deliveryOrders, deliveryOrderSearch, deliveryOrderStatus]);
+
+    const filteredInvoices = React.useMemo(() => {
+        const search = invoiceSearch.trim().toLowerCase();
+
+        return invoices.filter((invoice) => {
+            const matchesSearch =
+                search === '' ||
+                invoice.invoice_code.toLowerCase().includes(search);
+            const matchesStatus =
+                invoiceStatus === 'all' || invoice.status === invoiceStatus;
+            const matchesPaymentStatus =
+                invoicePaymentStatus === 'all' ||
+                invoice.payment_status === invoicePaymentStatus;
+
+            return matchesSearch && matchesStatus && matchesPaymentStatus;
+        });
+    }, [invoices, invoiceSearch, invoiceStatus, invoicePaymentStatus]);
+
+    const filteredPurchaseInvoices = React.useMemo(() => {
+        const search = purchaseInvoiceSearch.trim().toLowerCase();
+
+        return purchaseInvoices.filter((purchaseInvoice) => {
+            const matchesSearch =
+                search === '' ||
+                purchaseInvoice.purchase_invoice_code
+                    .toLowerCase()
+                    .includes(search) ||
+                purchaseInvoice.purchase_order.purchase_order_code
+                    .toLowerCase()
+                    .includes(search);
+            const matchesStatus =
+                purchaseInvoiceStatus === 'all' ||
+                purchaseInvoice.status === purchaseInvoiceStatus;
+            const matchesPaymentStatus =
+                purchaseInvoicePaymentStatus === 'all' ||
+                purchaseInvoice.payment_status === purchaseInvoicePaymentStatus;
+
+            return matchesSearch && matchesStatus && matchesPaymentStatus;
+        });
+    }, [
+        purchaseInvoices,
+        purchaseInvoiceSearch,
+        purchaseInvoiceStatus,
+        purchaseInvoicePaymentStatus,
+    ]);
 
     setLayoutProps({
         breadcrumbs: [
@@ -550,309 +704,894 @@ export default function ProjectsShow({
                     </dl>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-2">
-                        <h2 className="text-base font-semibold">Quotations</h2>
-                        <Button size="sm" asChild>
-                            <Link
-                                href={createQuotation({
-                                    query: { project: project.uuid },
-                                })}
-                            >
-                                <Plus />
-                                New Quotation
-                            </Link>
-                        </Button>
-                    </div>
-                    {quotations.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No quotations have been created for this project
-                            yet.
-                        </p>
-                    ) : (
-                        <>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                                <div className="relative w-full sm:max-w-xs">
-                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        value={quotationSearch}
-                                        onChange={(event) =>
-                                            setQuotationSearch(
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder="Search by quotation code"
-                                        className="pl-9"
-                                    />
+                <Tabs defaultValue="quotations">
+                    <TabsList className="w-full flex-nowrap justify-start overflow-x-auto">
+                        <TabsTrigger value="quotations">Quotations</TabsTrigger>
+                        <TabsTrigger value="purchase-orders">
+                            Purchase Orders
+                        </TabsTrigger>
+                        <TabsTrigger value="delivery-orders">
+                            Delivery Orders
+                        </TabsTrigger>
+                        <TabsTrigger value="invoices">Invoices</TabsTrigger>
+                        <TabsTrigger value="purchase-invoices">
+                            Purchase Invoices
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="quotations" className="space-y-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <h2 className="text-base font-semibold">
+                                Quotations
+                            </h2>
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={createQuotation({
+                                        query: { project: project.uuid },
+                                    })}
+                                >
+                                    <Plus />
+                                    New Quotation
+                                </Link>
+                            </Button>
+                        </div>
+                        {quotations.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No quotations have been created for this project
+                                yet.
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                    <div className="relative w-full sm:max-w-xs">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={quotationSearch}
+                                            onChange={(event) =>
+                                                setQuotationSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Search by quotation code"
+                                            className="pl-9"
+                                        />
+                                    </div>
+
+                                    <Select
+                                        value={quotationStatus}
+                                        onValueChange={setQuotationStatus}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-52">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All statuses
+                                            </SelectItem>
+                                            {QUOTATION_STATUS_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {(quotationSearch !== '' ||
+                                        quotationStatus !== 'all') && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setQuotationSearch('');
+                                                setQuotationStatus('all');
+                                            }}
+                                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                                        >
+                                            <X />
+                                            Reset
+                                        </Button>
+                                    )}
                                 </div>
 
-                                <Select
-                                    value={quotationStatus}
-                                    onValueChange={setQuotationStatus}
-                                >
-                                    <SelectTrigger className="w-full sm:w-52">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All statuses
-                                        </SelectItem>
-                                        {QUOTATION_STATUS_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-
-                                {(quotationSearch !== '' ||
-                                    quotationStatus !== 'all') && (
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setQuotationSearch('');
-                                            setQuotationStatus('all');
-                                        }}
-                                        className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
-                                    >
-                                        <X />
-                                        Reset
-                                    </Button>
-                                )}
-                            </div>
-
-                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>
-                                                Quotation code
-                                            </TableHead>
-                                            <TableHead>Version</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Valid until</TableHead>
-                                            <TableHead>Total</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredQuotations.length === 0 && (
+                                <div className="overflow-hidden rounded-xl border border-border/50">
+                                    <Table>
+                                        <TableHeader>
                                             <TableRow>
-                                                <TableCell
-                                                    colSpan={5}
-                                                    className="h-24 text-center text-muted-foreground"
-                                                >
-                                                    No quotations match your
-                                                    filters.
-                                                </TableCell>
+                                                <TableHead>
+                                                    Quotation code
+                                                </TableHead>
+                                                <TableHead>Version</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>
+                                                    Valid until
+                                                </TableHead>
+                                                <TableHead>Total</TableHead>
                                             </TableRow>
-                                        )}
-
-                                        {filteredQuotations.map((quotation) => (
-                                            <TableRow key={quotation.id}>
-                                                <TableCell className="font-medium">
-                                                    <Link
-                                                        href={showQuotation(
-                                                            quotation,
-                                                        )}
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredQuotations.length ===
+                                                0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        colSpan={5}
+                                                        className="h-24 text-center text-muted-foreground"
                                                     >
-                                                        {
-                                                            quotation.quotation_code
-                                                        }
-                                                    </Link>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    v{quotation.version_major}.
-                                                    {quotation.version_minor}
-                                                    {quotation.is_current &&
-                                                        ' (current)'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="capitalize"
-                                                    >
-                                                        {quotation.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {quotation.valid_until ? (
-                                                        formatDate(
-                                                            quotation.valid_until,
-                                                        )
-                                                    ) : (
-                                                        <span className="text-muted-foreground">
-                                                            &mdash;
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {quotation.currency
-                                                        .symbol ??
-                                                        quotation.currency
-                                                            .iso_code}{' '}
-                                                    {formatNumber(
-                                                        quotation.total,
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </>
-                    )}
-                </div>
+                                                        No quotations match your
+                                                        filters.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
 
-                <div className="space-y-4">
-                    <h2 className="text-base font-semibold">Purchase Orders</h2>
-                    {purchaseOrders.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No purchase orders have been raised for this project
-                            yet.
-                        </p>
-                    ) : (
-                        <>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                                <div className="relative w-full sm:max-w-xs">
-                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                                    <Input
-                                        value={purchaseOrderSearch}
-                                        onChange={(event) =>
-                                            setPurchaseOrderSearch(
-                                                event.target.value,
-                                            )
-                                        }
-                                        placeholder="Search by PO code or vendor"
-                                        className="pl-9"
-                                    />
+                                            {filteredQuotations.map(
+                                                (quotation) => (
+                                                    <TableRow
+                                                        key={quotation.id}
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            <Link
+                                                                href={showQuotation(
+                                                                    quotation,
+                                                                )}
+                                                            >
+                                                                {
+                                                                    quotation.quotation_code
+                                                                }
+                                                            </Link>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            v
+                                                            {
+                                                                quotation.version_major
+                                                            }
+                                                            .
+                                                            {
+                                                                quotation.version_minor
+                                                            }
+                                                            {quotation.is_current &&
+                                                                ' (current)'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="capitalize"
+                                                            >
+                                                                {quotation.status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {quotation.valid_until ? (
+                                                                formatDate(
+                                                                    quotation.valid_until,
+                                                                )
+                                                            ) : (
+                                                                <span className="text-muted-foreground">
+                                                                    &mdash;
+                                                                </span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {quotation.currency
+                                                                .symbol ??
+                                                                quotation
+                                                                    .currency
+                                                                    .iso_code}{' '}
+                                                            {formatNumber(
+                                                                quotation.total,
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="purchase-orders" className="space-y-4">
+                        <h2 className="text-base font-semibold">
+                            Purchase Orders
+                        </h2>
+                        {purchaseOrders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No purchase orders have been raised for this
+                                project yet.
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                    <div className="relative w-full sm:max-w-xs">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={purchaseOrderSearch}
+                                            onChange={(event) =>
+                                                setPurchaseOrderSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Search by PO code or vendor"
+                                            className="pl-9"
+                                        />
+                                    </div>
+
+                                    <Select
+                                        value={purchaseOrderStatus}
+                                        onValueChange={setPurchaseOrderStatus}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-52">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All statuses
+                                            </SelectItem>
+                                            {PURCHASE_ORDER_STATUS_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {(purchaseOrderSearch !== '' ||
+                                        purchaseOrderStatus !== 'all') && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setPurchaseOrderSearch('');
+                                                setPurchaseOrderStatus('all');
+                                            }}
+                                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                                        >
+                                            <X />
+                                            Reset
+                                        </Button>
+                                    )}
                                 </div>
 
-                                <Select
-                                    value={purchaseOrderStatus}
-                                    onValueChange={setPurchaseOrderStatus}
-                                >
-                                    <SelectTrigger className="w-full sm:w-52">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All statuses
-                                        </SelectItem>
-                                        {PURCHASE_ORDER_STATUS_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </SelectItem>
-                                            ),
-                                        )}
-                                    </SelectContent>
-                                </Select>
-
-                                {(purchaseOrderSearch !== '' ||
-                                    purchaseOrderStatus !== 'all') && (
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => {
-                                            setPurchaseOrderSearch('');
-                                            setPurchaseOrderStatus('all');
-                                        }}
-                                        className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
-                                    >
-                                        <X />
-                                        Reset
-                                    </Button>
-                                )}
-                            </div>
-
-                            <div className="overflow-hidden rounded-xl border border-border/50">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>
-                                                Purchase order code
-                                            </TableHead>
-                                            <TableHead>Vendor</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Total</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredPurchaseOrders.length ===
-                                            0 && (
+                                <div className="overflow-hidden rounded-xl border border-border/50">
+                                    <Table>
+                                        <TableHeader>
                                             <TableRow>
-                                                <TableCell
-                                                    colSpan={4}
-                                                    className="h-24 text-center text-muted-foreground"
-                                                >
-                                                    No purchase orders match
-                                                    your filters.
-                                                </TableCell>
+                                                <TableHead>
+                                                    Purchase order code
+                                                </TableHead>
+                                                <TableHead>Vendor</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Total</TableHead>
                                             </TableRow>
-                                        )}
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredPurchaseOrders.length ===
+                                                0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        colSpan={4}
+                                                        className="h-24 text-center text-muted-foreground"
+                                                    >
+                                                        No purchase orders match
+                                                        your filters.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
 
-                                        {filteredPurchaseOrders.map(
-                                            (purchaseOrder) => (
-                                                <TableRow
-                                                    key={purchaseOrder.id}
-                                                >
+                                            {filteredPurchaseOrders.map(
+                                                (purchaseOrder) => (
+                                                    <TableRow
+                                                        key={purchaseOrder.id}
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            <Link
+                                                                href={showPurchaseOrder(
+                                                                    purchaseOrder,
+                                                                )}
+                                                            >
+                                                                {
+                                                                    purchaseOrder.purchase_order_code
+                                                                }
+                                                            </Link>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {
+                                                                purchaseOrder
+                                                                    .vendor.name
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="capitalize"
+                                                            >
+                                                                {purchaseOrder.status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {purchaseOrder
+                                                                .currency
+                                                                .symbol ??
+                                                                purchaseOrder
+                                                                    .currency
+                                                                    .iso_code}{' '}
+                                                            {formatNumber(
+                                                                purchaseOrder.grand_total,
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="delivery-orders" className="space-y-4">
+                        <h2 className="text-base font-semibold">
+                            Delivery Orders
+                        </h2>
+                        {deliveryOrders.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No delivery orders have been raised for this
+                                project yet.
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                    <div className="relative w-full sm:max-w-xs">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={deliveryOrderSearch}
+                                            onChange={(event) =>
+                                                setDeliveryOrderSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Search by DO code"
+                                            className="pl-9"
+                                        />
+                                    </div>
+
+                                    <Select
+                                        value={deliveryOrderStatus}
+                                        onValueChange={setDeliveryOrderStatus}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-52">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All statuses
+                                            </SelectItem>
+                                            {DELIVERY_ORDER_STATUS_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {(deliveryOrderSearch !== '' ||
+                                        deliveryOrderStatus !== 'all') && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setDeliveryOrderSearch('');
+                                                setDeliveryOrderStatus('all');
+                                            }}
+                                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                                        >
+                                            <X />
+                                            Reset
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <div className="overflow-hidden rounded-xl border border-border/50">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>DO code</TableHead>
+                                                <TableHead>Quotation</TableHead>
+                                                <TableHead>
+                                                    Delivery date
+                                                </TableHead>
+                                                <TableHead>Status</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredDeliveryOrders.length ===
+                                                0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        colSpan={4}
+                                                        className="h-24 text-center text-muted-foreground"
+                                                    >
+                                                        No delivery orders match
+                                                        your filters.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                            {filteredDeliveryOrders.map(
+                                                (deliveryOrder) => (
+                                                    <TableRow
+                                                        key={deliveryOrder.id}
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            <Link
+                                                                href={showDeliveryOrder(
+                                                                    deliveryOrder,
+                                                                )}
+                                                            >
+                                                                {
+                                                                    deliveryOrder.do_code
+                                                                }
+                                                            </Link>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            v
+                                                            {
+                                                                deliveryOrder
+                                                                    .quotation
+                                                                    .version_major
+                                                            }
+                                                            .
+                                                            {
+                                                                deliveryOrder
+                                                                    .quotation
+                                                                    .version_minor
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {formatDate(
+                                                                deliveryOrder.delivery_date,
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="capitalize"
+                                                            >
+                                                                {deliveryOrder.status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="invoices" className="space-y-4">
+                        <h2 className="text-base font-semibold">Invoices</h2>
+                        {invoices.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No invoices have been raised for this project
+                                yet.
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                    <div className="relative w-full sm:max-w-xs">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={invoiceSearch}
+                                            onChange={(event) =>
+                                                setInvoiceSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Search by invoice code"
+                                            className="pl-9"
+                                        />
+                                    </div>
+
+                                    <Select
+                                        value={invoiceStatus}
+                                        onValueChange={setInvoiceStatus}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-40">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All statuses
+                                            </SelectItem>
+                                            {INVOICE_STATUS_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <Select
+                                        value={invoicePaymentStatus}
+                                        onValueChange={setInvoicePaymentStatus}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-44">
+                                            <SelectValue placeholder="Payment" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All payments
+                                            </SelectItem>
+                                            {INVOICE_PAYMENT_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {(invoiceSearch !== '' ||
+                                        invoiceStatus !== 'all' ||
+                                        invoicePaymentStatus !== 'all') && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setInvoiceSearch('');
+                                                setInvoiceStatus('all');
+                                                setInvoicePaymentStatus('all');
+                                            }}
+                                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                                        >
+                                            <X />
+                                            Reset
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <div className="overflow-hidden rounded-xl border border-border/50">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>
+                                                    Invoice code
+                                                </TableHead>
+                                                <TableHead>Quotation</TableHead>
+                                                <TableHead>
+                                                    Invoice date
+                                                </TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Payment</TableHead>
+                                                <TableHead>Total</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredInvoices.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        colSpan={6}
+                                                        className="h-24 text-center text-muted-foreground"
+                                                    >
+                                                        No invoices match your
+                                                        filters.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                            {filteredInvoices.map((invoice) => (
+                                                <TableRow key={invoice.id}>
                                                     <TableCell className="font-medium">
                                                         <Link
-                                                            href={showPurchaseOrder(
-                                                                purchaseOrder,
+                                                            href={showInvoice(
+                                                                invoice,
                                                             )}
                                                         >
                                                             {
-                                                                purchaseOrder.purchase_order_code
+                                                                invoice.invoice_code
                                                             }
                                                         </Link>
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
+                                                        v
                                                         {
-                                                            purchaseOrder.vendor
-                                                                .name
+                                                            invoice.quotation
+                                                                .version_major
                                                         }
+                                                        .
+                                                        {
+                                                            invoice.quotation
+                                                                .version_minor
+                                                        }
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {formatDate(
+                                                            invoice.invoice_date,
+                                                        )}
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge
                                                             variant="secondary"
                                                             className="capitalize"
                                                         >
-                                                            {purchaseOrder.status.replaceAll(
+                                                            {invoice.status.replaceAll(
                                                                 '_',
                                                                 ' ',
                                                             )}
                                                         </Badge>
                                                     </TableCell>
+                                                    <TableCell>
+                                                        {invoice.payment_status ? (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="capitalize"
+                                                            >
+                                                                {invoice.payment_status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell className="text-muted-foreground">
-                                                        {purchaseOrder.currency
-                                                            .symbol ??
-                                                            purchaseOrder
-                                                                .currency
-                                                                .iso_code}{' '}
                                                         {formatNumber(
-                                                            purchaseOrder.grand_total,
+                                                            invoice.total,
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
-                                            ),
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </>
-                    )}
-                </div>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent
+                        value="purchase-invoices"
+                        className="space-y-4"
+                    >
+                        <h2 className="text-base font-semibold">
+                            Purchase Invoices
+                        </h2>
+                        {purchaseInvoices.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No purchase invoices have been raised for this
+                                project yet.
+                            </p>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                    <div className="relative w-full sm:max-w-xs">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            value={purchaseInvoiceSearch}
+                                            onChange={(event) =>
+                                                setPurchaseInvoiceSearch(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="Search by invoice or PO code"
+                                            className="pl-9"
+                                        />
+                                    </div>
+
+                                    <Select
+                                        value={purchaseInvoiceStatus}
+                                        onValueChange={setPurchaseInvoiceStatus}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-40">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All statuses
+                                            </SelectItem>
+                                            {PURCHASE_INVOICE_STATUS_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    <Select
+                                        value={purchaseInvoicePaymentStatus}
+                                        onValueChange={
+                                            setPurchaseInvoicePaymentStatus
+                                        }
+                                    >
+                                        <SelectTrigger className="w-full sm:w-44">
+                                            <SelectValue placeholder="Payment" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">
+                                                All payments
+                                            </SelectItem>
+                                            {PURCHASE_INVOICE_PAYMENT_OPTIONS.map(
+                                                (option) => (
+                                                    <SelectItem
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </SelectItem>
+                                                ),
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {(purchaseInvoiceSearch !== '' ||
+                                        purchaseInvoiceStatus !== 'all' ||
+                                        purchaseInvoicePaymentStatus !==
+                                            'all') && (
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => {
+                                                setPurchaseInvoiceSearch('');
+                                                setPurchaseInvoiceStatus('all');
+                                                setPurchaseInvoicePaymentStatus(
+                                                    'all',
+                                                );
+                                            }}
+                                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
+                                        >
+                                            <X />
+                                            Reset
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <div className="overflow-hidden rounded-xl border border-border/50">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>
+                                                    Invoice code
+                                                </TableHead>
+                                                <TableHead>
+                                                    Purchase order
+                                                </TableHead>
+                                                <TableHead>
+                                                    Invoice date
+                                                </TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Payment</TableHead>
+                                                <TableHead>Total</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredPurchaseInvoices.length ===
+                                                0 && (
+                                                <TableRow>
+                                                    <TableCell
+                                                        colSpan={6}
+                                                        className="h-24 text-center text-muted-foreground"
+                                                    >
+                                                        No purchase invoices
+                                                        match your filters.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                            {filteredPurchaseInvoices.map(
+                                                (purchaseInvoice) => (
+                                                    <TableRow
+                                                        key={purchaseInvoice.id}
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            <Link
+                                                                href={showPurchaseInvoice(
+                                                                    purchaseInvoice,
+                                                                )}
+                                                            >
+                                                                {
+                                                                    purchaseInvoice.purchase_invoice_code
+                                                                }
+                                                            </Link>
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {
+                                                                purchaseInvoice
+                                                                    .purchase_order
+                                                                    .purchase_order_code
+                                                            }
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {formatDate(
+                                                                purchaseInvoice.invoice_date,
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="capitalize"
+                                                            >
+                                                                {purchaseInvoice.status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {purchaseInvoice.payment_status ? (
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="capitalize"
+                                                                >
+                                                                    {purchaseInvoice.payment_status.replaceAll(
+                                                                        '_',
+                                                                        ' ',
+                                                                    )}
+                                                                </Badge>
+                                                            ) : (
+                                                                <span className="text-muted-foreground">
+                                                                    &mdash;
+                                                                </span>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-muted-foreground">
+                                                            {purchaseInvoice
+                                                                .purchase_order
+                                                                .currency
+                                                                .symbol ??
+                                                                purchaseInvoice
+                                                                    .purchase_order
+                                                                    .currency
+                                                                    .iso_code}{' '}
+                                                            {formatNumber(
+                                                                purchaseInvoice.total,
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </>
+                        )}
+                    </TabsContent>
+                </Tabs>
 
                 <div className="space-y-6">
                     <h2 className="text-base font-semibold">Attachments</h2>

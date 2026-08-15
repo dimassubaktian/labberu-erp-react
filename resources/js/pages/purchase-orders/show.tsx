@@ -1,7 +1,19 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Check, ClipboardList, Mail, PenLine, Pencil, Send, Trash2, X } from 'lucide-react';
+import {
+    ArrowLeft,
+    Ban,
+    Check,
+    ClipboardList,
+    Mail,
+    PenLine,
+    Pencil,
+    Search,
+    Send,
+    Trash2,
+    X,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
@@ -16,7 +28,15 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -34,6 +54,10 @@ import {
 } from '@/routes/goods-receipt-notes';
 import { show as showProject } from '@/routes/projects';
 import {
+    create as createPurchaseInvoice,
+    show as showPurchaseInvoice,
+} from '@/routes/purchase-invoices';
+import {
     approve,
     cancel,
     check,
@@ -48,7 +72,6 @@ import {
 import { update as updateProgress } from '@/routes/purchase-orders/progress';
 import { show as showQuotation } from '@/routes/quotations';
 import { show as showVendor } from '@/routes/vendors';
-
 
 type WorkforceOption = {
     id: number;
@@ -102,7 +125,6 @@ type PurchaseOrderItem = {
     product: {
         id: number;
         uuid: string;
-        product_code: string;
         name: string;
     };
 };
@@ -125,12 +147,33 @@ type GoodsReceiptNoteOption = {
     received_date: string;
 };
 
+type PurchaseInvoiceOption = {
+    id: number;
+    uuid: string;
+    purchase_invoice_code: string;
+    status: string;
+    payment_status: string | null;
+    invoice_date: string;
+    total: string;
+};
+
+const PURCHASE_INVOICE_STATUS_OPTIONS = [
+    { value: 'draft', label: 'Draft' },
+    { value: 'issued', label: 'Issued' },
+];
+
+const PURCHASE_INVOICE_PAYMENT_OPTIONS = [
+    { value: 'paid', label: 'Paid' },
+    { value: 'partially_paid', label: 'Partially paid' },
+];
+
 type PurchaseOrder = {
     id: number;
     uuid: string;
     purchase_order_code: string;
     status: string;
     progress: string | null;
+    payment_status: string | null;
     address: string | null;
     attention: string | null;
     phone: string | null;
@@ -177,6 +220,7 @@ type PurchaseOrder = {
     items: PurchaseOrderItem[];
     discounts: PurchaseOrderDiscount[];
     goods_receipt_notes: GoodsReceiptNoteOption[];
+    purchase_invoices: PurchaseInvoiceOption[];
     issued_by: WorkforceOption | null;
     checked_by_first: WorkforceOption | null;
     checked_by_second: WorkforceOption | null;
@@ -201,6 +245,10 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
     const [rejectionReason, setRejectionReason] = useState('');
     const [cancelReason, setCancelReason] = useState('');
     const [voidReason, setVoidReason] = useState('');
+    const [purchaseInvoiceSearch, setPurchaseInvoiceSearch] = useState('');
+    const [purchaseInvoiceStatus, setPurchaseInvoiceStatus] = useState('all');
+    const [purchaseInvoicePaymentStatus, setPurchaseInvoicePaymentStatus] =
+        useState('all');
 
     const currencySymbol =
         purchaseOrder.currency.symbol ?? purchaseOrder.currency.iso_code;
@@ -210,17 +258,48 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
 
     const { auth } = usePage().props;
     const hasWorkforce = auth.workforce_id !== null;
-    const canIssue   = hasWorkforce && auth.permissions.includes('purchase-orders.issue');
-    const canCheck   = hasWorkforce && auth.permissions.includes('purchase-orders.check');
-    const canApprove = hasWorkforce && auth.permissions.includes('purchase-orders.approve');
-    const canReject  = auth.permissions.includes('purchase-orders.reject');
-    const canCancel  = auth.permissions.includes('purchase-orders.cancel');
-    const canVoid    = auth.permissions.includes('purchase-orders.void');
+    const canIssue =
+        hasWorkforce && auth.permissions.includes('purchase-orders.issue');
+    const canCheck =
+        hasWorkforce && auth.permissions.includes('purchase-orders.check');
+    const canApprove =
+        hasWorkforce && auth.permissions.includes('purchase-orders.approve');
+    const canReject = auth.permissions.includes('purchase-orders.reject');
+    const canCancel = auth.permissions.includes('purchase-orders.cancel');
+    const canVoid = auth.permissions.includes('purchase-orders.void');
+    const canCreatePurchaseInvoice = auth.permissions.includes(
+        'purchase-invoices.create',
+    );
 
     const progressActionsList =
         purchaseOrder.status === 'approved'
             ? progressActions(purchaseOrder.progress)
             : [];
+
+    const filteredPurchaseInvoices = useMemo(() => {
+        const query = purchaseInvoiceSearch.trim().toLowerCase();
+
+        return purchaseOrder.purchase_invoices.filter((purchaseInvoice) => {
+            const matchesSearch =
+                query === '' ||
+                purchaseInvoice.purchase_invoice_code
+                    .toLowerCase()
+                    .includes(query);
+            const matchesStatus =
+                purchaseInvoiceStatus === 'all' ||
+                purchaseInvoice.status === purchaseInvoiceStatus;
+            const matchesPaymentStatus =
+                purchaseInvoicePaymentStatus === 'all' ||
+                purchaseInvoice.payment_status === purchaseInvoicePaymentStatus;
+
+            return matchesSearch && matchesStatus && matchesPaymentStatus;
+        });
+    }, [
+        purchaseInvoiceSearch,
+        purchaseInvoiceStatus,
+        purchaseInvoicePaymentStatus,
+        purchaseOrder.purchase_invoices,
+    ]);
 
     return (
         <>
@@ -267,8 +346,12 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         {canVoid && purchaseOrder.status === 'approved' && (
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button variant="destructive" className="w-full sm:w-auto">
-                                        <Ban />Void Purchase Order
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Ban />
+                                        Void Purchase Order
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -364,6 +447,25 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                         className="capitalize"
                                     >
                                         {purchaseOrder.progress.replaceAll(
+                                            '_',
+                                            ' ',
+                                        )}
+                                    </Badge>
+                                </dd>
+                            </div>
+                        )}
+
+                        {purchaseOrder.payment_status && (
+                            <div>
+                                <dt className="text-sm text-muted-foreground">
+                                    Payment
+                                </dt>
+                                <dd>
+                                    <Badge
+                                        variant="secondary"
+                                        className="capitalize"
+                                    >
+                                        {purchaseOrder.payment_status.replaceAll(
                                             '_',
                                             ' ',
                                         )}
@@ -603,10 +705,7 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                             {idx + 1}
                                         </TableCell>
                                         <TableCell className="font-medium">
-                                            <div>
-                                                {item.product.product_code}{' '}
-                                                &mdash; {item.product.name}
-                                            </div>
+                                            <div>{item.product.name}</div>
                                             {item.reference_number && (
                                                 <div className="text-sm font-normal text-muted-foreground">
                                                     Ref: {item.reference_number}
@@ -746,19 +845,20 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         </h2>
                         {purchaseOrder.status === 'approved' &&
                             purchaseOrder.progress === 'sent' && (
-                            <Button size="sm" asChild>
-                                <Link
-                                    href={createGoodsReceiptNote({
-                                        query: {
-                                            purchase_order: purchaseOrder.uuid,
-                                        },
-                                    })}
-                                >
-                                    <ClipboardList />
-                                    Create GRN
-                                </Link>
-                            </Button>
-                        )}
+                                <Button size="sm" asChild>
+                                    <Link
+                                        href={createGoodsReceiptNote({
+                                            query: {
+                                                purchase_order:
+                                                    purchaseOrder.uuid,
+                                            },
+                                        })}
+                                    >
+                                        <ClipboardList />
+                                        Create GRN
+                                    </Link>
+                                </Button>
+                            )}
                     </div>
                     {purchaseOrder.goods_receipt_notes.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
@@ -799,6 +899,191 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                     </Link>
                                 ),
                             )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                        <h2 className="text-base font-semibold">
+                            Purchase Invoices
+                        </h2>
+                        {canCreatePurchaseInvoice &&
+                            purchaseOrder.status === 'approved' && (
+                                <Button size="sm" asChild>
+                                    <Link
+                                        href={createPurchaseInvoice({
+                                            query: {
+                                                purchase_order:
+                                                    purchaseOrder.uuid,
+                                            },
+                                        })}
+                                    >
+                                        <ClipboardList />
+                                        Create Purchase Invoice
+                                    </Link>
+                                </Button>
+                            )}
+                    </div>
+                    {purchaseOrder.purchase_invoices.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                            No purchase invoices have been raised against this
+                            purchase order yet.
+                        </p>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                <div className="relative w-full sm:max-w-xs">
+                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                        value={purchaseInvoiceSearch}
+                                        onChange={(e) =>
+                                            setPurchaseInvoiceSearch(
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="Search by invoice code"
+                                        className="pl-9"
+                                    />
+                                </div>
+
+                                <Select
+                                    value={purchaseInvoiceStatus}
+                                    onValueChange={setPurchaseInvoiceStatus}
+                                >
+                                    <SelectTrigger className="w-full sm:w-36">
+                                        <SelectValue placeholder="Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All statuses
+                                        </SelectItem>
+                                        {PURCHASE_INVOICE_STATUS_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select
+                                    value={purchaseInvoicePaymentStatus}
+                                    onValueChange={
+                                        setPurchaseInvoicePaymentStatus
+                                    }
+                                >
+                                    <SelectTrigger className="w-full sm:w-44">
+                                        <SelectValue placeholder="Payment" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            All payments
+                                        </SelectItem>
+                                        {PURCHASE_INVOICE_PAYMENT_OPTIONS.map(
+                                            (option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Invoice code</TableHead>
+                                            <TableHead>Invoice date</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Payment</TableHead>
+                                            <TableHead>Total</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredPurchaseInvoices.length ===
+                                            0 && (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={5}
+                                                    className="h-24 text-center text-muted-foreground"
+                                                >
+                                                    No purchase invoices match
+                                                    your search.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                        {filteredPurchaseInvoices.map(
+                                            (purchaseInvoice) => (
+                                                <TableRow
+                                                    key={purchaseInvoice.id}
+                                                >
+                                                    <TableCell className="font-medium">
+                                                        <Link
+                                                            href={showPurchaseInvoice(
+                                                                purchaseInvoice,
+                                                            )}
+                                                        >
+                                                            {
+                                                                purchaseInvoice.purchase_invoice_code
+                                                            }
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {formatDate(
+                                                            purchaseInvoice.invoice_date,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="capitalize"
+                                                        >
+                                                            {purchaseInvoice.status.replaceAll(
+                                                                '_',
+                                                                ' ',
+                                                            )}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {purchaseInvoice.payment_status ? (
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="capitalize"
+                                                            >
+                                                                {purchaseInvoice.payment_status.replaceAll(
+                                                                    '_',
+                                                                    ' ',
+                                                                )}
+                                                            </Badge>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {currencySymbol}{' '}
+                                                        {formatNumber(
+                                                            purchaseInvoice.total,
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ),
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -908,7 +1193,10 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         {canIssue && purchaseOrder.status === 'draft' && (
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button><Send />Issue</Button>
+                                    <Button>
+                                        <Send />
+                                        Issue
+                                    </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogTitle>
@@ -950,15 +1238,18 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             !purchaseOrder.checked_by_first && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button><PenLine />Sign as Checker 1</Button>
+                                        <Button>
+                                            <PenLine />
+                                            Sign as Checker 1
+                                        </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
                                             Sign off as Checker 1?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            You will be recorded as Checker 1
-                                            on this purchase order.
+                                            You will be recorded as Checker 1 on
+                                            this purchase order.
                                         </DialogDescription>
 
                                         <Form
@@ -980,9 +1271,13 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                                         </DialogClose>
                                                         <Button
                                                             type="submit"
-                                                            disabled={processing}
+                                                            disabled={
+                                                                processing
+                                                            }
                                                         >
-                                                            {processing && <Spinner />}
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
                                                             Sign off
                                                         </Button>
                                                     </DialogFooter>
@@ -998,15 +1293,18 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             !purchaseOrder.checked_by_second && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button><PenLine />Sign as Checker 2</Button>
+                                        <Button>
+                                            <PenLine />
+                                            Sign as Checker 2
+                                        </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
                                             Sign off as Checker 2?
                                         </DialogTitle>
                                         <DialogDescription>
-                                            You will be recorded as Checker 2
-                                            on this purchase order.
+                                            You will be recorded as Checker 2 on
+                                            this purchase order.
                                         </DialogDescription>
 
                                         <Form
@@ -1028,9 +1326,13 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                                         </DialogClose>
                                                         <Button
                                                             type="submit"
-                                                            disabled={processing}
+                                                            disabled={
+                                                                processing
+                                                            }
                                                         >
-                                                            {processing && <Spinner />}
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
                                                             Sign off
                                                         </Button>
                                                     </DialogFooter>
@@ -1046,7 +1348,10 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             bothCheckersSigned && (
                                 <Dialog>
                                     <DialogTrigger asChild>
-                                        <Button><Check />Approve</Button>
+                                        <Button>
+                                            <Check />
+                                            Approve
+                                        </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
@@ -1054,8 +1359,8 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                         </DialogTitle>
                                         <DialogDescription>
                                             You will be recorded as the approver
-                                            and the purchase order will be marked
-                                            approved.
+                                            and the purchase order will be
+                                            marked approved.
                                         </DialogDescription>
 
                                         <Form
@@ -1073,7 +1378,9 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                                                         type="submit"
                                                         disabled={processing}
                                                     >
-                                                        {processing && <Spinner />}
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
                                                         Approve
                                                     </Button>
                                                 </DialogFooter>
@@ -1087,7 +1394,8 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             <Dialog>
                                 <DialogTrigger asChild>
                                     <Button variant="destructive">
-                                        <X />Reject
+                                        <X />
+                                        Reject
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -1148,73 +1456,78 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         {canCancel &&
                             (purchaseOrder.status === 'draft' ||
                                 purchaseOrder.status === 'issued') && (
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="destructive">
-                                        <Ban />Cancel Purchase Order
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogTitle>
-                                        Cancel this purchase order?
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        This marks the purchase order as
-                                        cancelled. This action cannot be undone.
-                                    </DialogDescription>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="destructive">
+                                            <Ban />
+                                            Cancel Purchase Order
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>
+                                            Cancel this purchase order?
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            This marks the purchase order as
+                                            cancelled. This action cannot be
+                                            undone.
+                                        </DialogDescription>
 
-                                    <Form
-                                        {...cancel.form(purchaseOrder)}
-                                        options={{ preserveScroll: true }}
-                                    >
-                                        {({ processing, errors }) => (
-                                            <>
-                                                <div className="grid gap-2 py-2">
-                                                    <Label htmlFor="cancel_reason">
-                                                        Cancellation reason
-                                                    </Label>
-                                                    <Textarea
-                                                        id="cancel_reason"
-                                                        name="cancel_reason"
-                                                        value={cancelReason}
-                                                        onChange={(e) =>
-                                                            setCancelReason(
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        required
-                                                        rows={3}
-                                                    />
-                                                    <InputError
-                                                        message={
-                                                            errors.cancel_reason
-                                                        }
-                                                    />
-                                                </div>
-                                                <DialogFooter className="gap-2">
-                                                    <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Keep
+                                        <Form
+                                            {...cancel.form(purchaseOrder)}
+                                            options={{ preserveScroll: true }}
+                                        >
+                                            {({ processing, errors }) => (
+                                                <>
+                                                    <div className="grid gap-2 py-2">
+                                                        <Label htmlFor="cancel_reason">
+                                                            Cancellation reason
+                                                        </Label>
+                                                        <Textarea
+                                                            id="cancel_reason"
+                                                            name="cancel_reason"
+                                                            value={cancelReason}
+                                                            onChange={(e) =>
+                                                                setCancelReason(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            required
+                                                            rows={3}
+                                                        />
+                                                        <InputError
+                                                            message={
+                                                                errors.cancel_reason
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <DialogFooter className="gap-2">
+                                                        <DialogClose asChild>
+                                                            <Button variant="secondary">
+                                                                Keep
+                                                            </Button>
+                                                        </DialogClose>
+                                                        <Button
+                                                            type="submit"
+                                                            variant="destructive"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                        >
+                                                            {processing && (
+                                                                <Spinner />
+                                                            )}
+                                                            Cancel Purchase
+                                                            Order
                                                         </Button>
-                                                    </DialogClose>
-                                                    <Button
-                                                        type="submit"
-                                                        variant="destructive"
-                                                        disabled={processing}
-                                                    >
-                                                        {processing && (
-                                                            <Spinner />
-                                                        )}
-                                                        Cancel Purchase Order
-                                                    </Button>
-                                                </DialogFooter>
-                                            </>
-                                        )}
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
-                        )}
-
+                                                    </DialogFooter>
+                                                </>
+                                            )}
+                                        </Form>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
                     </div>
                 </div>
 

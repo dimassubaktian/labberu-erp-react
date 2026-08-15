@@ -41,7 +41,6 @@ type BomItem = {
     total_cost: string;
     product: {
         id: number;
-        product_code: string;
         name: string;
     };
 };
@@ -112,10 +111,7 @@ function MaterialsTable({ items }: { items: BomItem[] }) {
                                 {index + 1}
                             </TableCell>
                             <TableCell className="font-medium">
-                                <div>
-                                    {item.product.product_code} &mdash;{' '}
-                                    {item.product.name}
-                                </div>
+                                <div>{item.product.name}</div>
                                 {item.description && (
                                     <div className="text-sm font-normal whitespace-pre-line text-muted-foreground">
                                         {item.description}

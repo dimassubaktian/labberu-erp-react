@@ -33,14 +33,14 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { destroy, edit, index, issue } from '@/routes/invoices';
+import { destroy, edit, index, issue } from '@/routes/purchase-invoices';
 import {
     cancel as cancelPayment,
     store as storePayment,
-} from '@/routes/invoices/payments';
-import { show as showQuotation } from '@/routes/quotations';
+} from '@/routes/purchase-invoices/payments';
+import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 
-type InvoiceItem = {
+type PurchaseInvoiceItem = {
     id: number;
     quantity_ordered: string;
     unit: string;
@@ -49,11 +49,12 @@ type InvoiceItem = {
     total: string;
     product: {
         id: number;
+        product_code: string;
         name: string;
     };
 };
 
-type InvoicePayment = {
+type PurchaseInvoicePayment = {
     id: number;
     amount: string;
     payment_date: string;
@@ -65,10 +66,10 @@ type InvoicePayment = {
     cancelled_by: { id: number; name: string } | null;
 };
 
-type Invoice = {
+type PurchaseInvoice = {
     id: number;
     uuid: string;
-    invoice_code: string;
+    purchase_invoice_code: string;
     status: string;
     payment_status: string | null;
     invoice_date: string;
@@ -79,27 +80,30 @@ type Invoice = {
     tax_amount: string;
     total: string;
     issued_at: string | null;
-    quotation: {
+    purchase_order: {
         id: number;
         uuid: string;
-        quotation_code: string;
-        project: { id: number; customer: { id: number; name: string } };
+        purchase_order_code: string;
+        vendor: { id: number; name: string };
         currency: { id: number; iso_code: string; symbol: string | null };
     };
     tax: { id: number; name: string; rate: string; type: string } | null;
-    items: InvoiceItem[];
-    payments: InvoicePayment[];
+    items: PurchaseInvoiceItem[];
+    payments: PurchaseInvoicePayment[];
 };
 
 type Props = {
-    invoice: Invoice;
+    purchaseInvoice: PurchaseInvoice;
 };
 
-export default function InvoicesShow({ invoice }: Props) {
+export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
     setLayoutProps({
         breadcrumbs: [
-            { title: 'Invoices', href: index() },
-            { title: invoice.invoice_code, href: index() },
+            { title: 'Purchase Invoices', href: index() },
+            {
+                title: purchaseInvoice.purchase_invoice_code,
+                href: index(),
+            },
         ],
     });
 
@@ -107,24 +111,26 @@ export default function InvoicesShow({ invoice }: Props) {
     const amountRef = useRef<HTMLInputElement>(null);
 
     const currencySymbol =
-        invoice.quotation.currency.symbol ??
-        invoice.quotation.currency.iso_code;
-    const totalPaid = invoice.payments.reduce(
+        purchaseInvoice.purchase_order.currency.symbol ??
+        purchaseInvoice.purchase_order.currency.iso_code;
+    const totalPaid = purchaseInvoice.payments.reduce(
         (sum, payment) =>
             payment.cancelled_at ? sum : sum + Number(payment.amount),
         0,
     );
-    const balanceDue = Number(invoice.total) - totalPaid;
+    const balanceDue = Number(purchaseInvoice.total) - totalPaid;
 
     return (
         <>
-            <Head title={invoice.invoice_code} />
+            <Head title={purchaseInvoice.purchase_invoice_code} />
 
             <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <Heading
-                        title={invoice.invoice_code}
-                        description={invoice.quotation.quotation_code}
+                        title={purchaseInvoice.purchase_invoice_code}
+                        description={
+                            purchaseInvoice.purchase_order.purchase_order_code
+                        }
                     />
 
                     <div className="flex flex-col gap-2 sm:flex-row">
@@ -135,15 +141,15 @@ export default function InvoicesShow({ invoice }: Props) {
                         >
                             <Link href={index()}>
                                 <ArrowLeft />
-                                Back to Invoices
+                                Back to Purchase Invoices
                             </Link>
                         </Button>
 
-                        {invoice.status === 'draft' && (
+                        {purchaseInvoice.status === 'draft' && (
                             <Button asChild className="w-full sm:w-auto">
-                                <Link href={edit(invoice)}>
+                                <Link href={edit(purchaseInvoice)}>
                                     <Pencil />
-                                    Edit Invoice
+                                    Edit Purchase Invoice
                                 </Link>
                             </Button>
                         )}
@@ -162,12 +168,15 @@ export default function InvoicesShow({ invoice }: Props) {
                                     variant="secondary"
                                     className="capitalize"
                                 >
-                                    {invoice.status.replaceAll('_', ' ')}
+                                    {purchaseInvoice.status.replaceAll(
+                                        '_',
+                                        ' ',
+                                    )}
                                 </Badge>
                             </dd>
                         </div>
 
-                        {invoice.payment_status && (
+                        {purchaseInvoice.payment_status && (
                             <div>
                                 <dt className="text-sm text-muted-foreground">
                                     Payment
@@ -177,7 +186,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                         variant="secondary"
                                         className="capitalize"
                                     >
-                                        {invoice.payment_status.replaceAll(
+                                        {purchaseInvoice.payment_status.replaceAll(
                                             '_',
                                             ' ',
                                         )}
@@ -188,21 +197,28 @@ export default function InvoicesShow({ invoice }: Props) {
 
                         <div>
                             <dt className="text-sm text-muted-foreground">
-                                Quotation
+                                Purchase order
                             </dt>
                             <dd className="font-medium">
-                                <Link href={showQuotation(invoice.quotation)}>
-                                    {invoice.quotation.quotation_code}
+                                <Link
+                                    href={showPurchaseOrder(
+                                        purchaseInvoice.purchase_order,
+                                    )}
+                                >
+                                    {
+                                        purchaseInvoice.purchase_order
+                                            .purchase_order_code
+                                    }
                                 </Link>
                             </dd>
                         </div>
 
                         <div>
                             <dt className="text-sm text-muted-foreground">
-                                Customer
+                                Vendor
                             </dt>
                             <dd className="font-medium">
-                                {invoice.quotation.project.customer.name}
+                                {purchaseInvoice.purchase_order.vendor.name}
                             </dd>
                         </div>
 
@@ -211,7 +227,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                 Invoice date
                             </dt>
                             <dd className="font-medium">
-                                {formatDate(invoice.invoice_date)}
+                                {formatDate(purchaseInvoice.invoice_date)}
                             </dd>
                         </div>
 
@@ -220,28 +236,28 @@ export default function InvoicesShow({ invoice }: Props) {
                                 Due date
                             </dt>
                             <dd className="font-medium">
-                                {formatDate(invoice.due_date)}
+                                {formatDate(purchaseInvoice.due_date)}
                             </dd>
                         </div>
 
-                        {invoice.issued_at && (
+                        {purchaseInvoice.issued_at && (
                             <div>
                                 <dt className="text-sm text-muted-foreground">
                                     Issued at
                                 </dt>
                                 <dd className="font-medium">
-                                    {formatDateTime(invoice.issued_at)}
+                                    {formatDateTime(purchaseInvoice.issued_at)}
                                 </dd>
                             </div>
                         )}
 
-                        {invoice.remarks && (
+                        {purchaseInvoice.remarks && (
                             <div className="sm:col-span-2">
                                 <dt className="text-sm text-muted-foreground">
                                     Remarks
                                 </dt>
                                 <dd className="font-medium whitespace-pre-line">
-                                    {invoice.remarks}
+                                    {purchaseInvoice.remarks}
                                 </dd>
                             </div>
                         )}
@@ -262,12 +278,13 @@ export default function InvoicesShow({ invoice }: Props) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {invoice.items.map((item, idx) => (
+                                {purchaseInvoice.items.map((item, idx) => (
                                     <TableRow key={item.id}>
                                         <TableCell className="text-muted-foreground">
                                             {idx + 1}
                                         </TableCell>
                                         <TableCell className="font-medium">
+                                            {item.product.product_code} &mdash;{' '}
                                             {item.product.name}
                                         </TableCell>
                                         <TableCell>
@@ -296,30 +313,32 @@ export default function InvoicesShow({ invoice }: Props) {
                             <dt className="text-muted-foreground">Subtotal</dt>
                             <dd className="font-medium">
                                 {currencySymbol}{' '}
-                                {formatNumber(invoice.subtotal)}
+                                {formatNumber(purchaseInvoice.subtotal)}
                             </dd>
                         </div>
                         <div className="flex justify-between">
                             <dt className="text-muted-foreground">Discount</dt>
                             <dd className="font-medium">
                                 {currencySymbol}{' '}
-                                {formatNumber(invoice.discount_amount)}
+                                {formatNumber(purchaseInvoice.discount_amount)}
                             </dd>
                         </div>
                         <div className="flex justify-between">
                             <dt className="text-muted-foreground">
                                 Tax
-                                {invoice.tax && ` (${invoice.tax.name})`}
+                                {purchaseInvoice.tax &&
+                                    ` (${purchaseInvoice.tax.name})`}
                             </dt>
                             <dd className="font-medium">
                                 {currencySymbol}{' '}
-                                {formatNumber(invoice.tax_amount)}
+                                {formatNumber(purchaseInvoice.tax_amount)}
                             </dd>
                         </div>
                         <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
                             <dt>Total</dt>
                             <dd>
-                                {currencySymbol} {formatNumber(invoice.total)}
+                                {currencySymbol}{' '}
+                                {formatNumber(purchaseInvoice.total)}
                             </dd>
                         </div>
                         <div className="flex justify-between">
@@ -341,10 +360,10 @@ export default function InvoicesShow({ invoice }: Props) {
                     </dl>
                 </div>
 
-                {invoice.status === 'draft' && (
+                {purchaseInvoice.status === 'draft' && (
                     <div>
                         <h2 className="mb-4 text-base font-semibold">
-                            Issue Invoice
+                            Issue Purchase Invoice
                         </h2>
                         <Dialog>
                             <DialogTrigger asChild>
@@ -354,14 +373,17 @@ export default function InvoicesShow({ invoice }: Props) {
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
-                                <DialogTitle>Issue this invoice?</DialogTitle>
+                                <DialogTitle>
+                                    Issue this purchase invoice?
+                                </DialogTitle>
                                 <DialogDescription>
-                                    This locks the invoice from further edits
-                                    and makes it ready to receive payments.
+                                    This locks the purchase invoice from
+                                    further edits and makes it ready to
+                                    receive payments.
                                 </DialogDescription>
 
                                 <Form
-                                    {...issue.form(invoice)}
+                                    {...issue.form(purchaseInvoice)}
                                     options={{ preserveScroll: true }}
                                 >
                                     {({ processing }) => (
@@ -386,10 +408,10 @@ export default function InvoicesShow({ invoice }: Props) {
                     </div>
                 )}
 
-                {invoice.status === 'issued' && (
+                {purchaseInvoice.status === 'issued' && (
                     <div className="space-y-6">
                         <h2 className="text-base font-semibold">Payments</h2>
-                        {invoice.payments.length > 0 && (
+                        {purchaseInvoice.payments.length > 0 && (
                             <div className="overflow-hidden rounded-xl border border-border/50">
                                 <Table>
                                     <TableHeader>
@@ -403,148 +425,159 @@ export default function InvoicesShow({ invoice }: Props) {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {invoice.payments.map((payment) => (
-                                            <TableRow key={payment.id}>
-                                                <TableCell>
-                                                    {formatDate(
-                                                        payment.payment_date,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    {currencySymbol}{' '}
-                                                    {formatNumber(
-                                                        payment.amount,
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {payment.method ?? (
-                                                        <span>&mdash;</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {payment.recorded_by
-                                                        ?.name ?? (
-                                                        <span>&mdash;</span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {payment.cancelled_at ? (
-                                                        <div className="space-y-0.5">
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="text-destructive dark:text-destructive-foreground"
-                                                            >
-                                                                Cancelled
-                                                            </Badge>
-                                                            {payment.cancel_reason && (
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {
-                                                                        payment.cancel_reason
-                                                                    }
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-muted-foreground">
-                                                            &mdash;
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {!payment.cancelled_at && (
-                                                        <Dialog>
-                                                            <DialogTrigger
-                                                                asChild
-                                                            >
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
+                                        {purchaseInvoice.payments.map(
+                                            (payment) => (
+                                                <TableRow key={payment.id}>
+                                                    <TableCell>
+                                                        {formatDate(
+                                                            payment.payment_date,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">
+                                                        {currencySymbol}{' '}
+                                                        {formatNumber(
+                                                            payment.amount,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {payment.method ?? (
+                                                            <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {payment.recorded_by
+                                                            ?.name ?? (
+                                                            <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {payment.cancelled_at ? (
+                                                            <div className="space-y-0.5">
+                                                                <Badge
+                                                                    variant="secondary"
+                                                                    className="text-destructive dark:text-destructive-foreground"
                                                                 >
-                                                                    <Ban className="text-destructive dark:text-destructive-foreground" />
-                                                                </Button>
-                                                            </DialogTrigger>
-                                                            <DialogContent>
-                                                                <DialogTitle>
-                                                                    Cancel this
-                                                                    payment?
-                                                                </DialogTitle>
-                                                                <DialogDescription>
-                                                                    This will
-                                                                    recalculate
-                                                                    the
-                                                                    invoice&apos;s
-                                                                    payment
-                                                                    status.
-                                                                    This action
-                                                                    cannot be
-                                                                    undone.
-                                                                </DialogDescription>
-
-                                                                <Form
-                                                                    {...cancelPayment.form(
+                                                                    Cancelled
+                                                                </Badge>
+                                                                {payment.cancel_reason && (
+                                                                    <p className="text-xs text-muted-foreground">
                                                                         {
-                                                                            invoice,
-                                                                            payment,
-                                                                        },
-                                                                    )}
-                                                                    options={{
-                                                                        preserveScroll: true,
-                                                                    }}
+                                                                            payment.cancel_reason
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {!payment.cancelled_at && (
+                                                            <Dialog>
+                                                                <DialogTrigger
+                                                                    asChild
                                                                 >
-                                                                    {({
-                                                                        processing,
-                                                                        errors,
-                                                                    }) => (
-                                                                        <>
-                                                                            <div className="grid gap-2 py-2">
-                                                                                <Label htmlFor="cancel_reason">
-                                                                                    Cancellation
-                                                                                    reason
-                                                                                </Label>
-                                                                                <Textarea
-                                                                                    id="cancel_reason"
-                                                                                    name="cancel_reason"
-                                                                                    required
-                                                                                    rows={3}
-                                                                                />
-                                                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                                                    {
-                                                                                        errors.cancel_reason
-                                                                                    }
-                                                                                </p>
-                                                                            </div>
-                                                                            <DialogFooter className="gap-2">
-                                                                                <DialogClose
-                                                                                    asChild
-                                                                                >
-                                                                                    <Button variant="secondary">
-                                                                                        Keep
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                    >
+                                                                        <Ban className="text-destructive dark:text-destructive-foreground" />
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent>
+                                                                    <DialogTitle>
+                                                                        Cancel
+                                                                        this
+                                                                        payment?
+                                                                    </DialogTitle>
+                                                                    <DialogDescription>
+                                                                        This
+                                                                        will
+                                                                        recalculate
+                                                                        the
+                                                                        purchase
+                                                                        invoice&apos;s
+                                                                        payment
+                                                                        status.
+                                                                        This
+                                                                        action
+                                                                        cannot
+                                                                        be
+                                                                        undone.
+                                                                    </DialogDescription>
+
+                                                                    <Form
+                                                                        {...cancelPayment.form(
+                                                                            {
+                                                                                purchaseInvoice,
+                                                                                payment,
+                                                                            },
+                                                                        )}
+                                                                        options={{
+                                                                            preserveScroll: true,
+                                                                        }}
+                                                                    >
+                                                                        {({
+                                                                            processing,
+                                                                            errors,
+                                                                        }) => (
+                                                                            <>
+                                                                                <div className="grid gap-2 py-2">
+                                                                                    <Label htmlFor="cancel_reason">
+                                                                                        Cancellation
+                                                                                        reason
+                                                                                    </Label>
+                                                                                    <Textarea
+                                                                                        id="cancel_reason"
+                                                                                        name="cancel_reason"
+                                                                                        required
+                                                                                        rows={3}
+                                                                                    />
+                                                                                    <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                                                        {
+                                                                                            errors.cancel_reason
+                                                                                        }
+                                                                                    </p>
+                                                                                </div>
+                                                                                <DialogFooter className="gap-2">
+                                                                                    <DialogClose
+                                                                                        asChild
+                                                                                    >
+                                                                                        <Button variant="secondary">
+                                                                                            Keep
+                                                                                        </Button>
+                                                                                    </DialogClose>
+                                                                                    <Button
+                                                                                        type="submit"
+                                                                                        variant="destructive"
+                                                                                        disabled={
+                                                                                            processing
+                                                                                        }
+                                                                                    >
+                                                                                        {processing && (
+                                                                                            <Spinner />
+                                                                                        )}
+                                                                                        Cancel
+                                                                                        Payment
                                                                                     </Button>
-                                                                                </DialogClose>
-                                                                                <Button
-                                                                                    type="submit"
-                                                                                    variant="destructive"
-                                                                                    disabled={
-                                                                                        processing
-                                                                                    }
-                                                                                >
-                                                                                    {processing && (
-                                                                                        <Spinner />
-                                                                                    )}
-                                                                                    Cancel
-                                                                                    Payment
-                                                                                </Button>
-                                                                            </DialogFooter>
-                                                                        </>
-                                                                    )}
-                                                                </Form>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                                                                </DialogFooter>
+                                                                            </>
+                                                                        )}
+                                                                    </Form>
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ),
+                                        )}
                                     </TableBody>
                                 </Table>
                             </div>
@@ -552,7 +585,7 @@ export default function InvoicesShow({ invoice }: Props) {
 
                         {balanceDue > 0 && <Form
                             noValidate
-                            {...storePayment.form(invoice)}
+                            {...storePayment.form(purchaseInvoice)}
                             options={{ preserveScroll: true }}
                             resetOnSuccess
                         >
@@ -689,7 +722,7 @@ export default function InvoicesShow({ invoice }: Props) {
                     </div>
                 )}
 
-                {invoice.status === 'draft' && (
+                {purchaseInvoice.status === 'draft' && (
                     <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
                         <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
                             Danger Zone
@@ -697,11 +730,11 @@ export default function InvoicesShow({ invoice }: Props) {
                         <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                             <div className="space-y-0.5 text-red-600 dark:text-red-100">
                                 <p className="font-medium">
-                                    Delete this invoice
+                                    Delete this purchase invoice
                                 </p>
                                 <p className="text-sm">
-                                    Once deleted, this invoice cannot be
-                                    restored.
+                                    Once deleted, this purchase invoice cannot
+                                    be restored.
                                 </p>
                             </div>
 
@@ -712,21 +745,23 @@ export default function InvoicesShow({ invoice }: Props) {
                                         className="w-full sm:w-auto"
                                     >
                                         <Trash2 />
-                                        Delete Invoice
+                                        Delete Purchase Invoice
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogTitle>
                                         Delete &quot;
-                                        {invoice.invoice_code}&quot;?
+                                        {purchaseInvoice.purchase_invoice_code}
+                                        &quot;?
                                     </DialogTitle>
                                     <DialogDescription>
                                         This action cannot be undone. This
-                                        invoice will be permanently deleted.
+                                        purchase invoice will be permanently
+                                        deleted.
                                     </DialogDescription>
 
                                     <Form
-                                        {...destroy.form(invoice)}
+                                        {...destroy.form(purchaseInvoice)}
                                         options={{ preserveScroll: true }}
                                     >
                                         {({ processing }) => (
@@ -746,7 +781,7 @@ export default function InvoicesShow({ invoice }: Props) {
                                                         {processing && (
                                                             <Spinner />
                                                         )}
-                                                        Delete Invoice
+                                                        Delete Purchase Invoice
                                                     </button>
                                                 </Button>
                                             </DialogFooter>

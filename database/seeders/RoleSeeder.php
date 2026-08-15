@@ -28,6 +28,7 @@ class RoleSeeder extends Seeder
             'purchase-orders' => ['view', 'check', 'approve', 'reject', 'progress.update'],
             'delivery-orders' => ['view', 'confirm', 'cancel'],
             'invoices' => ['view', 'issue'],
+            'purchase-invoices' => ['view', 'issue'],
             'goods-receipt-notes' => ['view', 'confirm', 'cancel'],
             'customers' => ['view'],
             'vendors' => ['view'],
@@ -64,7 +65,8 @@ class RoleSeeder extends Seeder
         ]);
 
         $this->assignPermissions('Finance', [
-            'invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.delete'],
+            'invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.cancel'],
+            'purchase-invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.cancel'],
             'taxes' => ['view', 'create', 'update', 'delete'],
             'payment-term-templates' => ['view', 'create', 'update', 'delete'],
             'currencies' => ['view', 'create', 'update', 'delete'],

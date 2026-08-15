@@ -14,6 +14,7 @@ use App\Http\Requests\PurchaseOrderVoidRequest;
 use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\GoodsReceiptNoteItem;
+use App\Models\PurchaseInvoiceItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Quotation;
@@ -40,10 +41,10 @@ class PurchaseOrderController extends Controller
         $purchaseOrders = PurchaseOrder::query()
             ->where('status', 'approved')
             ->when($query !== '', fn ($builder) => $builder->where('purchase_order_code', 'like', "%{$query}%"))
-            ->with('vendor:id,name')
+            ->with(['vendor:id,name', 'currency:id,iso_code,name,symbol'])
             ->orderByDesc('created_at')
             ->limit(20)
-            ->get(['id', 'uuid', 'purchase_order_code', 'vendor_id']);
+            ->get(['id', 'uuid', 'purchase_order_code', 'vendor_id', 'currency_id']);
 
         return response()->json(['data' => $purchaseOrders]);
     }
@@ -74,6 +75,38 @@ class PurchaseOrderController extends Controller
                 'unit' => $item->unit,
                 'received' => $receivedQuantity,
                 'remaining' => max(0, (float) $item->quantity - $receivedQuantity),
+            ];
+        });
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
+     * List this purchase order's line items with quantity ordered, quantity already invoiced
+     * across its purchase invoices, and what remains to invoice — used by the Purchase Invoice
+     * create/edit form.
+     */
+    public function invoiceItems(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $items = $purchaseOrder->items()->with('product:id,product_code,name')->get();
+
+        $invoiced = PurchaseInvoiceItem::query()
+            ->whereIn('purchase_order_item_id', $items->pluck('id'))
+            ->selectRaw('purchase_order_item_id, sum(quantity_invoiced) as invoiced')
+            ->groupBy('purchase_order_item_id')
+            ->pluck('invoiced', 'purchase_order_item_id');
+
+        $data = $items->map(function (PurchaseOrderItem $item) use ($invoiced): array {
+            $invoicedQuantity = (float) ($invoiced[$item->id] ?? 0);
+
+            return [
+                'id' => $item->id,
+                'product' => $item->product,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'unit_price' => $item->unit_price,
+                'invoiced' => $invoicedQuantity,
+                'remaining_to_invoice' => max(0, (float) $item->quantity - $invoicedQuantity),
             ];
         });
 
@@ -198,6 +231,7 @@ class PurchaseOrderController extends Controller
             'items.product',
             'discounts',
             'goodsReceiptNotes' => fn ($query) => $query->orderByDesc('created_at'),
+            'purchaseInvoices' => fn ($query) => $query->orderByDesc('created_at'),
             'issuedBy',
             'checkedByFirst',
             'checkedBySecond',

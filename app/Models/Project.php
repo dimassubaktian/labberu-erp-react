@@ -166,6 +166,26 @@ class Project extends Model
     }
 
     /**
+     * Get the delivery orders raised against this project's quotations.
+     *
+     * @return HasManyThrough<DeliveryOrder, Quotation, $this>
+     */
+    public function deliveryOrders(): HasManyThrough
+    {
+        return $this->hasManyThrough(DeliveryOrder::class, Quotation::class);
+    }
+
+    /**
+     * Get the purchase invoices raised against this project's purchase orders.
+     *
+     * @return HasManyThrough<PurchaseInvoice, PurchaseOrder, $this>
+     */
+    public function purchaseInvoices(): HasManyThrough
+    {
+        return $this->hasManyThrough(PurchaseInvoice::class, PurchaseOrder::class);
+    }
+
+    /**
      * Recompute and persist the main project status from business events.
      * Cancelled is manual-only and is never overridden here.
      */

@@ -46,6 +46,7 @@ import { index as jobTitlesIndex } from '@/routes/job-titles';
 import { index as paymentTermTemplatesIndex } from '@/routes/payment-term-templates';
 import { index as productsIndex } from '@/routes/products';
 import { index as projectsIndex } from '@/routes/projects';
+import { index as purchaseInvoicesIndex } from '@/routes/purchase-invoices';
 import { index as purchaseOrdersIndex } from '@/routes/purchase-orders';
 import { index as quotationsIndex } from '@/routes/quotations';
 import { index as rolesIndex } from '@/routes/roles';
@@ -157,6 +158,12 @@ const navGroups: NavGroup[] = [
                 href: invoicesIndex(),
                 icon: Receipt,
                 permission: 'invoices.view',
+            },
+            {
+                title: 'Purchase Invoices',
+                href: purchaseInvoicesIndex(),
+                icon: Receipt,
+                permission: 'purchase-invoices.view',
             },
             {
                 title: 'Taxes',

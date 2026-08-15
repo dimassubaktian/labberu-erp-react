@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int $invoice_id
+ * @property int $purchase_invoice_id
  * @property string $amount
  * @property Carbon $payment_date
  * @property string|null $method
@@ -22,7 +22,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable([
-    'invoice_id',
+    'purchase_invoice_id',
     'amount',
     'payment_date',
     'method',
@@ -32,16 +32,16 @@ use Illuminate\Support\Carbon;
     'cancel_reason',
     'cancelled_by',
 ])]
-class InvoicePayment extends Model
+class PurchaseInvoicePayment extends Model
 {
     /**
-     * Get the invoice this payment was recorded against.
+     * Get the purchase invoice this payment was recorded against.
      *
-     * @return BelongsTo<Invoice, $this>
+     * @return BelongsTo<PurchaseInvoice, $this>
      */
-    public function invoice(): BelongsTo
+    public function purchaseInvoice(): BelongsTo
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(PurchaseInvoice::class);
     }
 
     /**

@@ -2,5 +2,6 @@
   "enabledMcpjsonServers": [
     "laravel-boost",
     "codegraph"
-  ]
+  ],
+  "spinnerTipsEnabled": false
 }

@@ -136,10 +136,28 @@ class ProjectController extends Controller
             ->orderByDesc('created_at')
             ->get(['id', 'uuid', 'purchase_order_code', 'status', 'grand_total', 'vendor_id', 'currency_id']);
 
+        $deliveryOrders = $project->deliveryOrders()
+            ->with('quotation:id,quotation_code,version_major,version_minor')
+            ->orderByDesc('delivery_orders.created_at')
+            ->get(['delivery_orders.id', 'delivery_orders.uuid', 'delivery_orders.do_code', 'delivery_orders.status', 'delivery_orders.delivery_date', 'delivery_orders.quotation_id']);
+
+        $invoices = $project->invoices()
+            ->with('quotation:id,quotation_code,version_major,version_minor')
+            ->orderByDesc('invoices.created_at')
+            ->get(['invoices.id', 'invoices.uuid', 'invoices.invoice_code', 'invoices.status', 'invoices.payment_status', 'invoices.invoice_date', 'invoices.total', 'invoices.quotation_id']);
+
+        $purchaseInvoices = $project->purchaseInvoices()
+            ->with('purchaseOrder:id,purchase_order_code,currency_id', 'purchaseOrder.currency')
+            ->orderByDesc('purchase_invoices.created_at')
+            ->get(['purchase_invoices.id', 'purchase_invoices.uuid', 'purchase_invoices.purchase_invoice_code', 'purchase_invoices.status', 'purchase_invoices.payment_status', 'purchase_invoices.invoice_date', 'purchase_invoices.total', 'purchase_invoices.purchase_order_id']);
+
         return Inertia::render('projects/show', [
             'project' => $project,
             'quotations' => $quotations,
             'purchaseOrders' => $purchaseOrders,
+            'deliveryOrders' => $deliveryOrders,
+            'invoices' => $invoices,
+            'purchaseInvoices' => $purchaseInvoices,
         ]);
     }
 

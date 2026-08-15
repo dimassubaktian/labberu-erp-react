@@ -41,6 +41,7 @@ use Illuminate\Support\Str;
  * @property string $grand_total
  * @property string $status
  * @property string|null $progress
+ * @property string|null $payment_status
  * @property int|null $issued_by_id
  * @property Carbon|null $issued_at
  * @property int|null $checked_by_1_id
@@ -82,6 +83,7 @@ use Illuminate\Support\Str;
     'grand_total',
     'status',
     'progress',
+    'payment_status',
     'issued_by_id',
     'issued_at',
     'checked_by_1_id',
@@ -307,6 +309,16 @@ class PurchaseOrder extends Model
     public function goodsReceiptNotes(): HasMany
     {
         return $this->hasMany(GoodsReceiptNote::class);
+    }
+
+    /**
+     * Get the purchase invoices raised against this purchase order.
+     *
+     * @return HasMany<PurchaseInvoice, $this>
+     */
+    public function purchaseInvoices(): HasMany
+    {
+        return $this->hasMany(PurchaseInvoice::class);
     }
 
     /**

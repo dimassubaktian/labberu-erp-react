@@ -15,6 +15,8 @@ use App\Http\Controllers\PaymentTermTemplateController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\PurchaseInvoiceController;
+use App\Http\Controllers\PurchaseInvoicePaymentController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\RoleController;
@@ -169,7 +171,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy')->middleware('permission:invoices.delete');
     Route::patch('invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('invoices.issue')->middleware('permission:invoices.issue');
     Route::post('invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store')->middleware('permission:invoices.payments.create');
-    Route::delete('invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy')->middleware('permission:invoices.payments.delete');
+    Route::patch('invoices/{invoice}/payments/{payment}/cancel', [InvoicePaymentController::class, 'cancel'])->name('invoices.payments.cancel')->middleware('permission:invoices.payments.cancel');
 
     Route::get('boms/search', [BomController::class, 'search'])->name('boms.search')->middleware('permission:bom.view');
     Route::get('boms/{bom}/import-data', [BomController::class, 'importData'])->name('boms.import-data')->middleware('permission:bom.view');
@@ -198,7 +200,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('purchase-orders/{purchaseOrder}/void', [PurchaseOrderController::class, 'void'])->name('purchase-orders.void')->middleware('permission:purchase-orders.void');
     Route::patch('purchase-orders/{purchaseOrder}/progress', [PurchaseOrderController::class, 'updateProgress'])->name('purchase-orders.progress.update')->middleware('permission:purchase-orders.progress.update');
     Route::get('purchase-orders/{purchaseOrder}/items', [PurchaseOrderController::class, 'items'])->name('purchase-orders.items.index')->middleware('permission:purchase-orders.view');
+    Route::get('purchase-orders/{purchaseOrder}/invoice-items', [PurchaseOrderController::class, 'invoiceItems'])->name('purchase-orders.invoice-items.index')->middleware('permission:purchase-orders.view');
     Route::get('purchase-orders/{purchaseOrder}/print', [PurchaseOrderController::class, 'print'])->name('purchase-orders.print')->middleware('permission:purchase-orders.view');
+
+    Route::get('purchase-invoices', [PurchaseInvoiceController::class, 'index'])->name('purchase-invoices.index')->middleware('permission:purchase-invoices.view');
+    Route::get('purchase-invoices/create', [PurchaseInvoiceController::class, 'create'])->name('purchase-invoices.create')->middleware('permission:purchase-invoices.create');
+    Route::post('purchase-invoices', [PurchaseInvoiceController::class, 'store'])->name('purchase-invoices.store')->middleware('permission:purchase-invoices.create');
+    Route::get('purchase-invoices/{purchaseInvoice}', [PurchaseInvoiceController::class, 'show'])->name('purchase-invoices.show')->middleware('permission:purchase-invoices.view');
+    Route::get('purchase-invoices/{purchaseInvoice}/edit', [PurchaseInvoiceController::class, 'edit'])->name('purchase-invoices.edit')->middleware('permission:purchase-invoices.update');
+    Route::put('purchase-invoices/{purchaseInvoice}', [PurchaseInvoiceController::class, 'update'])->name('purchase-invoices.update')->middleware('permission:purchase-invoices.update');
+    Route::delete('purchase-invoices/{purchaseInvoice}', [PurchaseInvoiceController::class, 'destroy'])->name('purchase-invoices.destroy')->middleware('permission:purchase-invoices.delete');
+    Route::patch('purchase-invoices/{purchaseInvoice}/issue', [PurchaseInvoiceController::class, 'issue'])->name('purchase-invoices.issue')->middleware('permission:purchase-invoices.issue');
+    Route::post('purchase-invoices/{purchaseInvoice}/payments', [PurchaseInvoicePaymentController::class, 'store'])->name('purchase-invoices.payments.store')->middleware('permission:purchase-invoices.payments.create');
+    Route::patch('purchase-invoices/{purchaseInvoice}/payments/{payment}/cancel', [PurchaseInvoicePaymentController::class, 'cancel'])->name('purchase-invoices.payments.cancel')->middleware('permission:purchase-invoices.payments.cancel');
 
     Route::get('goods-receipt-notes', [GoodsReceiptNoteController::class, 'index'])->name('goods-receipt-notes.index')->middleware('permission:goods-receipt-notes.view');
     Route::get('goods-receipt-notes/create', [GoodsReceiptNoteController::class, 'create'])->name('goods-receipt-notes.create')->middleware('permission:goods-receipt-notes.create');

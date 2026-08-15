@@ -118,6 +118,7 @@ class InvoiceController extends Controller
             'items.product',
             'payments' => fn ($query) => $query->orderByDesc('payment_date'),
             'payments.recordedBy',
+            'payments.cancelledBy',
         ]);
 
         return Inertia::render('invoices/show', [
