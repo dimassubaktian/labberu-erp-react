@@ -203,7 +203,7 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 <dd className="font-medium">
                                     <a
                                         href={signedDocument.url(deliveryOrder)}
-                                        className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+                                        className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline dark:text-[oklch(0.72_0.13_160)]"
                                     >
                                         <Download className="size-4" />
                                         Download

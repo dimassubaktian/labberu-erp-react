@@ -1,5 +1,22 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Check, ClipboardCheck, GitBranch, ListPlus, PenLine, Pencil, ReceiptText, ScrollText, Send, ShoppingCart, Trash2, Truck, Undo2, X } from 'lucide-react';
+import {
+    ArrowLeft,
+    Ban,
+    Check,
+    ClipboardCheck,
+    GitBranch,
+    ListPlus,
+    PenLine,
+    Pencil,
+    ReceiptText,
+    ScrollText,
+    Send,
+    ShoppingCart,
+    Trash2,
+    Truck,
+    Undo2,
+    X,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
@@ -45,7 +62,10 @@ import {
     show as showInvoice,
 } from '@/routes/invoices';
 import { show as showProject } from '@/routes/projects';
-import { create as createPurchaseOrder, show as showPurchaseOrder } from '@/routes/purchase-orders';
+import {
+    create as createPurchaseOrder,
+    show as showPurchaseOrder,
+} from '@/routes/purchase-orders';
 import { destroy, edit, index, show } from '@/routes/quotations';
 import {
     create as createBom,
@@ -314,7 +334,13 @@ type Props = {
     invoices: Invoice[];
 };
 
-export default function QuotationsShow({ quotation, history, purchaseOrders, deliveryOrders, invoices }: Props) {
+export default function QuotationsShow({
+    quotation,
+    history,
+    purchaseOrders,
+    deliveryOrders,
+    invoices,
+}: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Quotations', href: index() },
@@ -877,7 +903,9 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                             <dt className="text-sm text-muted-foreground">
                                 Payment Terms
                                 {quotation.payment_term_template && (
-                                    <>: {quotation.payment_term_template.name}</>
+                                    <>
+                                        : {quotation.payment_term_template.name}
+                                    </>
                                 )}
                             </dt>
                             <dd className="font-medium">
@@ -1221,7 +1249,6 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
 
                                 <div className="flex flex-col gap-2 sm:flex-row">
                                     <Button
-                                        variant="outline"
                                         className="w-full sm:w-auto"
                                         asChild
                                     >
@@ -1253,7 +1280,11 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                     </TabsContent>
 
                     <TabsContent value="purchase-orders" className="space-y-4">
-                        {['signed', 'partially_delivered', 'fully_delivered'].includes(quotation.progress ?? '') && (
+                        {[
+                            'signed',
+                            'partially_delivered',
+                            'fully_delivered',
+                        ].includes(quotation.progress ?? '') && (
                             <div className="flex justify-end">
                                 <Button size="sm" asChild>
                                     <Link
@@ -1276,62 +1307,100 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 quotation yet.
                             </p>
                         ) : (
-                            <div className="space-y-2">
-                                {purchaseOrders.map((purchaseOrder) => (
-                                    <Link
-                                        key={purchaseOrder.id}
-                                        href={showPurchaseOrder(purchaseOrder)}
-                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div className="space-y-0.5">
-                                            <p className="font-medium">
-                                                {purchaseOrder.purchase_order_code}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {purchaseOrder.vendor.name}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <span className="font-medium">
-                                                {purchaseOrder.currency.symbol ??
-                                                    purchaseOrder.currency.iso_code}{' '}
-                                                {formatNumber(purchaseOrder.grand_total)}
-                                            </span>
-                                            <Badge variant="outline">
-                                                v{purchaseOrder.quotation.version_major}.{purchaseOrder.quotation.version_minor}
-                                            </Badge>
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {purchaseOrder.status.replaceAll('_', ' ')}
-                                            </Badge>
-                                        </div>
-                                    </Link>
-                                ))}
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>PO code</TableHead>
+                                            <TableHead>Vendor</TableHead>
+                                            <TableHead>Version</TableHead>
+                                            <TableHead>Grand total</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {purchaseOrders.map((purchaseOrder) => (
+                                            <TableRow key={purchaseOrder.id}>
+                                                <TableCell className="font-medium">
+                                                    <Link
+                                                        href={showPurchaseOrder(
+                                                            purchaseOrder,
+                                                        )}
+                                                    >
+                                                        {
+                                                            purchaseOrder.purchase_order_code
+                                                        }
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {purchaseOrder.vendor.name}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">
+                                                        v
+                                                        {
+                                                            purchaseOrder
+                                                                .quotation
+                                                                .version_major
+                                                        }
+                                                        .
+                                                        {
+                                                            purchaseOrder
+                                                                .quotation
+                                                                .version_minor
+                                                        }
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {purchaseOrder.currency
+                                                        .symbol ??
+                                                        purchaseOrder.currency
+                                                            .iso_code}{' '}
+                                                    {formatNumber(
+                                                        purchaseOrder.grand_total,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="capitalize"
+                                                    >
+                                                        {purchaseOrder.status.replaceAll(
+                                                            '_',
+                                                            ' ',
+                                                        )}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </TabsContent>
 
                     <TabsContent value="delivery-orders" className="space-y-4">
                         {quotation.status === 'approved' &&
-                            ['signed', 'partially_delivered', 'fully_delivered'].includes(quotation.progress ?? '') && (
-                            <div className="flex justify-end">
-                                <Button size="sm" asChild>
-                                    <Link
-                                        href={createDeliveryOrder({
-                                            query: {
-                                                quotation: quotation.uuid,
-                                            },
-                                        })}
-                                    >
-                                        <Truck />
-                                        Create DO
-                                    </Link>
-                                </Button>
-                            </div>
-                        )}
+                            [
+                                'signed',
+                                'partially_delivered',
+                                'fully_delivered',
+                            ].includes(quotation.progress ?? '') && (
+                                <div className="flex justify-end">
+                                    <Button size="sm" asChild>
+                                        <Link
+                                            href={createDeliveryOrder({
+                                                query: {
+                                                    quotation: quotation.uuid,
+                                                },
+                                            })}
+                                        >
+                                            <Truck />
+                                            Create DO
+                                        </Link>
+                                    </Button>
+                                </div>
+                            )}
 
                         {deliveryOrders.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
@@ -1339,57 +1408,90 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 quotation yet.
                             </p>
                         ) : (
-                            <div className="space-y-2">
-                                {deliveryOrders.map((deliveryOrder) => (
-                                    <Link
-                                        key={deliveryOrder.id}
-                                        href={showDeliveryOrder(deliveryOrder)}
-                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div className="space-y-0.5">
-                                            <p className="font-medium">
-                                                {deliveryOrder.do_code}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatDate(deliveryOrder.delivery_date)}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">
-                                                v{deliveryOrder.quotation.version_major}.{deliveryOrder.quotation.version_minor}
-                                            </Badge>
-                                            <Badge
-                                                variant="secondary"
-                                                className="w-fit capitalize"
-                                            >
-                                                {deliveryOrder.status.replaceAll('_', ' ')}
-                                            </Badge>
-                                        </div>
-                                    </Link>
-                                ))}
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>DO code</TableHead>
+                                            <TableHead>Delivery date</TableHead>
+                                            <TableHead>Version</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {deliveryOrders.map((deliveryOrder) => (
+                                            <TableRow key={deliveryOrder.id}>
+                                                <TableCell className="font-medium">
+                                                    <Link
+                                                        href={showDeliveryOrder(
+                                                            deliveryOrder,
+                                                        )}
+                                                    >
+                                                        {deliveryOrder.do_code}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {formatDate(
+                                                        deliveryOrder.delivery_date,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">
+                                                        v
+                                                        {
+                                                            deliveryOrder
+                                                                .quotation
+                                                                .version_major
+                                                        }
+                                                        .
+                                                        {
+                                                            deliveryOrder
+                                                                .quotation
+                                                                .version_minor
+                                                        }
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="capitalize"
+                                                    >
+                                                        {deliveryOrder.status.replaceAll(
+                                                            '_',
+                                                            ' ',
+                                                        )}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </TabsContent>
 
                     <TabsContent value="invoices" className="space-y-4">
                         {quotation.status === 'approved' &&
-                            ['signed', 'partially_delivered', 'fully_delivered'].includes(quotation.progress ?? '') && (
-                            <div className="flex justify-end">
-                                <Button size="sm" asChild>
-                                    <Link
-                                        href={createInvoice({
-                                            query: {
-                                                quotation: quotation.uuid,
-                                            },
-                                        })}
-                                    >
-                                        <ReceiptText />
-                                        Create Invoice
-                                    </Link>
-                                </Button>
-                            </div>
-                        )}
+                            [
+                                'signed',
+                                'partially_delivered',
+                                'fully_delivered',
+                            ].includes(quotation.progress ?? '') && (
+                                <div className="flex justify-end">
+                                    <Button size="sm" asChild>
+                                        <Link
+                                            href={createInvoice({
+                                                query: {
+                                                    quotation: quotation.uuid,
+                                                },
+                                            })}
+                                        >
+                                            <ReceiptText />
+                                            Create Invoice
+                                        </Link>
+                                    </Button>
+                                </div>
+                            )}
 
                         {invoices.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
@@ -1397,43 +1499,80 @@ export default function QuotationsShow({ quotation, history, purchaseOrders, del
                                 quotation yet.
                             </p>
                         ) : (
-                            <div className="space-y-2">
-                                {invoices.map((invoice) => (
-                                    <Link
-                                        key={invoice.id}
-                                        href={showInvoice(invoice)}
-                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div className="space-y-0.5">
-                                            <p className="font-medium">
-                                                {invoice.invoice_code}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatDate(invoice.invoice_date)}
-                                            </p>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline">
-                                                v{invoice.quotation.version_major}.{invoice.quotation.version_minor}
-                                            </Badge>
-                                            {invoice.payment_status && (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="w-fit capitalize"
-                                                >
-                                                    {invoice.payment_status.replaceAll('_', ' ')}
-                                                </Badge>
-                                            )}
-                                            <Badge
-                                                variant="secondary"
-                                                className="w-fit capitalize"
-                                            >
-                                                {invoice.status.replaceAll('_', ' ')}
-                                            </Badge>
-                                        </div>
-                                    </Link>
-                                ))}
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Invoice code</TableHead>
+                                            <TableHead>Invoice date</TableHead>
+                                            <TableHead>Version</TableHead>
+                                            <TableHead>Payment</TableHead>
+                                            <TableHead>Status</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {invoices.map((invoice) => (
+                                            <TableRow key={invoice.id}>
+                                                <TableCell className="font-medium">
+                                                    <Link
+                                                        href={showInvoice(
+                                                            invoice,
+                                                        )}
+                                                    >
+                                                        {invoice.invoice_code}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {formatDate(
+                                                        invoice.invoice_date,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">
+                                                        v
+                                                        {
+                                                            invoice.quotation
+                                                                .version_major
+                                                        }
+                                                        .
+                                                        {
+                                                            invoice.quotation
+                                                                .version_minor
+                                                        }
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {invoice.payment_status ? (
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="capitalize"
+                                                        >
+                                                            {invoice.payment_status.replaceAll(
+                                                                '_',
+                                                                ' ',
+                                                            )}
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            &mdash;
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="capitalize"
+                                                    >
+                                                        {invoice.status.replaceAll(
+                                                            '_',
+                                                            ' ',
+                                                        )}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </TabsContent>

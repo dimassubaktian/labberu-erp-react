@@ -866,39 +866,51 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                             purchase order yet.
                         </p>
                     ) : (
-                        <div className="space-y-2">
-                            {purchaseOrder.goods_receipt_notes.map(
-                                (goodsReceiptNote) => (
-                                    <Link
-                                        key={goodsReceiptNote.id}
-                                        href={showGoodsReceiptNote(
-                                            goodsReceiptNote,
-                                        )}
-                                        className="flex flex-col gap-2 rounded-lg border p-4 hover:bg-accent sm:flex-row sm:items-center sm:justify-between"
-                                    >
-                                        <div className="space-y-0.5">
-                                            <p className="font-medium">
-                                                {goodsReceiptNote.grn_code}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatDate(
-                                                    goodsReceiptNote.received_date,
-                                                )}
-                                            </p>
-                                        </div>
-
-                                        <Badge
-                                            variant="secondary"
-                                            className="w-fit capitalize"
-                                        >
-                                            {goodsReceiptNote.status.replaceAll(
-                                                '_',
-                                                ' ',
-                                            )}
-                                        </Badge>
-                                    </Link>
-                                ),
-                            )}
+                        <div className="overflow-hidden rounded-xl border border-border/50">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>GRN code</TableHead>
+                                        <TableHead>Received date</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {purchaseOrder.goods_receipt_notes.map(
+                                        (goodsReceiptNote) => (
+                                            <TableRow key={goodsReceiptNote.id}>
+                                                <TableCell className="font-medium">
+                                                    <Link
+                                                        href={showGoodsReceiptNote(
+                                                            goodsReceiptNote,
+                                                        )}
+                                                    >
+                                                        {
+                                                            goodsReceiptNote.grn_code
+                                                        }
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {formatDate(
+                                                        goodsReceiptNote.received_date,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="capitalize"
+                                                    >
+                                                        {goodsReceiptNote.status.replaceAll(
+                                                            '_',
+                                                            ' ',
+                                                        )}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ),
+                                    )}
+                                </TableBody>
+                            </Table>
                         </div>
                     )}
                 </div>

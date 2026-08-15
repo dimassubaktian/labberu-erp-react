@@ -22,7 +22,7 @@ import { index as purchaseOrderItems } from '@/routes/purchase-orders/items';
 
 type PurchaseOrderItemOption = {
     id: number;
-    product: { id: number; product_code: string; name: string };
+    product: { id: number; name: string };
     quantity: string;
     unit: string;
     received: number;
@@ -216,7 +216,11 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                     description="Update this goods receipt note"
                 />
 
-                <Form noValidate {...update.form(goodsReceiptNote)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...update.form(goodsReceiptNote)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -365,11 +369,6 @@ export default function GoodsReceiptNotesEdit({ goodsReceiptNote }: Props) {
                                                     return (
                                                         <TableRow key={item.id}>
                                                             <TableCell className="font-medium">
-                                                                {
-                                                                    item.product
-                                                                        .product_code
-                                                                }{' '}
-                                                                &mdash;{' '}
                                                                 {
                                                                     item.product
                                                                         .name

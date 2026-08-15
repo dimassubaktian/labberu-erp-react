@@ -31,7 +31,7 @@ type PurchaseOrderOption = {
 
 type PurchaseOrderItemOption = {
     id: number;
-    product: { id: number; product_code: string; name: string };
+    product: { id: number; name: string };
     quantity: string;
     unit: string;
     received: number;
@@ -371,12 +371,6 @@ export default function GoodsReceiptNotesCreate({
                                                                 key={item.id}
                                                             >
                                                                 <TableCell className="font-medium">
-                                                                    {
-                                                                        item
-                                                                            .product
-                                                                            .product_code
-                                                                    }{' '}
-                                                                    &mdash;{' '}
                                                                     {
                                                                         item
                                                                             .product

@@ -49,7 +49,6 @@ type PurchaseInvoiceItem = {
     total: string;
     product: {
         id: number;
-        product_code: string;
         name: string;
     };
 };
@@ -284,7 +283,6 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                             {idx + 1}
                                         </TableCell>
                                         <TableCell className="font-medium">
-                                            {item.product.product_code} &mdash;{' '}
                                             {item.product.name}
                                         </TableCell>
                                         <TableCell>

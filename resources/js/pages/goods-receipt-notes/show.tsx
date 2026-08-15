@@ -43,7 +43,6 @@ type GoodsReceiptNoteItem = {
     rejection_reason: string | null;
     product: {
         id: number;
-        product_code: string;
         name: string;
     };
 };
@@ -239,7 +238,6 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                             {idx + 1}
                                         </TableCell>
                                         <TableCell className="font-medium">
-                                            {item.product.product_code} &mdash;{' '}
                                             {item.product.name}
                                         </TableCell>
                                         <TableCell>

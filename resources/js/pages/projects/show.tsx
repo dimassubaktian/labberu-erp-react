@@ -717,6 +717,9 @@ export default function ProjectsShow({
                         <TabsTrigger value="purchase-invoices">
                             Purchase Invoices
                         </TabsTrigger>
+                        <TabsTrigger value="attachments">
+                            Attachments
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="quotations" className="space-y-4">
