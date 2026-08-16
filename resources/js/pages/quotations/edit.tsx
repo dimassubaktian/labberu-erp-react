@@ -120,6 +120,7 @@ type Quotation = {
     uuid: string;
     quotation_code: string;
     currency_id: number;
+    exchange_rate: string | null;
     valid_until: string | null;
     po_number: string | null;
     po_date: string | null;
@@ -1028,7 +1029,11 @@ export default function QuotationsEdit({
                     description="Update this quotation"
                 />
 
-                <Form noValidate {...update.form(quotation)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...update.form(quotation)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">
@@ -1053,6 +1058,15 @@ export default function QuotationsEdit({
                                             type="hidden"
                                             name="currency_id"
                                             value={currencyId}
+                                        />
+                                        {/* Currency is locked to the base currency, so the rate
+                                            is carried through untouched rather than edited. */}
+                                        <input
+                                            type="hidden"
+                                            name="exchange_rate"
+                                            value={
+                                                quotation.exchange_rate ?? '1'
+                                            }
                                         />
                                         <Select
                                             value={currencyId}

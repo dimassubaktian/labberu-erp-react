@@ -197,6 +197,8 @@ class PurchaseInvoiceController extends Controller
             'issued_at' => now(),
         ]);
 
+        $purchaseInvoice->purchaseOrder->project->recomputeActualCost();
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase invoice issued.')]);
 
         return to_route('purchase-invoices.show', $purchaseInvoice);

@@ -125,7 +125,9 @@ export default function RolesIndex({ roles, filters }: Props) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Permissions</TableHead>
+                                <TableHead className="w-[10%]">
+                                    Permissions
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

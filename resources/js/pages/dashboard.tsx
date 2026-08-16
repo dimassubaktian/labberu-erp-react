@@ -1,6 +1,12 @@
 import { Head, router } from '@inertiajs/react';
 import * as React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { dashboard } from '@/routes';
 import { FinanceTab } from '@/pages/dashboard/finance-tab';
@@ -11,7 +17,10 @@ import { StaffTab } from '@/pages/dashboard/staff-tab';
 type ManagementData = React.ComponentProps<typeof ManagementTab>;
 type FinanceData = React.ComponentProps<typeof FinanceTab>;
 type PurchasingData = React.ComponentProps<typeof PurchasingTab>;
-type StaffData = Omit<React.ComponentProps<typeof StaffTab>, 'staffStatus' | 'staffPriority' | 'onFilterChange'>;
+type StaffData = Omit<
+    React.ComponentProps<typeof StaffTab>,
+    'staffStatus' | 'staffPriority' | 'onFilterChange'
+>;
 
 type Filters = {
     year: number;
@@ -36,7 +45,14 @@ const DEFAULT_FILTERS: Filters = {
 
 const CHART_TABS = ['management', 'finance', 'purchasing'];
 
-export default function Dashboard({ management, finance, purchasing, staff, filters, available_years }: Props) {
+export default function Dashboard({
+    management,
+    finance,
+    purchasing,
+    staff,
+    filters,
+    available_years,
+}: Props) {
     const tabs = [
         management && { value: 'management', label: 'Management' },
         finance && { value: 'finance', label: 'Finance' },
@@ -52,9 +68,18 @@ export default function Dashboard({ management, finance, purchasing, staff, filt
         router.get(
             dashboard.url({
                 query: {
-                    year: next.year !== DEFAULT_FILTERS.year ? String(next.year) : undefined,
-                    staff_status: next.staff_status !== 'all' ? next.staff_status : undefined,
-                    staff_priority: next.staff_priority !== 'all' ? next.staff_priority : undefined,
+                    year:
+                        next.year !== DEFAULT_FILTERS.year
+                            ? String(next.year)
+                            : undefined,
+                    staff_status:
+                        next.staff_status !== 'all'
+                            ? next.staff_status
+                            : undefined,
+                    staff_priority:
+                        next.staff_priority !== 'all'
+                            ? next.staff_priority
+                            : undefined,
                 },
             }),
             {},
@@ -69,31 +94,40 @@ export default function Dashboard({ management, finance, purchasing, staff, filt
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <div className="flex items-center gap-2">
                         {tabs.length > 1 && (
-                            <TabsList>
+                            <TabsList className="min-w-0 flex-nowrap justify-start overflow-x-auto">
                                 {tabs.map((tab) => (
-                                    <TabsTrigger key={tab.value} value={tab.value}>
+                                    <TabsTrigger
+                                        key={tab.value}
+                                        value={tab.value}
+                                    >
                                         {tab.label}
                                     </TabsTrigger>
                                 ))}
                             </TabsList>
                         )}
-                        {CHART_TABS.includes(activeTab) && available_years.length > 0 && (
-                            <Select
-                                value={String(filters.year)}
-                                onValueChange={(v) => applyFilters({ year: Number(v) })}
-                            >
-                                <SelectTrigger className="w-[100px]">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {available_years.map((y) => (
-                                        <SelectItem key={y} value={String(y)}>
-                                            {y}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
+                        {CHART_TABS.includes(activeTab) &&
+                            available_years.length > 0 && (
+                                <Select
+                                    value={String(filters.year)}
+                                    onValueChange={(v) =>
+                                        applyFilters({ year: Number(v) })
+                                    }
+                                >
+                                    <SelectTrigger className="w-[100px] shrink-0">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {available_years.map((y) => (
+                                            <SelectItem
+                                                key={y}
+                                                value={String(y)}
+                                            >
+                                                {y}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                     </div>
 
                     {management && (

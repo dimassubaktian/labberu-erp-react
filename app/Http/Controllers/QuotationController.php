@@ -184,6 +184,7 @@ class QuotationController extends Controller
                 'project_id' => $data['project_id'],
                 'status' => 'draft',
                 'currency_id' => $data['currency_id'],
+                'exchange_rate' => $data['exchange_rate'],
                 'valid_until' => $data['valid_until'] ?? null,
                 'po_number' => $data['po_number'] ?? null,
                 'po_date' => $data['po_date'] ?? null,
@@ -358,7 +359,7 @@ class QuotationController extends Controller
         $currencies = Currency::query()
             ->where('status', 'active')
             ->orderBy('iso_code')
-            ->get(['id', 'iso_code', 'name', 'symbol']);
+            ->get(['id', 'iso_code', 'name', 'symbol', 'base_currency']);
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
@@ -385,6 +386,7 @@ class QuotationController extends Controller
 
             $quotation->update([
                 'currency_id' => $data['currency_id'],
+                'exchange_rate' => $data['exchange_rate'],
                 'valid_until' => $data['valid_until'] ?? null,
                 'po_number' => $data['po_number'] ?? null,
                 'po_date' => $data['po_date'] ?? null,
@@ -571,6 +573,7 @@ class QuotationController extends Controller
                 'is_current' => true,
                 'status' => 'draft',
                 'currency_id' => $quotation->currency_id,
+                'exchange_rate' => $quotation->exchange_rate,
                 'valid_until' => $quotation->valid_until,
                 'po_number' => $quotation->po_number,
                 'po_date' => $quotation->po_date,

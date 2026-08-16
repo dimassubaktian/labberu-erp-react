@@ -12,6 +12,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Quotation;
 use App\Models\User;
 use App\Models\Vendor;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -76,6 +77,60 @@ class DashboardController extends Controller
     }
 
     /**
+     * Month-of-year expression for the active driver. SQLite has no MONTH(), and the value is
+     * cast back to an integer so both drivers key the monthly buckets the same way.
+     *
+     * @param  literal-string  $column
+     * @return literal-string
+     */
+    private function monthExpression(string $column): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%m', {$column}) AS INTEGER)"
+            : "MONTH({$column})";
+    }
+
+    /**
+     * Issued invoices joined to their quotation, which carries the currency and the rate that
+     * converts invoice amounts into the base currency. Invoices have no currency of their own.
+     *
+     * @return Builder<Invoice>
+     */
+    private function issuedInvoices(): Builder
+    {
+        return Invoice::query()
+            ->join('quotations', 'quotations.id', '=', 'invoices.quotation_id')
+            ->whereNull('invoices.deleted_at')
+            ->where('invoices.status', 'issued');
+    }
+
+    /**
+     * Payments joined through to the quotation, so amounts convert the same way as the invoices
+     * they settle.
+     *
+     * @return Builder<InvoicePayment>
+     */
+    private function invoicePayments(): Builder
+    {
+        return InvoicePayment::query()
+            ->join('invoices', 'invoices.id', '=', 'invoice_payments.invoice_id')
+            ->join('quotations', 'quotations.id', '=', 'invoices.quotation_id')
+            ->whereNull('invoices.deleted_at');
+    }
+
+    /**
+     * Purchase orders that represent real commitments, carrying their own conversion rate.
+     *
+     * @return Builder<PurchaseOrder>
+     */
+    private function committedPurchaseOrders(): Builder
+    {
+        return PurchaseOrder::query()
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['draft', 'cancelled', 'voided']);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function managementData(int $year): array
@@ -87,11 +142,12 @@ class DashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        $monthlyRevenue = Invoice::query()
-            ->whereNull('deleted_at')
-            ->where('status', 'issued')
-            ->whereYear('invoice_date', $year)
-            ->selectRaw('MONTH(invoice_date) as month, SUM(total) as total')
+        $monthlyRevenue = $this->issuedInvoices()
+            ->whereYear('invoices.invoice_date', $year)
+            ->select([
+                DB::raw($this->monthExpression('invoices.invoice_date').' as month'),
+                DB::raw('SUM(invoices.total * quotations.exchange_rate) as total'),
+            ])
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -99,11 +155,12 @@ class DashboardController extends Controller
             ->map(fn ($row) => (float) $row->total)
             ->toArray();
 
-        $monthlySpend = PurchaseOrder::query()
-            ->whereNull('deleted_at')
-            ->whereNotIn('status', ['draft', 'cancelled', 'voided'])
+        $monthlySpend = $this->committedPurchaseOrders()
             ->whereYear('date', $year)
-            ->selectRaw('MONTH(date) as month, SUM(grand_total) as total')
+            ->select([
+                DB::raw($this->monthExpression('date').' as month'),
+                DB::raw('SUM(grand_total * exchange_rate) as total'),
+            ])
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -114,10 +171,17 @@ class DashboardController extends Controller
         $months = range(1, 12);
         $revenueByMonth = array_map(fn ($m) => ['month' => $m, 'revenue' => $monthlyRevenue[$m] ?? 0, 'spend' => $monthlySpend[$m] ?? 0], $months);
 
-        $totalRevenue = (float) Invoice::query()->whereNull('deleted_at')->where('status', 'issued')->sum('total');
-        $totalSpend = (float) PurchaseOrder::query()->whereNull('deleted_at')->whereNotIn('status', ['draft', 'cancelled', 'voided'])->sum('grand_total');
+        $totalRevenue = (float) $this->issuedInvoices()->sum(DB::raw('invoices.total * quotations.exchange_rate'));
+        $totalSpend = (float) $this->committedPurchaseOrders()->sum(DB::raw('grand_total * exchange_rate'));
         $activeProjects = Project::query()->whereNull('deleted_at')->whereIn('status', ['planning', 'in_progress'])->count();
-        $grossMargin = $totalRevenue > 0 ? round((($totalRevenue - $totalSpend) / $totalRevenue) * 100, 1) : 0;
+
+        // Margin is measured net of tax on both sides: revenue excluding output tax against
+        // actual_cost, which is what vendors billed excluding reclaimable input tax. The
+        // revenue and spend KPIs above stay tax-inclusive, matching the documents themselves.
+        $netRevenue = (float) $this->issuedInvoices()
+            ->sum(DB::raw('(invoices.subtotal - invoices.discount_amount) * quotations.exchange_rate'));
+        $actualCost = (float) Project::query()->whereNull('deleted_at')->sum('actual_cost');
+        $grossMargin = $netRevenue > 0 ? round((($netRevenue - $actualCost) / $netRevenue) * 100, 1) : 0;
 
         $totalProjects = Project::query()->whereNull('deleted_at')->count();
         $quotationsApproved = Quotation::query()->whereNull('deleted_at')->where('is_current', true)->where('status', 'approved')->count();
@@ -133,7 +197,7 @@ class DashboardController extends Controller
             ->whereNull('quotations.deleted_at')
             ->whereNull('invoices.deleted_at')
             ->where('invoices.status', 'issued')
-            ->selectRaw('customers.id, customers.name, SUM(invoices.total) as total_revenue')
+            ->selectRaw('customers.id, customers.name, SUM(invoices.total * quotations.exchange_rate) as total_revenue')
             ->groupBy('customers.id', 'customers.name')
             ->orderByDesc('total_revenue')
             ->limit(5)
@@ -157,7 +221,7 @@ class DashboardController extends Controller
                     ->where('invoices.status', 'issued');
             })
             ->whereNull('business_lines.deleted_at')
-            ->selectRaw('business_lines.name, COUNT(DISTINCT projects.id) as project_count, COALESCE(SUM(invoices.total), 0) as total_revenue, COALESCE(SUM(projects.actual_cost), 0) as total_cost')
+            ->selectRaw('business_lines.name, COUNT(DISTINCT projects.id) as project_count, COALESCE(SUM((invoices.subtotal - invoices.discount_amount) * quotations.exchange_rate), 0) as total_revenue, COALESCE(SUM(projects.actual_cost), 0) as total_cost')
             ->groupBy('business_lines.id', 'business_lines.name')
             ->orderBy('business_lines.name')
             ->get()
@@ -201,11 +265,8 @@ class DashboardController extends Controller
      */
     private function financeData(int $year): array
     {
-        $totalInvoiced = (float) Invoice::query()->whereNull('deleted_at')->where('status', 'issued')->sum('total');
-        $totalCollected = (float) InvoicePayment::query()
-            ->join('invoices', 'invoices.id', '=', 'invoice_payments.invoice_id')
-            ->whereNull('invoices.deleted_at')
-            ->sum('invoice_payments.amount');
+        $totalInvoiced = (float) $this->issuedInvoices()->sum(DB::raw('invoices.total * quotations.exchange_rate'));
+        $totalCollected = (float) $this->invoicePayments()->sum(DB::raw('invoice_payments.amount * quotations.exchange_rate'));
         $outstanding = $totalInvoiced - $totalCollected;
 
         $overdueCount = Invoice::query()
@@ -223,11 +284,12 @@ class DashboardController extends Controller
             ->pluck('count', 'payment_status')
             ->toArray();
 
-        $monthlyRevenue = Invoice::query()
-            ->whereNull('deleted_at')
-            ->where('status', 'issued')
-            ->whereYear('invoice_date', $year)
-            ->selectRaw('MONTH(invoice_date) as month, SUM(total) as total')
+        $monthlyRevenue = $this->issuedInvoices()
+            ->whereYear('invoices.invoice_date', $year)
+            ->select([
+                DB::raw($this->monthExpression('invoices.invoice_date').' as month'),
+                DB::raw('SUM(invoices.total * quotations.exchange_rate) as total'),
+            ])
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -235,11 +297,12 @@ class DashboardController extends Controller
             ->map(fn ($row) => (float) $row->total)
             ->toArray();
 
-        $monthlyCollections = InvoicePayment::query()
-            ->join('invoices', 'invoices.id', '=', 'invoice_payments.invoice_id')
-            ->whereNull('invoices.deleted_at')
+        $monthlyCollections = $this->invoicePayments()
             ->whereYear('invoice_payments.payment_date', $year)
-            ->selectRaw('MONTH(invoice_payments.payment_date) as month, SUM(invoice_payments.amount) as total')
+            ->select([
+                DB::raw($this->monthExpression('invoice_payments.payment_date').' as month'),
+                DB::raw('SUM(invoice_payments.amount * quotations.exchange_rate) as total'),
+            ])
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -267,7 +330,7 @@ class DashboardController extends Controller
                 'invoice_code' => $inv->invoice_code,
                 'customer_name' => $inv->quotation?->project?->customer?->name ?? '—',
                 'due_date' => $inv->due_date->toDateString(),
-                'total' => (float) $inv->total,
+                'total' => (float) $inv->total * (float) $inv->quotation->exchange_rate,
                 'days_overdue' => (int) Carbon::today()->diffInDays($inv->due_date),
             ])
             ->toArray();
@@ -292,7 +355,7 @@ class DashboardController extends Controller
     private function purchasingData(int $year): array
     {
         $totalPos = PurchaseOrder::query()->whereNull('deleted_at')->count();
-        $totalPoValue = (float) PurchaseOrder::query()->whereNull('deleted_at')->whereNotIn('status', ['draft', 'cancelled', 'voided'])->sum('grand_total');
+        $totalPoValue = (float) $this->committedPurchaseOrders()->sum(DB::raw('grand_total * exchange_rate'));
         $openPos = PurchaseOrder::query()->whereNull('deleted_at')->whereIn('status', ['issued', 'approved'])->count();
         $awaitingApproval = PurchaseOrder::query()->whereNull('deleted_at')->where('status', 'issued')->count();
 
@@ -303,11 +366,12 @@ class DashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
-        $monthlySpend = PurchaseOrder::query()
-            ->whereNull('deleted_at')
-            ->whereNotIn('status', ['draft', 'cancelled', 'voided'])
+        $monthlySpend = $this->committedPurchaseOrders()
             ->whereYear('date', $year)
-            ->selectRaw('MONTH(date) as month, SUM(grand_total) as total')
+            ->select([
+                DB::raw($this->monthExpression('date').' as month'),
+                DB::raw('SUM(grand_total * exchange_rate) as total'),
+            ])
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -322,7 +386,7 @@ class DashboardController extends Controller
             ->join('purchase_orders', 'purchase_orders.vendor_id', '=', 'vendors.id')
             ->whereNull('purchase_orders.deleted_at')
             ->whereNotIn('purchase_orders.status', ['draft', 'cancelled', 'voided'])
-            ->selectRaw('vendors.id, vendors.name, SUM(purchase_orders.grand_total) as total_spend')
+            ->selectRaw('vendors.id, vendors.name, SUM(purchase_orders.grand_total * purchase_orders.exchange_rate) as total_spend')
             ->groupBy('vendors.id', 'vendors.name')
             ->orderByDesc('total_spend')
             ->limit(5)

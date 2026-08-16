@@ -95,6 +95,7 @@ test('editing an approved purchase order back to draft clears its progress', fun
         'project_name' => $purchaseOrder->project_name,
         'date' => now()->toDateString(),
         'currency_id' => $purchaseOrder->currency_id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
         ],

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProjectCancelRequest;
 use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectUpdateRequest;
+use App\Http\Requests\ProjectVoidRequest;
 use App\Models\BusinessLine;
 use App\Models\Project;
 use App\Models\Workforce;
@@ -151,8 +152,17 @@ class ProjectController extends Controller
             ->orderByDesc('purchase_invoices.created_at')
             ->get(['purchase_invoices.id', 'purchase_invoices.uuid', 'purchase_invoices.purchase_invoice_code', 'purchase_invoices.status', 'purchase_invoices.payment_status', 'purchase_invoices.invoice_date', 'purchase_invoices.total', 'purchase_invoices.purchase_order_id']);
 
+        // Planned cost lives on the approved quotation's BOM; actual_cost on the project is what
+        // vendors have billed, so the two together give the cost variance.
+        $plannedCost = $project->quotations()
+            ->where('status', 'approved')
+            ->where('is_current', true)
+            ->with('bom:id,quotation_id,total_cost')
+            ->first()?->bom?->total_cost;
+
         return Inertia::render('projects/show', [
             'project' => $project,
+            'plannedCost' => $plannedCost,
             'quotations' => $quotations,
             'purchaseOrders' => $purchaseOrders,
             'deliveryOrders' => $deliveryOrders,
@@ -216,10 +226,28 @@ class ProjectController extends Controller
     }
 
     /**
+     * Void the specified project.
+     */
+    public function void(ProjectVoidRequest $request, Project $project): RedirectResponse
+    {
+        $project->update(['status' => 'voided', 'void_reason' => $request->validated('void_reason')]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Project voided.')]);
+
+        return to_route('projects.show', $project);
+    }
+
+    /**
      * Remove the specified project.
      */
     public function destroy(Project $project): RedirectResponse
     {
+        if ($project->hasRelatedDocuments()) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('This project has related documents and cannot be deleted. Void it instead.')]);
+
+            return back();
+        }
+
         $project->delete();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project deleted.')]);

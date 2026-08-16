@@ -7,6 +7,7 @@ use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryOrderController;
+use App\Http\Controllers\DesignReferenceController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoicePaymentController;
@@ -127,6 +128,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit')->middleware('permission:projects.update');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update')->middleware('permission:projects.update');
     Route::patch('projects/{project}/cancel', [ProjectController::class, 'cancel'])->name('projects.cancel')->middleware('permission:projects.update');
+    Route::patch('projects/{project}/void', [ProjectController::class, 'void'])->name('projects.void')->middleware('permission:projects.update');
     Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy')->middleware('permission:projects.delete');
 
     Route::get('projects/{project}/quotations', [ProjectController::class, 'quotations'])->name('projects.quotations.index')->middleware('permission:projects.view');
@@ -233,6 +235,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.update');
     Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.update');
     Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.delete');
+
+    Route::get('design-reference', [DesignReferenceController::class, 'index'])->name('design-reference')->middleware('role:Super Admin');
 
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:roles.view');
     Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:roles.create');

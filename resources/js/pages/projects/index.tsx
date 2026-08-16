@@ -65,6 +65,7 @@ const STATUS_OPTIONS = [
     { value: 'in_progress', label: 'In progress' },
     { value: 'completed', label: 'Completed' },
     { value: 'cancelled', label: 'Cancelled' },
+    { value: 'voided', label: 'Voided' },
 ];
 
 const PRIORITY_OPTIONS = [

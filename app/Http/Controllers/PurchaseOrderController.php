@@ -14,6 +14,7 @@ use App\Http\Requests\PurchaseOrderVoidRequest;
 use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\GoodsReceiptNoteItem;
+use App\Models\Project;
 use App\Models\PurchaseInvoiceItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -198,6 +199,7 @@ class PurchaseOrderController extends Controller
                 'project_name' => $data['project_name'],
                 'date' => $data['date'],
                 'currency_id' => $data['currency_id'],
+                'exchange_rate' => $data['exchange_rate'],
                 'tax_id' => $data['tax_id'] ?? null,
                 'shipping_method' => $data['shipping_method'] ?? null,
                 'shipping_terms' => $data['shipping_terms'] ?? null,
@@ -240,6 +242,7 @@ class PurchaseOrderController extends Controller
 
         return Inertia::render('purchase-orders/show', [
             'purchaseOrder' => $purchaseOrder,
+            'isLockedByReceiptsOrBilling' => $purchaseOrder->isLockedByReceiptsOrBilling(),
         ]);
     }
 
@@ -253,6 +256,11 @@ class PurchaseOrderController extends Controller
             403,
             'Only draft or approved purchase orders can be edited.'
         );
+        abort_if(
+            $purchaseOrder->isLockedByReceiptsOrBilling(),
+            403,
+            'Cannot edit a purchase order that has a confirmed goods receipt note or an issued purchase invoice.'
+        );
 
         $purchaseOrder->load([
             'project.customer:id,name',
@@ -265,7 +273,7 @@ class PurchaseOrderController extends Controller
         $currencies = Currency::query()
             ->where('status', 'active')
             ->orderBy('iso_code')
-            ->get(['id', 'iso_code', 'name', 'symbol']);
+            ->get(['id', 'iso_code', 'name', 'symbol', 'base_currency']);
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
 
@@ -282,8 +290,15 @@ class PurchaseOrderController extends Controller
      */
     public function update(PurchaseOrderUpdateRequest $request, PurchaseOrder $purchaseOrder): RedirectResponse
     {
+        abort_if(
+            $purchaseOrder->isLockedByReceiptsOrBilling(),
+            403,
+            'Cannot edit a purchase order that has a confirmed goods receipt note or an issued purchase invoice.'
+        );
+
         $data = $request->validated();
         $wasApproved = $purchaseOrder->status === 'approved';
+        $previousProjectId = $purchaseOrder->project_id;
 
         DB::transaction(function () use ($data, $purchaseOrder, $wasApproved): void {
             $purchaseOrder->items()->delete();
@@ -303,6 +318,7 @@ class PurchaseOrderController extends Controller
                 'project_name' => $data['project_name'],
                 'date' => $data['date'],
                 'currency_id' => $data['currency_id'],
+                'exchange_rate' => $data['exchange_rate'],
                 'tax_id' => $data['tax_id'] ?? null,
                 'shipping_method' => $data['shipping_method'] ?? null,
                 'shipping_terms' => $data['shipping_terms'] ?? null,
@@ -324,6 +340,14 @@ class PurchaseOrderController extends Controller
 
             $this->syncItemsAndDiscounts($purchaseOrder, $data);
         });
+
+        // The exchange rate (and possibly the project itself) may have changed, so the spend
+        // totalled against both the old and the new project has to be recomputed.
+        $purchaseOrder->project->recomputeActualCost();
+
+        if ($previousProjectId !== $purchaseOrder->project_id) {
+            Project::find($previousProjectId)?->recomputeActualCost();
+        }
 
         Inertia::flash('toast', [
             'type' => 'success',
@@ -395,6 +419,8 @@ class PurchaseOrderController extends Controller
             $purchaseOrder->goodsReceiptNotes()->where('status', 'draft')->get()->each->delete();
             $purchaseOrder->delete();
         });
+
+        $purchaseOrder->project->recomputeActualCost();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order deleted.')]);
 

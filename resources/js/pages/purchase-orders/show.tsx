@@ -229,9 +229,13 @@ type PurchaseOrder = {
 
 type Props = {
     purchaseOrder: PurchaseOrder;
+    isLockedByReceiptsOrBilling: boolean;
 };
 
-export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
+export default function PurchaseOrdersShow({
+    purchaseOrder,
+    isLockedByReceiptsOrBilling,
+}: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Purchase Orders', href: index() },
@@ -334,14 +338,15 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         />
 
                         {(purchaseOrder.status === 'draft' ||
-                            purchaseOrder.status === 'approved') && (
-                            <Button asChild className="w-full sm:w-auto">
-                                <Link href={edit(purchaseOrder)}>
-                                    <Pencil />
-                                    Edit Purchase Order
-                                </Link>
-                            </Button>
-                        )}
+                            purchaseOrder.status === 'approved') &&
+                            !isLockedByReceiptsOrBilling && (
+                                <Button asChild className="w-full sm:w-auto">
+                                    <Link href={edit(purchaseOrder)}>
+                                        <Pencil />
+                                        Edit Purchase Order
+                                    </Link>
+                                </Button>
+                            )}
 
                         {canVoid && purchaseOrder.status === 'approved' && (
                             <Dialog>
@@ -418,6 +423,15 @@ export default function PurchaseOrdersShow({ purchaseOrder }: Props) {
                         )}
                     </div>
                 </div>
+
+                {isLockedByReceiptsOrBilling && (
+                    <p className="rounded-lg border border-border/50 p-4 text-sm text-muted-foreground">
+                        This purchase order can no longer be edited: goods have
+                        been received or the vendor has billed against it.
+                        Corrections have to go through a cancellation or a new
+                        purchase order.
+                    </p>
+                )}
 
                 <div>
                     <h2 className="mb-4 text-base font-semibold">Details</h2>

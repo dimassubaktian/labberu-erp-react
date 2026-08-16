@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -24,6 +25,7 @@ use Illuminate\Support\Str;
  * @property int|null $person_in_charge_id
  * @property string|null $description
  * @property string|null $cancel_reason
+ * @property string|null $void_reason
  * @property string $status
  * @property string|null $sales_status
  * @property string|null $po_status
@@ -48,6 +50,7 @@ use Illuminate\Support\Str;
     'person_in_charge_id',
     'description',
     'cancel_reason',
+    'void_reason',
     'status',
     'priority',
     'start_date',
@@ -186,12 +189,22 @@ class Project extends Model
     }
 
     /**
+     * Determine whether any business document has been raised against this project.
+     * Delivery orders and invoices hang off quotations, purchase invoices off purchase
+     * orders, so those two relations cover every downstream document.
+     */
+    public function hasRelatedDocuments(): bool
+    {
+        return $this->quotations()->exists() || $this->purchaseOrders()->exists();
+    }
+
+    /**
      * Recompute and persist the main project status from business events.
-     * Cancelled is manual-only and is never overridden here.
+     * Cancelled and voided are manual-only and are never overridden here.
      */
     public function recomputeStatus(): void
     {
-        if ($this->status === 'cancelled') {
+        if (in_array($this->status, ['cancelled', 'voided'])) {
             return;
         }
 
@@ -237,18 +250,41 @@ class Project extends Model
     }
 
     /**
-     * Recompute and persist actual_contract_value and actual_cost from the approved quotation.
-     * Pass null to clear both fields (e.g. when the quotation is voided).
+     * Recompute and persist actual_contract_value from the approved quotation.
+     * Pass null to clear it (e.g. when the quotation is voided).
+     *
+     * Actual cost is not derived from the quotation's BOM — that is planned cost. Real spend
+     * comes from the vendor's purchase invoices, see {@see self::recomputeActualCost()}.
      */
     public function recomputeActualValues(?Quotation $approvedQuotation = null): void
     {
-        if ($approvedQuotation !== null) {
-            $this->actual_contract_value = $approvedQuotation->total;
-            $this->actual_cost = $approvedQuotation->bom?->total_cost;
-        } else {
-            $this->actual_contract_value = null;
-            $this->actual_cost = null;
-        }
+        // Converted to the base currency with the quotation's snapshotted rate so it can be
+        // compared against actual_cost, which is stored the same way.
+        $this->actual_contract_value = $approvedQuotation === null
+            ? null
+            : (string) ((float) $approvedQuotation->total * (float) $approvedQuotation->exchange_rate);
+
+        $this->saveQuietly();
+    }
+
+    /**
+     * Recompute and persist actual_cost as what vendors have actually billed against this
+     * project's purchase orders.
+     *
+     * Only issued purchase invoices count, taken net of discount and excluding tax (input VAT
+     * is reclaimable, so it is not a cost), and converted to the base currency with the rate
+     * snapshotted on each purchase order. Stays null while nothing has been invoiced yet.
+     */
+    public function recomputeActualCost(): void
+    {
+        $billed = PurchaseInvoice::query()
+            ->join('purchase_orders', 'purchase_orders.id', '=', 'purchase_invoices.purchase_order_id')
+            ->where('purchase_orders.project_id', $this->id)
+            ->whereNull('purchase_orders.deleted_at')
+            ->where('purchase_invoices.status', 'issued')
+            ->sum(DB::raw('(purchase_invoices.subtotal - purchase_invoices.discount_amount) * purchase_orders.exchange_rate'));
+
+        $this->actual_cost = $billed > 0 ? (string) $billed : null;
 
         $this->saveQuietly();
     }

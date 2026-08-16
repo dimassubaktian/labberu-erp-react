@@ -11,9 +11,11 @@ import {
     LayoutGrid,
     Network,
     Package,
+    Palette,
     PackageCheck,
     Percent,
     Receipt,
+    ReceiptText,
     ScrollText,
     Settings,
     ShieldCheck,
@@ -34,7 +36,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { dashboard, designReference } from '@/routes';
 import { edit as companySettingsEdit } from '@/routes/company-settings';
 import { index as currenciesIndex } from '@/routes/currencies';
 import { index as customersIndex } from '@/routes/customers';
@@ -162,7 +164,7 @@ const navGroups: NavGroup[] = [
             {
                 title: 'Purchase Invoices',
                 href: purchaseInvoicesIndex(),
-                icon: Receipt,
+                icon: ReceiptText,
                 permission: 'purchase-invoices.view',
             },
             {
@@ -223,6 +225,12 @@ const navGroups: NavGroup[] = [
                 icon: Settings,
                 permission: 'company-settings.view',
             },
+            {
+                title: 'Design Reference',
+                href: designReference(),
+                icon: Palette,
+                role: 'Super Admin',
+            },
         ],
     },
 ];
@@ -230,13 +238,16 @@ const navGroups: NavGroup[] = [
 export function AppSidebar() {
     const { auth } = usePage().props;
     const permissions = auth.permissions ?? [];
+    const roles = auth.roles ?? [];
 
     const visibleNavGroups = navGroups
         .map((group) => ({
             ...group,
             items: group.items.filter(
                 (item) =>
-                    !item.permission || permissions.includes(item.permission),
+                    (!item.permission ||
+                        permissions.includes(item.permission)) &&
+                    (!item.role || roles.includes(item.role)),
             ),
         }))
         .filter((group) => group.items.length > 0);

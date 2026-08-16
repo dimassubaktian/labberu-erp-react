@@ -29,6 +29,7 @@ use Illuminate\Support\Str;
  * @property string $project_name
  * @property Carbon $date
  * @property int $currency_id
+ * @property string $exchange_rate
  * @property int|null $tax_id
  * @property string|null $shipping_method
  * @property string|null $shipping_terms
@@ -71,6 +72,7 @@ use Illuminate\Support\Str;
     'project_name',
     'date',
     'currency_id',
+    'exchange_rate',
     'tax_id',
     'shipping_method',
     'shipping_terms',
@@ -322,6 +324,20 @@ class PurchaseOrder extends Model
     }
 
     /**
+     * Determine whether goods have been received or a vendor has billed against this purchase
+     * order, which locks it from further edits.
+     *
+     * Editing rebuilds the line items from scratch, so the goods receipt note and purchase
+     * invoice lines pointing at the old ones would be silently orphaned — leaving the order
+     * reading as nothing received and nothing invoiced, and letting both happen twice.
+     */
+    public function isLockedByReceiptsOrBilling(): bool
+    {
+        return $this->goodsReceiptNotes()->where('status', 'confirmed')->exists()
+            || $this->purchaseInvoices()->where('status', '!=', 'draft')->exists();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -332,6 +348,7 @@ class PurchaseOrder extends Model
             'quotation_date' => 'date',
             'date' => 'date',
             'delivery_date' => 'date',
+            'exchange_rate' => 'decimal:6',
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'net_after_discount' => 'decimal:2',

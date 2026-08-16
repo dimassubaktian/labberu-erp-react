@@ -91,7 +91,7 @@ class UserController extends Controller
      */
     public function show(User $user): Response
     {
-        $user->load(['workforce:id,full_name,user_id', 'roles:id,name']);
+        $user->load(['workforce:id,uuid,full_name,user_id', 'roles:id,name']);
 
         return Inertia::render('users/show', [
             'user' => $user,

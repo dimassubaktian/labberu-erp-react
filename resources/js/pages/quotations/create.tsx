@@ -1054,6 +1054,14 @@ export default function QuotationsCreate({
                                                     name="currency_id"
                                                     value={currencyId}
                                                 />
+                                                {/* Currency is locked to the base currency, so
+                                                    the rate is always 1. This becomes a real
+                                                    field if that select is ever enabled. */}
+                                                <input
+                                                    type="hidden"
+                                                    name="exchange_rate"
+                                                    value="1"
+                                                />
                                                 <Select
                                                     value={currencyId}
                                                     onValueChange={

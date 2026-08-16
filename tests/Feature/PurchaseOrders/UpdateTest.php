@@ -19,6 +19,7 @@ test('draft purchase order can be updated with totals recalculated', function ()
         'project_name' => $purchaseOrder->project_name,
         'date' => now()->toDateString(),
         'currency_id' => $purchaseOrder->currency_id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 3, 'unit' => 'Pcs', 'unit_price' => 50_000],
         ],
@@ -46,6 +47,7 @@ test('the attention field can be updated', function () {
         'project_name' => $purchaseOrder->project_name,
         'date' => now()->toDateString(),
         'currency_id' => $purchaseOrder->currency_id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
         ],
@@ -68,6 +70,7 @@ test('the project cannot be changed once a purchase order is created', function 
         'project_name' => $purchaseOrder->project_name,
         'date' => now()->toDateString(),
         'currency_id' => $purchaseOrder->currency_id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
         ],
@@ -99,6 +102,7 @@ test('an approved purchase order can be updated, reverting it to draft and clear
         'project_name' => $purchaseOrder->project_name,
         'date' => now()->toDateString(),
         'currency_id' => $purchaseOrder->currency_id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 2, 'unit' => 'Pcs', 'unit_price' => 25_000],
         ],
@@ -133,6 +137,7 @@ test('non-draft, non-approved purchase orders cannot be updated', function () {
         'project_name' => $purchaseOrder->project_name,
         'date' => now()->toDateString(),
         'currency_id' => $purchaseOrder->currency_id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000],
         ],

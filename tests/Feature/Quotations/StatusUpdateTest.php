@@ -195,7 +195,7 @@ test('a user with the quotations.approval permission can approve and reject quot
     expect($quotation->refresh()->status)->toBe('approved');
 });
 
-test('approving a quotation sets actual_contract_value and actual_cost from bom on the project', function () {
+test('approving a quotation sets actual_contract_value and leaves actual_cost to the purchase invoices', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create([
         'status' => 'request_for_approval',
@@ -215,7 +215,8 @@ test('approving a quotation sets actual_contract_value and actual_cost from bom 
 
     $project = $quotation->project->refresh();
     expect((float) $project->actual_contract_value)->toBe(2_000_000.0);
-    expect((float) $project->actual_cost)->toBe(800_000.0);
+    // The BOM total is planned cost, not spend — actual_cost only moves when a vendor bills.
+    expect($project->actual_cost)->toBeNull();
 });
 
 test('approving a quotation without a bom sets actual_contract_value but leaves actual_cost null', function () {
@@ -232,7 +233,7 @@ test('approving a quotation without a bom sets actual_contract_value but leaves 
     expect($project->actual_cost)->toBeNull();
 });
 
-test('voiding an approved quotation clears actual_contract_value and actual_cost on the project', function () {
+test('voiding an approved quotation clears actual_contract_value but keeps money already spent', function () {
     $user = User::factory()->create();
     $quotation = Quotation::factory()->create([
         'status' => 'approved',
@@ -247,5 +248,6 @@ test('voiding an approved quotation clears actual_contract_value and actual_cost
 
     $project = $quotation->project->refresh();
     expect($project->actual_contract_value)->toBeNull();
-    expect($project->actual_cost)->toBeNull();
+    // Voiding the quotation does not un-spend what vendors already billed.
+    expect((float) $project->actual_cost)->toBe(800_000.0);
 });

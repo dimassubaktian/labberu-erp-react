@@ -27,6 +27,7 @@ class QuotationStoreRequest extends FormRequest
         return [
             'project_id' => ['required', Rule::exists('projects', 'id')->whereNull('deleted_at')],
             'currency_id' => ['required', Rule::exists('currencies', 'id')->whereNull('deleted_at')],
+            'exchange_rate' => ['required', 'numeric', 'gt:0'],
             'valid_until' => ['nullable', 'date'],
             'po_number' => ['nullable', 'string', 'max:255'],
             'po_date' => ['nullable', 'date'],

@@ -37,6 +37,7 @@ class PurchaseOrderStoreRequest extends FormRequest
             'project_name' => ['required', 'string', 'max:255'],
             'date' => ['required', 'date'],
             'currency_id' => ['required', Rule::exists('currencies', 'id')->whereNull('deleted_at')],
+            'exchange_rate' => ['required', 'numeric', 'gt:0'],
             'tax_id' => ['nullable', Rule::exists('taxes', 'id')->whereNull('deleted_at')],
             'shipping_method' => ['nullable', 'string', 'max:255'],
             'shipping_terms' => ['nullable', 'string', 'max:255'],

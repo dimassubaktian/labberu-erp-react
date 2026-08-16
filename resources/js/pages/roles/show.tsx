@@ -13,6 +13,14 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { destroy, edit, index, show } from '@/routes/roles';
 import { show as showUser } from '@/routes/users';
 
@@ -141,36 +149,44 @@ export default function RolesShow({ role, users }: Props) {
                             No users are assigned to this role.
                         </p>
                     ) : (
-                        <div className="space-y-3">
-                            {users.map((user) => (
-                                <Link
-                                    key={user.id}
-                                    href={showUser(user)}
-                                    className="block rounded-lg border border-border/50 p-4 transition-colors hover:bg-accent"
-                                >
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                        <div>
-                                            <p className="font-medium">
-                                                {user.name}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
+                        <div className="overflow-hidden rounded-xl border border-border/50">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead className="w-[10%]">
+                                            Status
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {users.map((user) => (
+                                        <TableRow key={user.id}>
+                                            <TableCell className="font-medium">
+                                                <Link href={showUser(user)}>
+                                                    {user.name}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
                                                 {user.email}
-                                            </p>
-                                        </div>
-
-                                        <Badge
-                                            variant={
-                                                user.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="w-fit capitalize"
-                                        >
-                                            {user.status}
-                                        </Badge>
-                                    </div>
-                                </Link>
-                            ))}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={
+                                                        user.status === 'active'
+                                                            ? 'secondary'
+                                                            : 'outline'
+                                                    }
+                                                    className="w-fit capitalize"
+                                                >
+                                                    {user.status}
+                                                </Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         </div>
                     )}
                 </div>

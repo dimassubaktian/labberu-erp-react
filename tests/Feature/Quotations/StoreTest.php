@@ -58,6 +58,7 @@ test('quotation can be created with totals calculated', function () {
         ->post(route('quotations.store'), [
             'project_id' => $project->id,
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -96,6 +97,7 @@ test('a quotation can be created with a customer po number and date', function (
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'po_number' => 'PO-2026-001',
         'po_date' => '2026-08-01',
         'items' => [
@@ -118,6 +120,7 @@ test('a line item can override the product description', function () {
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'items' => [
             [
                 'product_id' => $product->id,
@@ -144,6 +147,7 @@ test('a line item description is optional and defaults to null', function () {
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000, 'unit_cost' => 500],
         ],
@@ -164,6 +168,7 @@ test('quotation-level discount and percentage tax are applied to the total', fun
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'tax_id' => $tax->id,
         'discount_type' => 'percentage',
         'discount_value' => 10,
@@ -195,6 +200,7 @@ test('line item fixed discount reduces total price and margin', function () {
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'items' => [
             [
                 'product_id' => $product->id,
@@ -225,6 +231,7 @@ test('quotation code is derived from the project code and shared within its thre
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000, 'unit_cost' => 500],
         ],
@@ -250,6 +257,7 @@ test('groups compute their own subtotal, discount, and tax, which roll into the 
     $response = $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'discount_type' => 'fixed',
         'discount_value' => 100_000,
         'tax_id' => $tax->id,
@@ -301,6 +309,7 @@ test('grouped and ungrouped items can both be present on the same quotation', fu
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'items' => [
             ['product_id' => $ungroupedProduct->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 30_000, 'unit_cost' => 10_000],
         ],
@@ -332,6 +341,7 @@ test('quotation can be created with a payment terms snapshot from a template', f
     $this->actingAs($user)->post(route('quotations.store'), [
         'project_id' => $project->id,
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'payment_term_template_id' => $template->id,
         'payment_terms_html' => '<p>Down payment 40%.</p>',
         'items' => [
@@ -355,6 +365,7 @@ test('payment term template must exist', function () {
         ->post(route('quotations.store'), [
             'project_id' => $project->id,
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'payment_term_template_id' => 999999,
             'items' => [
                 ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 1000, 'unit_cost' => 500],
@@ -372,6 +383,7 @@ test('a group requires a name and at least one item', function () {
         ->post(route('quotations.store'), [
             'project_id' => $project->id,
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'groups' => [
                 ['items' => []],
             ],
@@ -396,6 +408,7 @@ test('at least one line item is required', function () {
         ->post(route('quotations.store'), [
             'project_id' => $project->id,
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'items' => [],
         ])
         ->assertSessionHasErrors(['items']);
@@ -420,6 +433,7 @@ test('quotation can be created with a BOM in one request', function () {
         ->post(route('quotations.store'), [
             'project_id' => $project->id,
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -465,6 +479,7 @@ test('quotation is created without BOM when no BOM items are submitted', functio
         ->post(route('quotations.store'), [
             'project_id' => $project->id,
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'items' => [
                 [
                     'product_id' => $product->id,

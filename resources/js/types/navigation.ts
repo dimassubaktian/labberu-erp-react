@@ -13,6 +13,8 @@ export type NavItem = {
     isActive?: boolean;
     disabled?: boolean;
     permission?: string;
+    /** Restricts the item to a single role, for pages gated by role instead of permission. */
+    role?: string;
 };
 
 export type NavGroup = {

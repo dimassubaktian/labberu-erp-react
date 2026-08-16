@@ -2,6 +2,7 @@ import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import {
     ArrowLeft,
     Ban,
+    CircleOff,
     Download,
     Pencil,
     Plus,
@@ -48,7 +49,14 @@ import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { show as showCustomer } from '@/routes/customers';
 import { show as showDeliveryOrder } from '@/routes/delivery-orders';
 import { show as showInvoice } from '@/routes/invoices';
-import { cancel, destroy, edit, index, show } from '@/routes/projects';
+import {
+    cancel,
+    destroy,
+    edit,
+    index,
+    show,
+    voidMethod as voidProject,
+} from '@/routes/projects';
 import {
     destroy as destroyAttachment,
     download as downloadAttachment,
@@ -81,6 +89,7 @@ type Project = {
     request_date: string;
     description: string | null;
     cancel_reason: string | null;
+    void_reason: string | null;
     status: string;
     sales_status: string | null;
     po_status: string | null;
@@ -199,6 +208,7 @@ type PurchaseInvoice = {
 
 type Props = {
     project: Project;
+    plannedCost: string | null;
     quotations: Quotation[];
     purchaseOrders: PurchaseOrder[];
     deliveryOrders: DeliveryOrder[];
@@ -252,12 +262,23 @@ const PURCHASE_INVOICE_PAYMENT_OPTIONS = [
 
 export default function ProjectsShow({
     project,
+    plannedCost,
     quotations,
     purchaseOrders,
     deliveryOrders,
     invoices,
     purchaseInvoices,
 }: Props) {
+    const costVariance =
+        plannedCost && project.actual_cost
+            ? Number(project.actual_cost) - Number(plannedCost)
+            : null;
+
+    // Delivery orders and invoices hang off quotations, purchase invoices off purchase
+    // orders, so these two cover every document raised against the project.
+    const hasRelatedDocuments =
+        quotations.length > 0 || purchaseOrders.length > 0;
+
     const [quotationSearch, setQuotationSearch] = React.useState('');
     const [quotationStatus, setQuotationStatus] = React.useState('all');
     const [purchaseOrderSearch, setPurchaseOrderSearch] = React.useState('');
@@ -632,14 +653,46 @@ export default function ProjectsShow({
 
                         <div>
                             <dt className="text-sm text-muted-foreground">
-                                Actual cost
+                                Planned cost (BOM)
                             </dt>
                             <dd className="font-medium">
-                                {project.actual_cost ? (
-                                    formatNumber(project.actual_cost)
+                                {plannedCost ? (
+                                    formatNumber(plannedCost)
                                 ) : (
                                     <span className="text-muted-foreground">
                                         &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Actual cost (invoiced)
+                            </dt>
+                            <dd className="font-medium">
+                                {project.actual_cost ? (
+                                    <>
+                                        {formatNumber(project.actual_cost)}
+                                        {costVariance !== null && (
+                                            <span
+                                                className={
+                                                    costVariance > 0
+                                                        ? 'ml-2 text-sm text-destructive dark:text-destructive-foreground'
+                                                        : 'ml-2 text-sm text-muted-foreground'
+                                                }
+                                            >
+                                                {costVariance > 0 ? '+' : ''}
+                                                {formatNumber(
+                                                    String(costVariance),
+                                                )}{' '}
+                                                vs plan
+                                            </span>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        Nothing invoiced yet
                                     </span>
                                 )}
                             </dd>
@@ -680,6 +733,17 @@ export default function ProjectsShow({
                                 </dt>
                                 <dd className="font-medium whitespace-pre-line">
                                     {project.cancel_reason}
+                                </dd>
+                            </div>
+                        )}
+
+                        {project.void_reason && (
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm text-muted-foreground">
+                                    Void reason
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {project.void_reason}
                                 </dd>
                             </div>
                         )}
@@ -1762,15 +1826,18 @@ export default function ProjectsShow({
                     <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
                         Danger Zone
                     </h2>
-                    {!['cancelled', 'completed'].includes(project.status) && (
+                    {!['cancelled', 'voided', 'completed'].includes(
+                        project.status,
+                    ) && (
                         <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                             <div className="space-y-0.5 text-red-600 dark:text-red-100">
                                 <p className="font-medium">
                                     Cancel this project
                                 </p>
                                 <p className="text-sm">
-                                    Mark the project as cancelled. The status
-                                    will no longer update automatically.
+                                    Use this when the deal falls through, such
+                                    as a lost bid or a customer withdrawal. The
+                                    status will no longer update automatically.
                                 </p>
                             </div>
 
@@ -1840,61 +1907,149 @@ export default function ProjectsShow({
                             </Dialog>
                         </div>
                     )}
-                    <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
-                        <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                            <p className="font-medium">Delete this project</p>
-                            <p className="text-sm">
-                                Once deleted, this project cannot be restored.
-                            </p>
+
+                    {!['voided', 'completed'].includes(project.status) && (
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">Void this project</p>
+                                <p className="text-sm">
+                                    Use this when the project was created by
+                                    mistake, such as a duplicate of another
+                                    project. The record is kept for audit but
+                                    stops counting as live work.
+                                </p>
+                            </div>
+
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <CircleOff />
+                                        Void Project
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Void &quot;{project.name}&quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Void this project as created in error,
+                                        for example a duplicate. This action
+                                        cannot be undone.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...voidProject.form(project)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing, errors }) => (
+                                            <>
+                                                <div className="grid gap-2 py-2">
+                                                    <Label htmlFor="void_reason">
+                                                        Void reason
+                                                    </Label>
+                                                    <Textarea
+                                                        id="void_reason"
+                                                        name="void_reason"
+                                                        required
+                                                    />
+                                                    <InputError
+                                                        message={
+                                                            errors.void_reason
+                                                        }
+                                                    />
+                                                </div>
+
+                                                <DialogFooter className="gap-2">
+                                                    <DialogClose asChild>
+                                                        <Button variant="secondary">
+                                                            Keep
+                                                        </Button>
+                                                    </DialogClose>
+
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={processing}
+                                                    >
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Void Project
+                                                    </Button>
+                                                </DialogFooter>
+                                            </>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
                         </div>
+                    )}
 
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button
-                                    variant="destructive"
-                                    className="w-full sm:w-auto"
-                                >
-                                    <Trash2 />
-                                    Delete Project
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogTitle>
-                                    Delete &quot;{project.name}&quot;?
-                                </DialogTitle>
-                                <DialogDescription>
-                                    This action cannot be undone. This project
-                                    will be permanently deleted.
-                                </DialogDescription>
+                    {!hasRelatedDocuments && (
+                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    Delete this project
+                                </p>
+                                <p className="text-sm">
+                                    Once deleted, this project cannot be
+                                    restored.
+                                </p>
+                            </div>
 
-                                <Form
-                                    {...destroy.form(project)}
-                                    options={{ preserveScroll: true }}
-                                >
-                                    {({ processing }) => (
-                                        <DialogFooter className="gap-2">
-                                            <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        variant="destructive"
+                                        className="w-full sm:w-auto"
+                                    >
+                                        <Trash2 />
+                                        Delete Project
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        Delete &quot;{project.name}&quot;?
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        This action cannot be undone. This
+                                        project will be permanently deleted.
+                                    </DialogDescription>
+
+                                    <Form
+                                        {...destroy.form(project)}
+                                        options={{ preserveScroll: true }}
+                                    >
+                                        {({ processing }) => (
+                                            <DialogFooter className="gap-2">
+                                                <DialogClose asChild>
+                                                    <Button variant="secondary">
+                                                        Cancel
+                                                    </Button>
+                                                </DialogClose>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    asChild
+                                                >
+                                                    <button type="submit">
+                                                        {processing && (
+                                                            <Spinner />
+                                                        )}
+                                                        Delete Project
+                                                    </button>
                                                 </Button>
-                                            </DialogClose>
-
-                                            <Button
-                                                variant="destructive"
-                                                disabled={processing}
-                                                asChild
-                                            >
-                                                <button type="submit">
-                                                    {processing && <Spinner />}
-                                                    Delete Project
-                                                </button>
-                                            </Button>
-                                        </DialogFooter>
-                                    )}
-                                </Form>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
+                                            </DialogFooter>
+                                        )}
+                                    </Form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
                 </div>
             </div>
         </>

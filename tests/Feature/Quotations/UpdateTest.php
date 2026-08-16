@@ -46,6 +46,7 @@ test('quotation can be updated with totals recalculated', function () {
     $response = $this->actingAs($user)
         ->put(route('quotations.update', $quotation), [
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'items' => [
                 [
                     'product_id' => $product->id,
@@ -78,6 +79,7 @@ test('a quotation can be updated with a customer po number and date', function (
     $this->actingAs($user)
         ->put(route('quotations.update', $quotation), [
             'currency_id' => $currency->id,
+            'exchange_rate' => 1,
             'po_number' => 'PO-2026-002',
             'po_date' => '2026-08-01',
             'items' => [
@@ -102,6 +104,7 @@ test('quotation-level discount and tax are recalculated on update', function () 
 
     $this->actingAs($user)->put(route('quotations.update', $quotation), [
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'tax_id' => $tax->id,
         'discount_type' => 'percentage',
         'discount_value' => 10,
@@ -134,6 +137,7 @@ test('groups are replaced and totals recalculated on update', function () {
 
     $response = $this->actingAs($user)->put(route('quotations.update', $quotation), [
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'groups' => [
             [
                 'name' => 'Labor',
@@ -169,6 +173,7 @@ test('quotation payment terms snapshot can be updated from a template', function
 
     $this->actingAs($user)->put(route('quotations.update', $quotation), [
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'payment_term_template_id' => $template->id,
         'payment_terms_html' => '<p>Updated terms.</p>',
         'items' => [

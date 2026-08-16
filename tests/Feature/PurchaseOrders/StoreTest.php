@@ -24,9 +24,36 @@ function purchaseOrderPayload(array $overrides = []): array
         'project_name' => $project->name,
         'date' => now()->toDateString(),
         'currency_id' => $currency->id,
+        'exchange_rate' => 1,
         'items' => [],
     ], $overrides);
 }
+
+test('the exchange rate is snapshotted on the purchase order', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)->post(route('purchase-orders.store'), purchaseOrderPayload([
+        'exchange_rate' => 16_250.5,
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 100],
+        ],
+    ]))->assertSessionHasNoErrors();
+
+    expect((float) PurchaseOrder::sole()->exchange_rate)->toBe(16_250.5);
+});
+
+test('the exchange rate must be greater than zero', function () {
+    $user = User::factory()->create();
+    $product = Product::factory()->create();
+
+    $this->actingAs($user)->post(route('purchase-orders.store'), purchaseOrderPayload([
+        'exchange_rate' => 0,
+        'items' => [
+            ['product_id' => $product->id, 'quantity' => 1, 'unit' => 'Pcs', 'unit_price' => 100],
+        ],
+    ]))->assertSessionHasErrors('exchange_rate');
+});
 
 test('purchase order can be created with totals calculated', function () {
     $user = User::factory()->create();

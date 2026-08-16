@@ -21,6 +21,7 @@ test('user detail page is displayed', function () {
             ->where('user.uuid', $target->uuid)
             ->where('user.name', 'Jane Doe')
             ->where('user.workforce.id', $workforce->id)
+            ->where('user.workforce.uuid', $workforce->uuid)
             ->has('user.roles', 1),
         );
 });

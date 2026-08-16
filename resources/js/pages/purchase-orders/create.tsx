@@ -147,7 +147,8 @@ function emptyDiscount(): DiscountLevel {
 }
 
 function calculateItemDiscount(item: LineItem): number {
-    const lineTotal = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
+    const lineTotal =
+        (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
     if (item.discount_type === 'none' || item.discount_value === '') return 0;
     const value = Number(item.discount_value) || 0;
     return item.discount_type === 'percentage'
@@ -156,7 +157,8 @@ function calculateItemDiscount(item: LineItem): number {
 }
 
 function calculateItemTotal(item: LineItem): number {
-    const lineTotal = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
+    const lineTotal =
+        (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
     return lineTotal - calculateItemDiscount(item);
 }
 
@@ -207,7 +209,8 @@ function LineItemForm({
     onCommit,
     onCancel,
 }: LineItemFormProps) {
-    const lineTotal = (Number(draft.quantity) || 0) * (Number(draft.unit_price) || 0);
+    const lineTotal =
+        (Number(draft.quantity) || 0) * (Number(draft.unit_price) || 0);
     const total = lineTotal - calculateItemDiscount(draft);
 
     function handleProductChange(
@@ -311,7 +314,9 @@ function LineItemForm({
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="none">No discount</SelectItem>
-                            <SelectItem value="percentage">Percentage</SelectItem>
+                            <SelectItem value="percentage">
+                                Percentage
+                            </SelectItem>
                             <SelectItem value="fixed">Fixed amount</SelectItem>
                         </SelectContent>
                     </Select>
@@ -342,11 +347,7 @@ function LineItemForm({
 
             <div className="flex justify-end gap-2">
                 {editingIndex !== null && (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={onCancel}
-                    >
+                    <Button type="button" variant="outline" onClick={onCancel}>
                         Cancel edit
                     </Button>
                 )}
@@ -358,8 +359,12 @@ function LineItemForm({
     );
 }
 
-
-export default function PurchaseOrdersCreate({ initialQuotation, currencies, taxes, defaultNotesHtml }: Props) {
+export default function PurchaseOrdersCreate({
+    initialQuotation,
+    currencies,
+    taxes,
+    defaultNotesHtml,
+}: Props) {
     const { submit } = useHttp();
 
     const [projectId, setProjectId] = useState(
@@ -392,11 +397,29 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
 
         return baseCurrency ? String(baseCurrency.id) : '';
     });
+    const [exchangeRate, setExchangeRate] = useState('1');
+    const baseCurrencyCode = currencies.find((c) => c.base_currency)?.iso_code;
+    const isBaseCurrency =
+        currencies.find((c) => String(c.id) === currencyId)?.base_currency ??
+        false;
+
+    function handleCurrencyChange(value: string): void {
+        setCurrencyId(value);
+
+        if (currencies.find((c) => String(c.id) === value)?.base_currency) {
+            setExchangeRate('1');
+        }
+    }
+
     const [taxId, setTaxId] = useState('none');
     const [items, setItems] = useState<LineItem[]>([]);
     const [draft, setDraft] = useState<LineItem>(emptyItem());
-    const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
-    const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
+    const [editingItemIndex, setEditingItemIndex] = useState<number | null>(
+        null,
+    );
+    const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+        new Set(),
+    );
     const [discounts, setDiscounts] = useState<DiscountLevel[]>([]);
     const [notesHtml, setNotesHtml] = useState(defaultNotesHtml);
 
@@ -499,11 +522,16 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
     }
 
     function removeSelectedItems(): void {
-        if (editingItemIndex !== null && selectedIndices.has(editingItemIndex)) {
+        if (
+            editingItemIndex !== null &&
+            selectedIndices.has(editingItemIndex)
+        ) {
             setDraft(emptyItem());
             setEditingItemIndex(null);
         }
-        setItems((current) => current.filter((_, i) => !selectedIndices.has(i)));
+        setItems((current) =>
+            current.filter((_, i) => !selectedIndices.has(i)),
+        );
         setSelectedIndices(new Set());
     }
 
@@ -748,7 +776,7 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                         />
                                         <Select
                                             value={currencyId}
-                                            onValueChange={setCurrencyId}
+                                            onValueChange={handleCurrencyChange}
                                         >
                                             <SelectTrigger
                                                 id="currency_id"
@@ -781,6 +809,43 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                         />
                                     </div>
                                 </div>
+
+                                {isBaseCurrency ? (
+                                    <input
+                                        type="hidden"
+                                        name="exchange_rate"
+                                        value="1"
+                                    />
+                                ) : (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="exchange_rate">
+                                            Exchange rate to{' '}
+                                            {baseCurrencyCode ??
+                                                'base currency'}
+                                        </Label>
+                                        <Input
+                                            id="exchange_rate"
+                                            name="exchange_rate"
+                                            type="number"
+                                            step="0.000001"
+                                            min="0"
+                                            value={exchangeRate}
+                                            onChange={(event) =>
+                                                setExchangeRate(
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                        <p className="text-sm text-muted-foreground">
+                                            Locked in at this rate so project
+                                            spend can be totalled across
+                                            currencies.
+                                        </p>
+                                        <InputError
+                                            message={errors.exchange_rate}
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="grid gap-2 sm:grid-cols-2">
                                     <div className="grid gap-2">
@@ -1157,7 +1222,9 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                                             <input
                                                                 type="hidden"
                                                                 name={`items[${index}][unit]`}
-                                                                value={item.unit}
+                                                                value={
+                                                                    item.unit
+                                                                }
                                                             />
                                                             <input
                                                                 type="hidden"
@@ -1177,7 +1244,10 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                                                 type="hidden"
                                                                 name={`items[${index}][discount_type]`}
                                                                 value={
-                                                                    item.discount_type === 'none' ? '' : item.discount_type
+                                                                    item.discount_type ===
+                                                                    'none'
+                                                                        ? ''
+                                                                        : item.discount_type
                                                                 }
                                                             />
                                                             <input
@@ -1214,7 +1284,8 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                                         <TableCell>
                                                             {item.quantity}
                                                             {item.unit
-                                                                ? ' ' + item.unit
+                                                                ? ' ' +
+                                                                  item.unit
                                                                 : ''}
                                                         </TableCell>
                                                         <TableCell>
@@ -1225,7 +1296,9 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                                             )}
                                                         </TableCell>
                                                         <TableCell className="text-muted-foreground">
-                                                            {discountLabel(item)}
+                                                            {discountLabel(
+                                                                item,
+                                                            )}
                                                         </TableCell>
                                                         <TableCell className="text-right font-medium">
                                                             {formatNumber(
@@ -1341,79 +1414,166 @@ export default function PurchaseOrdersCreate({ initialQuotation, currencies, tax
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead>Label</TableHead>
-                                                    <TableHead className="w-36">Type</TableHead>
-                                                    <TableHead className="w-32">Value</TableHead>
-                                                    <TableHead className="w-32">Applied to</TableHead>
-                                                    <TableHead className="w-36">Discount amount</TableHead>
+                                                    <TableHead className="w-36">
+                                                        Type
+                                                    </TableHead>
+                                                    <TableHead className="w-32">
+                                                        Value
+                                                    </TableHead>
+                                                    <TableHead className="w-32">
+                                                        Applied to
+                                                    </TableHead>
+                                                    <TableHead className="w-36">
+                                                        Discount amount
+                                                    </TableHead>
                                                     <TableHead className="w-16" />
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {discounts.map((discount, index) => {
-                                                    const namePrefix = `discounts[${index}]`;
-                                                    const errorPrefix = `discounts.${index}`;
-                                                    const row = discountRows[index];
-                                                    return (
-                                                        <TableRow key={index}>
-                                                            <TableCell>
-                                                                <Input
-                                                                    name={`${namePrefix}[label]`}
-                                                                    value={discount.label}
-                                                                    onChange={(e) => updateDiscount(index, { label: e.target.value })}
-                                                                    placeholder="e.g. Discount I"
-                                                                />
-                                                                <InputError message={errors[`${errorPrefix}.label`]} />
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <input
-                                                                    type="hidden"
-                                                                    name={`${namePrefix}[discount_type]`}
-                                                                    value={discount.discount_type}
-                                                                />
-                                                                <Select
-                                                                    value={discount.discount_type}
-                                                                    onValueChange={(value) => updateDiscount(index, { discount_type: value })}
-                                                                >
-                                                                    <SelectTrigger className="w-full">
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="percentage">Percentage</SelectItem>
-                                                                        <SelectItem value="fixed">Fixed amount</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                                <InputError message={errors[`${errorPrefix}.discount_type`]} />
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Input
-                                                                    type="number"
-                                                                    step="1"
-                                                                    min="0"
-                                                                    name={`${namePrefix}[discount_value]`}
-                                                                    value={discount.discount_value}
-                                                                    onChange={(e) => updateDiscount(index, { discount_value: e.target.value })}
-                                                                />
-                                                                <InputError message={errors[`${errorPrefix}.discount_value`]} />
-                                                            </TableCell>
-                                                            <TableCell className="text-muted-foreground">
-                                                                {formatNumber(row?.baseAmount ?? 0)}
-                                                            </TableCell>
-                                                            <TableCell className="font-medium">
-                                                                {formatNumber(row?.amount ?? 0)}
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => removeDiscount(index)}
-                                                                >
-                                                                    <Trash2 className="text-destructive dark:text-destructive-foreground" />
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
+                                                {discounts.map(
+                                                    (discount, index) => {
+                                                        const namePrefix = `discounts[${index}]`;
+                                                        const errorPrefix = `discounts.${index}`;
+                                                        const row =
+                                                            discountRows[index];
+                                                        return (
+                                                            <TableRow
+                                                                key={index}
+                                                            >
+                                                                <TableCell>
+                                                                    <Input
+                                                                        name={`${namePrefix}[label]`}
+                                                                        value={
+                                                                            discount.label
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateDiscount(
+                                                                                index,
+                                                                                {
+                                                                                    label: e
+                                                                                        .target
+                                                                                        .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                        placeholder="e.g. Discount I"
+                                                                    />
+                                                                    <InputError
+                                                                        message={
+                                                                            errors[
+                                                                                `${errorPrefix}.label`
+                                                                            ]
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <input
+                                                                        type="hidden"
+                                                                        name={`${namePrefix}[discount_type]`}
+                                                                        value={
+                                                                            discount.discount_type
+                                                                        }
+                                                                    />
+                                                                    <Select
+                                                                        value={
+                                                                            discount.discount_type
+                                                                        }
+                                                                        onValueChange={(
+                                                                            value,
+                                                                        ) =>
+                                                                            updateDiscount(
+                                                                                index,
+                                                                                {
+                                                                                    discount_type:
+                                                                                        value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <SelectTrigger className="w-full">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="percentage">
+                                                                                Percentage
+                                                                            </SelectItem>
+                                                                            <SelectItem value="fixed">
+                                                                                Fixed
+                                                                                amount
+                                                                            </SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                    <InputError
+                                                                        message={
+                                                                            errors[
+                                                                                `${errorPrefix}.discount_type`
+                                                                            ]
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="1"
+                                                                        min="0"
+                                                                        name={`${namePrefix}[discount_value]`}
+                                                                        value={
+                                                                            discount.discount_value
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            updateDiscount(
+                                                                                index,
+                                                                                {
+                                                                                    discount_value:
+                                                                                        e
+                                                                                            .target
+                                                                                            .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    <InputError
+                                                                        message={
+                                                                            errors[
+                                                                                `${errorPrefix}.discount_value`
+                                                                            ]
+                                                                        }
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="text-muted-foreground">
+                                                                    {formatNumber(
+                                                                        row?.baseAmount ??
+                                                                            0,
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="font-medium">
+                                                                    {formatNumber(
+                                                                        row?.amount ??
+                                                                            0,
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() =>
+                                                                            removeDiscount(
+                                                                                index,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <Trash2 className="text-destructive dark:text-destructive-foreground" />
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        );
+                                                    },
+                                                )}
                                             </TableBody>
                                         </Table>
                                     </div>
