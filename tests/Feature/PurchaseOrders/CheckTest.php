@@ -4,13 +4,13 @@ use App\Models\PurchaseOrder;
 use App\Models\User;
 use App\Models\Workforce;
 
-test('either checker slot can be signed off on an issued purchase order', function () {
+test('either checker slot can be signed off by the authenticated user', function () {
     $user = User::factory()->create();
     $purchaseOrder = PurchaseOrder::factory()->create(['status' => 'issued']);
-    $checker = Workforce::factory()->create();
+    $checker = Workforce::factory()->create(['user_id' => $user->id]);
 
     $this->actingAs($user)
-        ->patch(route('purchase-orders.check', $purchaseOrder), ['slot' => 2, 'checked_by_id' => $checker->id])
+        ->patch(route('purchase-orders.check', $purchaseOrder), ['slot' => 2])
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('purchase-orders.show', $purchaseOrder));
 

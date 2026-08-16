@@ -4,9 +4,9 @@ use App\Models\PurchaseOrder;
 use App\Models\User;
 use App\Models\Workforce;
 
-test('a purchase order checked by both checkers can be approved', function () {
+test('a purchase order checked by both checkers is approved by the authenticated user', function () {
     $user = User::factory()->create();
-    $approver = Workforce::factory()->create();
+    $approver = Workforce::factory()->create(['user_id' => $user->id]);
     $purchaseOrder = PurchaseOrder::factory()->create([
         'status' => 'issued',
         'checked_by_1_id' => Workforce::factory()->create()->id,
@@ -16,7 +16,7 @@ test('a purchase order checked by both checkers can be approved', function () {
     ]);
 
     $this->actingAs($user)
-        ->patch(route('purchase-orders.approve', $purchaseOrder), ['approved_by_id' => $approver->id])
+        ->patch(route('purchase-orders.approve', $purchaseOrder))
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('purchase-orders.show', $purchaseOrder));
 

@@ -83,7 +83,7 @@ test('cancelling a grn without a reason fails validation', function () {
     expect($grn->refresh()->status)->toBe('confirmed');
 });
 
-test('cancelling the only confirmed grn resets purchase order progress to null', function () {
+test('cancelling the only confirmed grn rolls purchase order progress back to sent', function () {
     $user = User::factory()->create();
     ['grn' => $grn, 'purchaseOrder' => $purchaseOrder] = confirmedGrn([10]);
     $purchaseOrder->update(['progress' => 'fully_received']);
@@ -92,7 +92,7 @@ test('cancelling the only confirmed grn resets purchase order progress to null',
         ->patch(route('goods-receipt-notes.cancel', $grn), ['cancel_reason' => 'Wrong quantity delivered.'])
         ->assertSessionHasNoErrors();
 
-    expect($purchaseOrder->refresh()->progress)->toBeNull();
+    expect($purchaseOrder->refresh()->progress)->toBe('sent');
 });
 
 test('cancelling one of two confirmed grns recomputes purchase order progress without full reset', function () {

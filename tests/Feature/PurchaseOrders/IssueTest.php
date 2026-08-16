@@ -4,13 +4,13 @@ use App\Models\PurchaseOrder;
 use App\Models\User;
 use App\Models\Workforce;
 
-test('draft purchase order can be issued', function () {
+test('draft purchase order is issued by the authenticated user', function () {
     $user = User::factory()->create();
     $purchaseOrder = PurchaseOrder::factory()->create(['status' => 'draft']);
-    $issuer = Workforce::factory()->create();
+    $issuer = Workforce::factory()->create(['user_id' => $user->id]);
 
     $this->actingAs($user)
-        ->patch(route('purchase-orders.issue', $purchaseOrder), ['issued_by_id' => $issuer->id])
+        ->patch(route('purchase-orders.issue', $purchaseOrder))
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('purchase-orders.show', $purchaseOrder));
 

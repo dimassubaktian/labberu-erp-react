@@ -170,6 +170,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update')->middleware('permission:invoices.update');
     Route::delete('invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy')->middleware('permission:invoices.delete');
     Route::patch('invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('invoices.issue')->middleware('permission:invoices.issue');
+    Route::patch('invoices/{invoice}/payment-terms', [InvoiceController::class, 'updatePaymentTerms'])->name('invoices.payment-terms.update')->middleware('permission:invoices.payment-terms.update');
+    Route::get('invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print')->middleware('permission:invoices.view');
     Route::post('invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store')->middleware('permission:invoices.payments.create');
     Route::patch('invoices/{invoice}/payments/{payment}/cancel', [InvoicePaymentController::class, 'cancel'])->name('invoices.payments.cancel')->middleware('permission:invoices.payments.cancel');
 

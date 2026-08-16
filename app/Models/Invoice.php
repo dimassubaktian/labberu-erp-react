@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
  * @property Carbon $invoice_date
  * @property Carbon $due_date
  * @property string|null $remarks
+ * @property int|null $payment_term_template_id
+ * @property string|null $payment_terms_html
  * @property string|null $discount_type
  * @property string|null $discount_value
  * @property int|null $tax_id
@@ -39,6 +41,8 @@ use Illuminate\Support\Str;
     'invoice_date',
     'due_date',
     'remarks',
+    'payment_term_template_id',
+    'payment_terms_html',
     'discount_type',
     'discount_value',
     'tax_id',
@@ -114,6 +118,16 @@ class Invoice extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    /**
+     * Get the payment term template this invoice's payment terms were snapshotted from.
+     *
+     * @return BelongsTo<PaymentTermTemplate, $this>
+     */
+    public function paymentTermTemplate(): BelongsTo
+    {
+        return $this->belongsTo(PaymentTermTemplate::class);
     }
 
     /**

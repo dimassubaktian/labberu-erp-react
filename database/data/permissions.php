@@ -17,7 +17,7 @@ return [
     'quotations' => ['view', 'create', 'update', 'delete', 'status.update', 'progress.update', 'revisions.create', 'approval'],
     'bom' => ['view', 'create', 'update', 'delete'],
     'delivery-orders' => ['view', 'create', 'update', 'delete', 'confirm', 'cancel'],
-    'invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.cancel'],
+    'invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payment-terms.update', 'payments.create', 'payments.cancel'],
     'purchase-orders' => ['view', 'create', 'update', 'delete', 'issue', 'check', 'approve', 'reject', 'cancel', 'void', 'progress.update'],
     'purchase-invoices' => ['view', 'create', 'update', 'delete', 'issue', 'payments.create', 'payments.cancel'],
     'goods-receipt-notes' => ['view', 'create', 'update', 'delete', 'confirm', 'cancel'],

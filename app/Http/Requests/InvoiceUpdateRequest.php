@@ -39,6 +39,8 @@ class InvoiceUpdateRequest extends FormRequest
             'invoice_date' => ['required', 'date'],
             'due_date' => ['required', 'date'],
             'remarks' => ['nullable', 'string', 'max:2000'],
+            'payment_term_template_id' => ['nullable', Rule::exists('payment_term_templates', 'id')->whereNull('deleted_at')],
+            'payment_terms_html' => ['nullable', 'string'],
             'discount_type' => ['nullable', 'string', 'in:percentage,fixed'],
             'discount_value' => ['nullable', 'numeric', 'min:0', 'required_with:discount_type'],
             'tax_id' => ['nullable', Rule::exists('taxes', 'id')->whereNull('deleted_at')],

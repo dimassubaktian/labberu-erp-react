@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Invoice;
+use App\Models\PaymentTermTemplate;
 use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\Tax;
@@ -55,6 +56,28 @@ test('invoice can be created against an approved quotation with totals calculate
     expect((float) $invoiceItem->unit_price)->toBe(100_000.0);
     expect((float) $invoiceItem->quantity_invoiced)->toBe(4.0);
     expect((float) $invoiceItem->total)->toBe(400_000.0);
+});
+
+test('payment terms are snapshotted onto the invoice', function () {
+    $user = User::factory()->create();
+    $quotation = approvedQuotationWithPricedItem();
+    $item = $quotation->items->first();
+    $template = PaymentTermTemplate::factory()->create();
+
+    $this->actingAs($user)->post(route('invoices.store'), [
+        'quotation_id' => $quotation->id,
+        'invoice_date' => now()->toDateString(),
+        'due_date' => now()->addDays(30)->toDateString(),
+        'payment_term_template_id' => $template->id,
+        'payment_terms_html' => '<p>50% down payment, 50% on delivery.</p>',
+        'items' => [
+            ['quotation_item_id' => $item->id, 'quantity_invoiced' => 4],
+        ],
+    ])->assertSessionHasNoErrors();
+
+    $invoice = Invoice::sole();
+    expect($invoice->payment_term_template_id)->toBe($template->id);
+    expect($invoice->payment_terms_html)->toBe('<p>50% down payment, 50% on delivery.</p>');
 });
 
 test('discount is applied before tax', function () {

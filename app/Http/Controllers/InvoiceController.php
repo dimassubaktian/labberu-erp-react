@@ -3,14 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\InvoiceIssueRequest;
+use App\Http\Requests\InvoicePaymentTermsUpdateRequest;
 use App\Http\Requests\InvoiceStoreRequest;
 use App\Http\Requests\InvoiceUpdateRequest;
+use App\Models\CompanySetting;
 use App\Models\Invoice;
+use App\Models\PaymentTermTemplate;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Tax;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -66,14 +71,16 @@ class InvoiceController extends Controller
             $initialQuotation = Quotation::query()
                 ->where('uuid', $request->query('quotation'))
                 ->with(['project.customer:id,name', 'currency:id,iso_code,name,symbol'])
-                ->first(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'project_id', 'currency_id']);
+                ->first(['id', 'uuid', 'quotation_code', 'version_major', 'version_minor', 'project_id', 'currency_id', 'payment_term_template_id', 'payment_terms_html']);
         }
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
+        $paymentTermTemplates = PaymentTermTemplate::query()->orderBy('name')->get(['id', 'uuid', 'name', 'content']);
 
         return Inertia::render('invoices/create', [
             'initialQuotation' => $initialQuotation,
             'taxes' => $taxes,
+            'paymentTermTemplates' => $paymentTermTemplates,
         ]);
     }
 
@@ -90,6 +97,8 @@ class InvoiceController extends Controller
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'],
                 'remarks' => $data['remarks'] ?? null,
+                'payment_term_template_id' => $data['payment_term_template_id'] ?? null,
+                'payment_terms_html' => $data['payment_terms_html'] ?? null,
                 'discount_type' => $data['discount_type'] ?? null,
                 'discount_value' => $data['discount_value'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
@@ -114,6 +123,7 @@ class InvoiceController extends Controller
         $invoice->load([
             'quotation.project.customer',
             'quotation.currency',
+            'paymentTermTemplate',
             'tax',
             'items.product',
             'payments' => fn ($query) => $query->orderByDesc('payment_date'),
@@ -123,6 +133,7 @@ class InvoiceController extends Controller
 
         return Inertia::render('invoices/show', [
             'invoice' => $invoice,
+            'paymentTermTemplates' => PaymentTermTemplate::query()->orderBy('name')->get(['id', 'uuid', 'name', 'content']),
         ]);
     }
 
@@ -139,10 +150,12 @@ class InvoiceController extends Controller
         ]);
 
         $taxes = Tax::query()->orderBy('name')->get(['id', 'name', 'rate', 'type']);
+        $paymentTermTemplates = PaymentTermTemplate::query()->orderBy('name')->get(['id', 'uuid', 'name', 'content']);
 
         return Inertia::render('invoices/edit', [
             'invoice' => $invoice,
             'taxes' => $taxes,
+            'paymentTermTemplates' => $paymentTermTemplates,
         ]);
     }
 
@@ -160,6 +173,8 @@ class InvoiceController extends Controller
                 'invoice_date' => $data['invoice_date'],
                 'due_date' => $data['due_date'],
                 'remarks' => $data['remarks'] ?? null,
+                'payment_term_template_id' => $data['payment_term_template_id'] ?? null,
+                'payment_terms_html' => $data['payment_terms_html'] ?? null,
                 'discount_type' => $data['discount_type'] ?? null,
                 'discount_value' => $data['discount_value'] ?? null,
                 'tax_id' => $data['tax_id'] ?? null,
@@ -203,6 +218,63 @@ class InvoiceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invoice issued.')]);
 
         return to_route('invoices.show', $invoice);
+    }
+
+    /**
+     * Update only the specified invoice's payment terms, which stay editable after issuing.
+     */
+    public function updatePaymentTerms(InvoicePaymentTermsUpdateRequest $request, Invoice $invoice): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $invoice->update([
+            'payment_term_template_id' => $data['payment_term_template_id'] ?? null,
+            'payment_terms_html' => $data['payment_terms_html'] ?? null,
+        ]);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment terms updated.')]);
+
+        return to_route('invoices.show', $invoice);
+    }
+
+    /**
+     * Stream the invoice as a printable PDF document.
+     */
+    public function print(Request $request, Invoice $invoice): HttpResponse
+    {
+        $invoice->load([
+            'quotation.project.customer',
+            'quotation.currency',
+            'tax',
+            'items.product',
+        ]);
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.invoice', [
+            'invoice' => $invoice,
+            'company' => $company,
+            'loggedInUser' => $request->user(),
+        ])->setPaper('a4', 'portrait');
+
+        // dompdf's CSS `counter(pages)` never resolves to the total page count, so the
+        // "X / Y" page number is drawn directly on the canvas instead, which does. This
+        // requires an explicit render() first: page_text() only reaches pages that
+        // already exist and only knows the page count at the moment it is called.
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.5;
+        $textWidth = $fontMetrics->getTextWidth('99 / 99', $font, $fontSize);
+        $dompdf->getCanvas()->page_text(563.28 - $textWidth, 816, '{PAGE_NUM} / {PAGE_COUNT}', $font, $fontSize, [0.53, 0.53, 0.53]);
+
+        $filename = "invoice-{$invoice->invoice_code}.pdf";
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
     }
 
     /**

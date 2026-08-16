@@ -1,7 +1,18 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Ban, Banknote, CircleCheck, Pencil, SendHorizonal, Trash2 } from 'lucide-react';
+import {
+    ArrowLeft,
+    Ban,
+    Banknote,
+    CircleCheck,
+    Pencil,
+    SendHorizonal,
+    Trash2,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
+import InputError from '@/components/input-error';
+import { PrintDocumentDialog } from '@/components/print-document-dialog';
+import { RichTextEditor } from '@/components/rich-text-editor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,7 +44,8 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { destroy, edit, index, issue } from '@/routes/invoices';
+import { destroy, edit, index, issue, print } from '@/routes/invoices';
+import { update as updatePaymentTerms } from '@/routes/invoices/payment-terms';
 import {
     cancel as cancelPayment,
     store as storePayment,
@@ -74,6 +86,7 @@ type Invoice = {
     invoice_date: string;
     due_date: string;
     remarks: string | null;
+    payment_terms_html: string | null;
     subtotal: string;
     discount_amount: string;
     tax_amount: string;
@@ -87,15 +100,158 @@ type Invoice = {
         currency: { id: number; iso_code: string; symbol: string | null };
     };
     tax: { id: number; name: string; rate: string; type: string } | null;
+    payment_term_template: { id: number; uuid: string; name: string } | null;
     items: InvoiceItem[];
     payments: InvoicePayment[];
 };
 
-type Props = {
-    invoice: Invoice;
+type PaymentTermTemplateOption = {
+    id: number;
+    uuid: string;
+    name: string;
+    content: string;
 };
 
-export default function InvoicesShow({ invoice }: Props) {
+type Props = {
+    invoice: Invoice;
+    paymentTermTemplates: PaymentTermTemplateOption[];
+};
+
+function PaymentTermsDialog({
+    invoice,
+    paymentTermTemplates,
+}: {
+    invoice: Invoice;
+    paymentTermTemplates: PaymentTermTemplateOption[];
+}) {
+    const [open, setOpen] = useState(false);
+    const [templateId, setTemplateId] = useState('none');
+    const [termsHtml, setTermsHtml] = useState('');
+
+    function handleOpenChange(next: boolean): void {
+        if (next) {
+            setTemplateId(
+                invoice.payment_term_template
+                    ? String(invoice.payment_term_template.id)
+                    : 'none',
+            );
+            setTermsHtml(invoice.payment_terms_html ?? '');
+        }
+
+        setOpen(next);
+    }
+
+    function handleTemplateChange(value: string): void {
+        setTemplateId(value);
+
+        const template = paymentTermTemplates.find(
+            (option) => String(option.id) === value,
+        );
+
+        if (template) {
+            setTermsHtml(template.content);
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                <Button size="sm">
+                    <Pencil />
+                    Edit
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogTitle>Edit payment terms</DialogTitle>
+                <DialogDescription>
+                    Payment terms can be changed after the invoice is issued.
+                    The updated terms appear on the printed invoice.
+                </DialogDescription>
+
+                <Form
+                    {...updatePaymentTerms.form(invoice)}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="grid gap-2 py-2">
+                                <Label htmlFor="payment_term_template_id">
+                                    Template
+                                </Label>
+                                <input
+                                    type="hidden"
+                                    name="payment_term_template_id"
+                                    value={
+                                        templateId === 'none' ? '' : templateId
+                                    }
+                                />
+                                <Select
+                                    value={templateId}
+                                    onValueChange={handleTemplateChange}
+                                >
+                                    <SelectTrigger
+                                        id="payment_term_template_id"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select a template" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">
+                                            No template
+                                        </SelectItem>
+                                        {paymentTermTemplates.map(
+                                            (template) => (
+                                                <SelectItem
+                                                    key={template.id}
+                                                    value={String(template.id)}
+                                                >
+                                                    {template.name}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                <InputError
+                                    message={errors.payment_term_template_id}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="payment_terms_html">
+                                    Terms &amp; conditions
+                                </Label>
+                                <RichTextEditor
+                                    id="payment_terms_html"
+                                    name="payment_terms_html"
+                                    value={termsHtml}
+                                    onChange={setTermsHtml}
+                                    error={errors.payment_terms_html}
+                                />
+                                <InputError
+                                    message={errors.payment_terms_html}
+                                />
+                            </div>
+
+                            <DialogFooter className="gap-2">
+                                <DialogClose asChild>
+                                    <Button variant="secondary">Cancel</Button>
+                                </DialogClose>
+
+                                <Button type="submit" disabled={processing}>
+                                    {processing && <Spinner />}
+                                    Save Payment Terms
+                                </Button>
+                            </DialogFooter>
+                        </>
+                    )}
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: 'Invoices', href: index() },
@@ -138,6 +294,15 @@ export default function InvoicesShow({ invoice }: Props) {
                                 Back to Invoices
                             </Link>
                         </Button>
+
+                        <PrintDocumentDialog
+                            title="Print invoice"
+                            description="Preview or download the invoice as a PDF."
+                            previewUrl={print.url(invoice)}
+                            downloadUrl={print.url(invoice, {
+                                query: { download: true },
+                            })}
+                        />
 
                         {invoice.status === 'draft' && (
                             <Button asChild className="w-full sm:w-auto">
@@ -245,6 +410,38 @@ export default function InvoicesShow({ invoice }: Props) {
                                 </dd>
                             </div>
                         )}
+
+                        <div className="sm:col-span-2">
+                            <dt className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                                <span>
+                                    Payment Terms
+                                    {invoice.payment_term_template && (
+                                        <>
+                                            :{' '}
+                                            {invoice.payment_term_template.name}
+                                        </>
+                                    )}
+                                </span>
+                                <PaymentTermsDialog
+                                    invoice={invoice}
+                                    paymentTermTemplates={paymentTermTemplates}
+                                />
+                            </dt>
+                            <dd className="mt-1 font-medium">
+                                {invoice.payment_terms_html ? (
+                                    <div
+                                        className="rich-text-content"
+                                        dangerouslySetInnerHTML={{
+                                            __html: invoice.payment_terms_html,
+                                        }}
+                                    />
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
                     </dl>
                 </div>
 
@@ -375,7 +572,11 @@ export default function InvoicesShow({ invoice }: Props) {
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                {processing ? <Spinner /> : <SendHorizonal />}
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <SendHorizonal />
+                                                )}
                                                 Issue
                                             </Button>
                                         </DialogFooter>
@@ -475,8 +676,8 @@ export default function InvoicesShow({ invoice }: Props) {
                                                                     the
                                                                     invoice&apos;s
                                                                     payment
-                                                                    status.
-                                                                    This action
+                                                                    status. This
+                                                                    action
                                                                     cannot be
                                                                     undone.
                                                                 </DialogDescription>
@@ -506,7 +707,9 @@ export default function InvoicesShow({ invoice }: Props) {
                                                                                     id="cancel_reason"
                                                                                     name="cancel_reason"
                                                                                     required
-                                                                                    rows={3}
+                                                                                    rows={
+                                                                                        3
+                                                                                    }
                                                                                 />
                                                                                 <p className="text-sm text-destructive dark:text-destructive-foreground">
                                                                                     {
@@ -550,142 +753,150 @@ export default function InvoicesShow({ invoice }: Props) {
                             </div>
                         )}
 
-                        {balanceDue > 0 && <Form
-                            noValidate
-                            {...storePayment.form(invoice)}
-                            options={{ preserveScroll: true }}
-                            resetOnSuccess
-                        >
-                            {({ processing, errors }) => (
-                                <div className="grid gap-4 rounded-lg border border-border/50 p-4">
-                                    <div className="flex justify-end">
-                                        <Button
-                                            type="button"
-                                            variant="default"
-                                            size="sm"
-                                            onClick={() => {
-                                                if (amountRef.current) {
-                                                    amountRef.current.value =
-                                                        String(balanceDue);
-                                                }
-                                            }}
-                                        >
-                                            <Banknote />
-                                            Pay all remaining
-                                        </Button>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="amount">
-                                                Amount
-                                            </Label>
-                                            <Input
-                                                ref={amountRef}
-                                                id="amount"
-                                                type="number"
-                                                step="1"
-                                                name="amount"
-                                                defaultValue="0"
-                                            />
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.amount}
-                                            </p>
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="payment_date">
-                                                Payment date
-                                            </Label>
-                                            <Input
-                                                id="payment_date"
-                                                type="date"
-                                                name="payment_date"
-                                                defaultValue={new Date()
-                                                    .toISOString()
-                                                    .slice(0, 10)}
-                                            />
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.payment_date}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="method">
-                                                Method
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="method"
-                                                value={
-                                                    paymentMethod === 'none'
-                                                        ? ''
-                                                        : paymentMethod
-                                                }
-                                            />
-                                            <Select
-                                                value={paymentMethod}
-                                                onValueChange={setPaymentMethod}
+                        {balanceDue > 0 && (
+                            <Form
+                                noValidate
+                                {...storePayment.form(invoice)}
+                                options={{ preserveScroll: true }}
+                                resetOnSuccess
+                            >
+                                {({ processing, errors }) => (
+                                    <div className="grid gap-4 rounded-lg border border-border/50 p-4">
+                                        <div className="flex justify-end">
+                                            <Button
+                                                type="button"
+                                                variant="default"
+                                                size="sm"
+                                                onClick={() => {
+                                                    if (amountRef.current) {
+                                                        amountRef.current.value =
+                                                            String(balanceDue);
+                                                    }
+                                                }}
                                             >
-                                                <SelectTrigger
-                                                    id="method"
-                                                    className="w-full"
+                                                <Banknote />
+                                                Pay all remaining
+                                            </Button>
+                                        </div>
+
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="amount">
+                                                    Amount
+                                                </Label>
+                                                <Input
+                                                    ref={amountRef}
+                                                    id="amount"
+                                                    type="number"
+                                                    step="1"
+                                                    name="amount"
+                                                    defaultValue="0"
+                                                />
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.amount}
+                                                </p>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="payment_date">
+                                                    Payment date
+                                                </Label>
+                                                <Input
+                                                    id="payment_date"
+                                                    type="date"
+                                                    name="payment_date"
+                                                    defaultValue={new Date()
+                                                        .toISOString()
+                                                        .slice(0, 10)}
+                                                />
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.payment_date}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="method">
+                                                    Method
+                                                </Label>
+                                                <input
+                                                    type="hidden"
+                                                    name="method"
+                                                    value={
+                                                        paymentMethod === 'none'
+                                                            ? ''
+                                                            : paymentMethod
+                                                    }
+                                                />
+                                                <Select
+                                                    value={paymentMethod}
+                                                    onValueChange={
+                                                        setPaymentMethod
+                                                    }
                                                 >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">
-                                                        None
-                                                    </SelectItem>
-                                                    <SelectItem value="Bank Transfer">
-                                                        Bank Transfer
-                                                    </SelectItem>
-                                                    <SelectItem value="Card">
-                                                        Card
-                                                    </SelectItem>
-                                                    <SelectItem value="QRIS">
-                                                        QRIS
-                                                    </SelectItem>
-                                                    <SelectItem value="Cash">
-                                                        Cash
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.method}
-                                            </p>
+                                                    <SelectTrigger
+                                                        id="method"
+                                                        className="w-full"
+                                                    >
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">
+                                                            None
+                                                        </SelectItem>
+                                                        <SelectItem value="Bank Transfer">
+                                                            Bank Transfer
+                                                        </SelectItem>
+                                                        <SelectItem value="Card">
+                                                            Card
+                                                        </SelectItem>
+                                                        <SelectItem value="QRIS">
+                                                            QRIS
+                                                        </SelectItem>
+                                                        <SelectItem value="Cash">
+                                                            Cash
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.method}
+                                                </p>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="remarks">
+                                                    Remarks
+                                                </Label>
+                                                <Textarea
+                                                    id="remarks"
+                                                    name="remarks"
+                                                    placeholder="Optional"
+                                                    rows={1}
+                                                />
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.remarks}
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="remarks">
-                                                Remarks
-                                            </Label>
-                                            <Textarea
-                                                id="remarks"
-                                                name="remarks"
-                                                placeholder="Optional"
-                                                rows={1}
-                                            />
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.remarks}
-                                            </p>
+                                        <div>
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                            >
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <CircleCheck />
+                                                )}
+                                                Record Payment
+                                            </Button>
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                        >
-                                            {processing ? <Spinner /> : <CircleCheck />}
-                                            Record Payment
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </Form>}
+                                )}
+                            </Form>
+                        )}
                     </div>
                 )}
 

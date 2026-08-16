@@ -1594,161 +1594,169 @@ export default function ProjectsShow({
                             </>
                         )}
                     </TabsContent>
-                </Tabs>
 
-                <div className="space-y-6">
-                    <h2 className="text-base font-semibold">Attachments</h2>
-                    <Form
-                        {...storeAttachment.form(project)}
-                        encType="multipart/form-data"
-                        options={{ preserveScroll: true }}
-                        resetOnSuccess
-                    >
-                        {({ processing, errors }) => (
-                            <div className="flex flex-col gap-4 rounded-lg border border-border/50 p-4 sm:flex-row sm:items-end">
-                                <div className="grid flex-1 gap-2">
-                                    <Label htmlFor="attachment-name">
-                                        Document name
-                                    </Label>
-                                    <Input
-                                        id="attachment-name"
-                                        name="name"
-                                        placeholder="e.g. Customer PO"
-                                    />
-                                    <InputError message={errors.name} />
+                    <TabsContent value="attachments" className="space-y-4">
+                        <h2 className="text-base font-semibold">Attachments</h2>
+                        <Form
+                            {...storeAttachment.form(project)}
+                            encType="multipart/form-data"
+                            options={{ preserveScroll: true }}
+                            resetOnSuccess
+                        >
+                            {({ processing, errors }) => (
+                                <div className="flex flex-col gap-4 rounded-lg border border-border/50 p-4 sm:flex-row sm:items-end">
+                                    <div className="grid flex-1 gap-2">
+                                        <Label htmlFor="attachment-name">
+                                            Document name
+                                        </Label>
+                                        <Input
+                                            id="attachment-name"
+                                            name="name"
+                                            placeholder="e.g. Customer PO"
+                                        />
+                                        <InputError message={errors.name} />
+                                    </div>
+
+                                    <div className="grid flex-1 gap-2">
+                                        <Label htmlFor="attachment-file">
+                                            File
+                                        </Label>
+                                        <Input
+                                            id="attachment-file"
+                                            type="file"
+                                            name="file"
+                                        />
+                                        <InputError message={errors.file} />
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                        className="w-full sm:w-auto"
+                                    >
+                                        {processing ? <Spinner /> : <Upload />}
+                                        Upload
+                                    </Button>
                                 </div>
+                            )}
+                        </Form>
 
-                                <div className="grid flex-1 gap-2">
-                                    <Label htmlFor="attachment-file">
-                                        File
-                                    </Label>
-                                    <Input
-                                        id="attachment-file"
-                                        type="file"
-                                        name="file"
-                                    />
-                                    <InputError message={errors.file} />
-                                </div>
+                        {project.attachments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No supporting documents have been uploaded for
+                                this project yet.
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {project.attachments.map((attachment) => (
+                                    <div
+                                        key={attachment.id}
+                                        className="flex flex-col gap-3 rounded-lg border border-border/50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-0.5">
+                                            <p className="font-medium">
+                                                {attachment.name}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {formatFileSize(
+                                                    attachment.size,
+                                                )}{' '}
+                                                &middot; Uploaded by{' '}
+                                                {attachment.uploader.name} on{' '}
+                                                {formatDate(
+                                                    attachment.created_at,
+                                                )}
+                                            </p>
+                                        </div>
 
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="w-full sm:w-auto"
-                                >
-                                    {processing ? <Spinner /> : <Upload />}
-                                    Upload
-                                </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                asChild
+                                            >
+                                                <a
+                                                    href={downloadAttachment.url(
+                                                        {
+                                                            project,
+                                                            attachment,
+                                                        },
+                                                    )}
+                                                >
+                                                    <Download />
+                                                    Download
+                                                </a>
+                                            </Button>
+
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                    >
+                                                        <Trash2 />
+                                                        Delete
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogTitle>
+                                                        Delete &quot;
+                                                        {attachment.name}
+                                                        &quot;?
+                                                    </DialogTitle>
+                                                    <DialogDescription>
+                                                        This action cannot be
+                                                        undone. This file will
+                                                        be permanently deleted.
+                                                    </DialogDescription>
+
+                                                    <Form
+                                                        {...destroyAttachment.form(
+                                                            {
+                                                                project,
+                                                                attachment,
+                                                            },
+                                                        )}
+                                                        options={{
+                                                            preserveScroll: true,
+                                                        }}
+                                                    >
+                                                        {({ processing }) => (
+                                                            <DialogFooter className="gap-2">
+                                                                <DialogClose
+                                                                    asChild
+                                                                >
+                                                                    <Button variant="secondary">
+                                                                        Cancel
+                                                                    </Button>
+                                                                </DialogClose>
+
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    disabled={
+                                                                        processing
+                                                                    }
+                                                                    asChild
+                                                                >
+                                                                    <button type="submit">
+                                                                        {processing && (
+                                                                            <Spinner />
+                                                                        )}
+                                                                        Delete
+                                                                    </button>
+                                                                </Button>
+                                                            </DialogFooter>
+                                                        )}
+                                                    </Form>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
-                    </Form>
-
-                    {project.attachments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                            No supporting documents have been uploaded for this
-                            project yet.
-                        </p>
-                    ) : (
-                        <div className="space-y-2">
-                            {project.attachments.map((attachment) => (
-                                <div
-                                    key={attachment.id}
-                                    className="flex flex-col gap-3 rounded-lg border border-border/50 p-4 sm:flex-row sm:items-center sm:justify-between"
-                                >
-                                    <div className="space-y-0.5">
-                                        <p className="font-medium">
-                                            {attachment.name}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatFileSize(attachment.size)}{' '}
-                                            &middot; Uploaded by{' '}
-                                            {attachment.uploader.name} on{' '}
-                                            {formatDate(attachment.created_at)}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            asChild
-                                        >
-                                            <a
-                                                href={downloadAttachment.url({
-                                                    project,
-                                                    attachment,
-                                                })}
-                                            >
-                                                <Download />
-                                                Download
-                                            </a>
-                                        </Button>
-
-                                        <Dialog>
-                                            <DialogTrigger asChild>
-                                                <Button
-                                                    variant="destructive"
-                                                    size="sm"
-                                                >
-                                                    <Trash2 />
-                                                    Delete
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent>
-                                                <DialogTitle>
-                                                    Delete &quot;
-                                                    {attachment.name}
-                                                    &quot;?
-                                                </DialogTitle>
-                                                <DialogDescription>
-                                                    This action cannot be
-                                                    undone. This file will be
-                                                    permanently deleted.
-                                                </DialogDescription>
-
-                                                <Form
-                                                    {...destroyAttachment.form({
-                                                        project,
-                                                        attachment,
-                                                    })}
-                                                    options={{
-                                                        preserveScroll: true,
-                                                    }}
-                                                >
-                                                    {({ processing }) => (
-                                                        <DialogFooter className="gap-2">
-                                                            <DialogClose
-                                                                asChild
-                                                            >
-                                                                <Button variant="secondary">
-                                                                    Cancel
-                                                                </Button>
-                                                            </DialogClose>
-
-                                                            <Button
-                                                                variant="destructive"
-                                                                disabled={
-                                                                    processing
-                                                                }
-                                                                asChild
-                                                            >
-                                                                <button type="submit">
-                                                                    {processing && (
-                                                                        <Spinner />
-                                                                    )}
-                                                                    Delete
-                                                                </button>
-                                                            </Button>
-                                                        </DialogFooter>
-                                                    )}
-                                                </Form>
-                                            </DialogContent>
-                                        </Dialog>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                    </TabsContent>
+                </Tabs>
 
                 <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
                     <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
