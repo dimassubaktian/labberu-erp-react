@@ -8,6 +8,9 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryOrderController;
 use App\Http\Controllers\DesignReferenceController;
+use App\Http\Controllers\EquipmentAssignmentController;
+use App\Http\Controllers\EquipmentCalibrationController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoicePaymentController;
@@ -16,6 +19,7 @@ use App\Http\Controllers\PaymentTermTemplateController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProjectAttachmentController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectEquipmentCheckoutController;
 use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\PurchaseInvoicePaymentController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -137,6 +141,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('projects/{project}/attachments/{attachment}/download', [ProjectAttachmentController::class, 'download'])->name('projects.attachments.download')->middleware('permission:projects.view');
     Route::delete('projects/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'destroy'])->name('projects.attachments.destroy')->middleware('permission:projects.attachments.delete');
 
+    Route::post('projects/{project}/equipment-checkouts', [ProjectEquipmentCheckoutController::class, 'store'])->name('projects.equipment-checkouts.store')->middleware('permission:equipment.assignments.create');
+
     Route::get('quotations', [QuotationController::class, 'index'])->name('quotations.index')->middleware('permission:quotations.view');
     Route::get('quotations/create', [QuotationController::class, 'create'])->name('quotations.create')->middleware('permission:quotations.create');
     Route::get('quotations/search', [QuotationController::class, 'search'])->name('quotations.search')->middleware('permission:quotations.view');
@@ -237,6 +243,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.delete');
 
     Route::get('design-reference', [DesignReferenceController::class, 'index'])->name('design-reference')->middleware('role:Super Admin');
+
+    Route::get('equipment', [EquipmentController::class, 'index'])->name('equipment.index')->middleware('permission:equipment.view');
+    Route::get('equipment/create', [EquipmentController::class, 'create'])->name('equipment.create')->middleware('permission:equipment.create');
+    Route::post('equipment', [EquipmentController::class, 'store'])->name('equipment.store')->middleware('permission:equipment.create');
+    Route::get('equipment/search', [EquipmentController::class, 'search'])->name('equipment.search')->middleware('permission:equipment.view');
+    Route::get('equipment/{equipment}', [EquipmentController::class, 'show'])->name('equipment.show')->middleware('permission:equipment.view');
+    Route::get('equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit')->middleware('permission:equipment.update');
+    Route::put('equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update')->middleware('permission:equipment.update');
+    Route::delete('equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy')->middleware('permission:equipment.delete');
+    Route::get('equipment/{equipment}/picture', [EquipmentController::class, 'picture'])->name('equipment.picture')->middleware('permission:equipment.view');
+
+    Route::post('equipment/{equipment}/calibrations', [EquipmentCalibrationController::class, 'store'])->name('equipment.calibrations.store')->middleware('permission:equipment.calibrations.create');
+    Route::get('equipment/{equipment}/calibrations/{calibration}/certificate', [EquipmentCalibrationController::class, 'download'])->name('equipment.calibrations.download')->middleware('permission:equipment.view');
+    Route::put('equipment/{equipment}/calibrations/{calibration}', [EquipmentCalibrationController::class, 'update'])->name('equipment.calibrations.update')->middleware('permission:equipment.calibrations.update');
+    Route::delete('equipment/{equipment}/calibrations/{calibration}', [EquipmentCalibrationController::class, 'destroy'])->name('equipment.calibrations.destroy')->middleware('permission:equipment.calibrations.delete');
+
+    Route::post('equipment/{equipment}/assignments', [EquipmentAssignmentController::class, 'store'])->name('equipment.assignments.store')->middleware('permission:equipment.assignments.create');
+    Route::patch('equipment/{equipment}/assignments/{assignment}/return', [EquipmentAssignmentController::class, 'return'])->name('equipment.assignments.return')->middleware('permission:equipment.assignments.update');
 
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:roles.view');
     Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:roles.create');

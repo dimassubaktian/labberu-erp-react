@@ -323,6 +323,34 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                 </div>
                             </div>
 
+                            <div className="grid gap-2 sm:max-w-xs">
+                                <Label htmlFor="equipment_calibration_max_age_months">
+                                    Required equipment calibration recency
+                                    (months)
+                                </Label>
+                                <Input
+                                    id="equipment_calibration_max_age_months"
+                                    type="number"
+                                    step="1"
+                                    min="1"
+                                    max="120"
+                                    name="equipment_calibration_max_age_months"
+                                    placeholder="Optional"
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    If set, equipment checked out to this
+                                    project must have been calibrated within
+                                    this many months, or checkout is blocked.
+                                    Leave empty if the customer has no such
+                                    requirement.
+                                </p>
+                                <InputError
+                                    message={
+                                        errors.equipment_calibration_max_age_months
+                                    }
+                                />
+                            </div>
+
                             <div className="grid gap-2 sm:grid-cols-2">
                                 <div className="grid gap-2">
                                     <Label htmlFor="start_date">

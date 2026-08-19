@@ -4,6 +4,7 @@ import {
     Ban,
     CircleOff,
     Download,
+    Package,
     Pencil,
     Plus,
     Search,
@@ -12,6 +13,7 @@ import {
     X,
 } from 'lucide-react';
 import React from 'react';
+import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +50,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { show as showCustomer } from '@/routes/customers';
 import { show as showDeliveryOrder } from '@/routes/delivery-orders';
+import { search as searchEquipment, show as showEquipment } from '@/routes/equipment';
 import { show as showInvoice } from '@/routes/invoices';
 import {
     cancel,
@@ -62,6 +65,7 @@ import {
     download as downloadAttachment,
     store as storeAttachment,
 } from '@/routes/projects/attachments';
+import { store as storeEquipmentCheckout } from '@/routes/projects/equipment-checkouts';
 import { show as showPurchaseInvoice } from '@/routes/purchase-invoices';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 import {
@@ -95,6 +99,7 @@ type Project = {
     po_status: string | null;
     billing_status: string | null;
     priority: string;
+    equipment_calibration_max_age_months: number | null;
     start_date: string | null;
     end_date: string | null;
     completed_at: string | null;
@@ -114,6 +119,37 @@ type Project = {
         full_name: string;
     } | null;
     attachments: Attachment[];
+};
+
+type EquipmentAssignmentHistory = {
+    id: number;
+    uuid: string;
+    checked_out_at: string;
+    returned_at: string | null;
+    notes: string | null;
+    calibration_compliant: boolean | null;
+    equipment: {
+        id: number;
+        uuid: string;
+        equipment_code: string;
+        name: string;
+        category: string | null;
+    };
+    custodian: { id: number; full_name: string } | null;
+    creator: { id: number; name: string };
+};
+
+type EquipmentOption = {
+    id: number;
+    uuid: string;
+    equipment_code: string;
+    name: string;
+    category: string | null;
+};
+
+type WorkforceOption = {
+    id: number;
+    full_name: string;
 };
 
 type Attachment = {
@@ -214,6 +250,8 @@ type Props = {
     deliveryOrders: DeliveryOrder[];
     invoices: Invoice[];
     purchaseInvoices: PurchaseInvoice[];
+    workforces: WorkforceOption[];
+    equipmentAssignments: EquipmentAssignmentHistory[];
 };
 
 const QUOTATION_STATUS_OPTIONS = [
@@ -268,7 +306,13 @@ export default function ProjectsShow({
     deliveryOrders,
     invoices,
     purchaseInvoices,
+    workforces,
+    equipmentAssignments,
 }: Props) {
+    const [checkoutEquipmentId, setCheckoutEquipmentId] = React.useState('');
+    const [checkoutCustodianId, setCheckoutCustodianId] =
+        React.useState('none');
+
     const costVariance =
         plannedCost && project.actual_cost
             ? Number(project.actual_cost) - Number(plannedCost)
@@ -567,6 +611,21 @@ export default function ProjectsShow({
 
                         <div>
                             <dt className="text-sm text-muted-foreground">
+                                Required equipment calibration recency
+                            </dt>
+                            <dd className="font-medium">
+                                {project.equipment_calibration_max_age_months ? (
+                                    `Within ${project.equipment_calibration_max_age_months} month(s)`
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        No requirement
+                                    </span>
+                                )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
                                 Request date
                             </dt>
                             <dd className="font-medium">
@@ -784,6 +843,7 @@ export default function ProjectsShow({
                         <TabsTrigger value="attachments">
                             Attachments
                         </TabsTrigger>
+                        <TabsTrigger value="equipment">Equipment</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="quotations" className="space-y-4">
@@ -1817,6 +1877,303 @@ export default function ProjectsShow({
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="equipment" className="space-y-4">
+                        <h2 className="text-base font-semibold">Equipment</h2>
+
+                        {project.equipment_calibration_max_age_months && (
+                            <p className="text-sm text-muted-foreground">
+                                This project only allows equipment calibrated
+                                within the last{' '}
+                                {project.equipment_calibration_max_age_months}{' '}
+                                month(s). The picker below only offers tools
+                                that currently qualify.
+                            </p>
+                        )}
+
+                        <Form
+                            {...storeEquipmentCheckout.form(project)}
+                            options={{ preserveScroll: true }}
+                            onSuccess={() => {
+                                setCheckoutEquipmentId('');
+                                setCheckoutCustodianId('none');
+                            }}
+                        >
+                            {({ processing, errors }) => (
+                                <div className="space-y-4 rounded-lg border border-border/50 p-4">
+                                    <h3 className="text-sm font-semibold">
+                                        Check out a tool to this project
+                                    </h3>
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="equipment_id">
+                                                Equipment
+                                            </Label>
+                                            <input
+                                                type="hidden"
+                                                name="equipment_id"
+                                                value={checkoutEquipmentId}
+                                            />
+                                            <AsyncCombobox<EquipmentOption>
+                                                id="equipment_id"
+                                                value={checkoutEquipmentId}
+                                                onValueChange={
+                                                    setCheckoutEquipmentId
+                                                }
+                                                searchUrl={
+                                                    searchEquipment({
+                                                        query: {
+                                                            project: project.id,
+                                                        },
+                                                    }).url
+                                                }
+                                                getOptionId={(item) =>
+                                                    String(item.id)
+                                                }
+                                                getOptionLabel={(item) =>
+                                                    `${item.equipment_code}: ${item.name}`
+                                                }
+                                                placeholder="Select an available tool"
+                                            />
+                                            <InputError
+                                                message={errors.equipment_id}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="custodian_id">
+                                                Custodian
+                                            </Label>
+                                            <input
+                                                type="hidden"
+                                                name="custodian_id"
+                                                value={
+                                                    checkoutCustodianId ===
+                                                    'none'
+                                                        ? ''
+                                                        : checkoutCustodianId
+                                                }
+                                            />
+                                            <Select
+                                                value={checkoutCustodianId}
+                                                onValueChange={
+                                                    setCheckoutCustodianId
+                                                }
+                                            >
+                                                <SelectTrigger
+                                                    id="custodian_id"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue placeholder="Optional" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">
+                                                        None
+                                                    </SelectItem>
+                                                    {workforces.map(
+                                                        (workforce) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    workforce.id
+                                                                }
+                                                                value={String(
+                                                                    workforce.id,
+                                                                )}
+                                                            >
+                                                                {
+                                                                    workforce.full_name
+                                                                }
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={errors.custodian_id}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="checked_out_at">
+                                                Checked out at
+                                            </Label>
+                                            <Input
+                                                id="checked_out_at"
+                                                type="datetime-local"
+                                                name="checked_out_at"
+                                                required
+                                                defaultValue={new Date()
+                                                    .toISOString()
+                                                    .slice(0, 16)}
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.checked_out_at
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="expected_return_at">
+                                                Expected return date
+                                            </Label>
+                                            <Input
+                                                id="expected_return_at"
+                                                type="date"
+                                                name="expected_return_at"
+                                                placeholder="Optional"
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.expected_return_at
+                                                }
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2 sm:col-span-2">
+                                            <Label htmlFor="checkout_notes">
+                                                Notes
+                                            </Label>
+                                            <Textarea
+                                                id="checkout_notes"
+                                                name="notes"
+                                                placeholder="Optional"
+                                            />
+                                            <InputError
+                                                message={errors.notes}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <Button type="submit" disabled={processing}>
+                                        {processing ? (
+                                            <Spinner />
+                                        ) : (
+                                            <Package />
+                                        )}
+                                        Check out
+                                    </Button>
+                                </div>
+                            )}
+                        </Form>
+
+                        {equipmentAssignments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No equipment has been checked out to this
+                                project yet.
+                            </p>
+                        ) : (
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>
+                                                Equipment code
+                                            </TableHead>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Category</TableHead>
+                                            <TableHead>Custodian</TableHead>
+                                            <TableHead>Checked out</TableHead>
+                                            <TableHead>Returned</TableHead>
+                                            <TableHead>Remarks</TableHead>
+                                            {project.equipment_calibration_max_age_months && (
+                                                <TableHead>
+                                                    Calibration
+                                                </TableHead>
+                                            )}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {equipmentAssignments.map(
+                                            (assignment) => (
+                                                <TableRow key={assignment.id}>
+                                                    <TableCell className="font-medium">
+                                                        <Link
+                                                            href={showEquipment(
+                                                                assignment.equipment,
+                                                            )}
+                                                        >
+                                                            {
+                                                                assignment
+                                                                    .equipment
+                                                                    .equipment_code
+                                                            }
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {
+                                                            assignment
+                                                                .equipment.name
+                                                        }
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {assignment.equipment
+                                                            .category ?? (
+                                                            <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {assignment.custodian
+                                                            ?.full_name ?? (
+                                                            <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {formatDateTime(
+                                                            assignment.checked_out_at,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {assignment.returned_at ? (
+                                                            <span className="text-muted-foreground">
+                                                                {formatDateTime(
+                                                                    assignment.returned_at,
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <Badge variant="secondary">
+                                                                Active
+                                                            </Badge>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="max-w-xs text-muted-foreground">
+                                                        {assignment.notes ?? (
+                                                            <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    {project.equipment_calibration_max_age_months && (
+                                                        <TableCell>
+                                                            {assignment.calibration_compliant ===
+                                                            null ? (
+                                                                <span className="text-muted-foreground">
+                                                                    &mdash;
+                                                                </span>
+                                                            ) : assignment.calibration_compliant ? (
+                                                                <Badge variant="secondary">
+                                                                    Compliant
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="destructive">
+                                                                    Non-compliant
+                                                                </Badge>
+                                                            )}
+                                                        </TableCell>
+                                                    )}
+                                                </TableRow>
+                                            ),
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </TabsContent>

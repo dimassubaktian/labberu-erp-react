@@ -31,6 +31,7 @@ use Illuminate\Support\Str;
  * @property string|null $po_status
  * @property string|null $billing_status
  * @property string $priority
+ * @property int|null $equipment_calibration_max_age_months
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
  * @property Carbon|null $completed_at
@@ -53,6 +54,7 @@ use Illuminate\Support\Str;
     'void_reason',
     'status',
     'priority',
+    'equipment_calibration_max_age_months',
     'start_date',
     'end_date',
     'completed_at',
@@ -146,6 +148,16 @@ class Project extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(ProjectAttachment::class)->latest();
+    }
+
+    /**
+     * Get the equipment currently checked out to this project.
+     *
+     * @return HasMany<Equipment, $this>
+     */
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class, 'current_project_id');
     }
 
     /**

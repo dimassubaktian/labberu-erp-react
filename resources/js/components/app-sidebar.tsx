@@ -23,6 +23,7 @@ import {
     Truck,
     UserCog,
     Users,
+    Wrench,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -41,6 +42,7 @@ import { edit as companySettingsEdit } from '@/routes/company-settings';
 import { index as currenciesIndex } from '@/routes/currencies';
 import { index as customersIndex } from '@/routes/customers';
 import { index as deliveryOrdersIndex } from '@/routes/delivery-orders';
+import { index as equipmentIndex } from '@/routes/equipment';
 import { index as goodsReceiptNotesIndex } from '@/routes/goods-receipt-notes';
 import { index as invoicesIndex } from '@/routes/invoices';
 import { index as businessLinesIndex } from '@/routes/business-lines';
@@ -149,6 +151,17 @@ const navGroups: NavGroup[] = [
                 href: stockAdjustmentsIndex(),
                 icon: ClipboardEdit,
                 permission: 'stock-adjustments.view',
+            },
+        ],
+    },
+    {
+        label: 'Assets',
+        items: [
+            {
+                title: 'Equipment',
+                href: equipmentIndex(),
+                icon: Wrench,
+                permission: 'equipment.view',
             },
         ],
     },

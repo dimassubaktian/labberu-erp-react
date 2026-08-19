@@ -42,6 +42,7 @@ class RoleSeeder extends Seeder
             'stock-movements' => ['view'],
             'stock-adjustments' => ['view'],
             'company-settings' => ['view'],
+            'equipment' => ['view', 'create', 'update', 'calibrations.create', 'calibrations.update', 'assignments.create', 'assignments.update'],
         ]);
 
         $this->assignPermissions('Project Manager', [
@@ -55,6 +56,7 @@ class RoleSeeder extends Seeder
             'customers' => ['view'],
             'vendors' => ['view'],
             'stock-movements' => ['view'],
+            'equipment' => ['view', 'assignments.create', 'assignments.update'],
         ]);
 
         $this->assignPermissions('HR', [
@@ -97,6 +99,7 @@ class RoleSeeder extends Seeder
             'projects' => ['view'],
             'delivery-orders' => ['view'],
             'goods-receipt-notes' => ['view'],
+            'equipment' => ['view'],
         ]);
     }
 

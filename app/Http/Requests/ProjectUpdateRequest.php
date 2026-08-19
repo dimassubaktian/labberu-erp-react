@@ -32,6 +32,7 @@ class ProjectUpdateRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             'status' => ['required', 'string', 'in:new,planning,in_progress,completed,cancelled'],
             'priority' => ['required', 'string', 'in:low,medium,high,urgent'],
+            'equipment_calibration_max_age_months' => ['nullable', 'integer', 'min:1', 'max:120'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'completed_at' => ['nullable', 'date'],

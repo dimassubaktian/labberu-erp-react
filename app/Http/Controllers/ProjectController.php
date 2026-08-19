@@ -7,6 +7,7 @@ use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectUpdateRequest;
 use App\Http\Requests\ProjectVoidRequest;
 use App\Models\BusinessLine;
+use App\Models\EquipmentAssignment;
 use App\Models\Project;
 use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
@@ -127,6 +128,27 @@ class ProjectController extends Controller
     {
         $project->load('customer', 'personInCharge', 'attachments.uploader');
 
+        // Full checkout/return history for this project, not just what's currently assigned, so
+        // returned equipment doesn't just disappear from the page. Compliance only means anything
+        // for still-open assignments; a returned tool's compliance at the time doesn't matter now.
+        $equipmentAssignments = EquipmentAssignment::query()
+            ->where('project_id', $project->id)
+            ->with([
+                'equipment:id,uuid,equipment_code,name,category,calibration_required',
+                'custodian:id,full_name',
+                'creator:id,name',
+            ])
+            ->orderByDesc('checked_out_at')
+            ->get()
+            ->each(function (EquipmentAssignment $assignment) use ($project): void {
+                $assignment->setAttribute(
+                    'calibration_compliant',
+                    $assignment->returned_at === null
+                        ? $assignment->equipment->satisfiesCalibrationRecency($project->equipment_calibration_max_age_months)
+                        : null,
+                );
+            });
+
         $quotations = $project->quotations()
             ->with('currency')
             ->orderByDesc('created_at')
@@ -168,6 +190,11 @@ class ProjectController extends Controller
             'deliveryOrders' => $deliveryOrders,
             'invoices' => $invoices,
             'purchaseInvoices' => $purchaseInvoices,
+            'equipmentAssignments' => $equipmentAssignments,
+            'workforces' => Workforce::query()
+                ->where('status', 'active')
+                ->orderBy('full_name')
+                ->get(['id', 'full_name']),
         ]);
     }
 
