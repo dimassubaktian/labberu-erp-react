@@ -11,6 +11,8 @@ use App\Http\Controllers\DesignReferenceController;
 use App\Http\Controllers\EquipmentAssignmentController;
 use App\Http\Controllers\EquipmentCalibrationController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\EquipmentLocationController;
+use App\Http\Controllers\EquipmentLocationMoveController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoicePaymentController;
@@ -261,6 +263,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('equipment/{equipment}/assignments', [EquipmentAssignmentController::class, 'store'])->name('equipment.assignments.store')->middleware('permission:equipment.assignments.create');
     Route::patch('equipment/{equipment}/assignments/{assignment}/return', [EquipmentAssignmentController::class, 'return'])->name('equipment.assignments.return')->middleware('permission:equipment.assignments.update');
+
+    Route::post('equipment/{equipment}/location-moves', [EquipmentLocationMoveController::class, 'store'])->name('equipment.location-moves.store')->middleware('permission:equipment.locations.move');
+
+    Route::get('equipment-locations', [EquipmentLocationController::class, 'index'])->name('equipment-locations.index')->middleware('permission:equipment-locations.view');
+    Route::get('equipment-locations/create', [EquipmentLocationController::class, 'create'])->name('equipment-locations.create')->middleware('permission:equipment-locations.create');
+    Route::post('equipment-locations', [EquipmentLocationController::class, 'store'])->name('equipment-locations.store')->middleware('permission:equipment-locations.create');
+    Route::get('equipment-locations/{equipmentLocation}', [EquipmentLocationController::class, 'show'])->name('equipment-locations.show')->middleware('permission:equipment-locations.view');
+    Route::get('equipment-locations/{equipmentLocation}/edit', [EquipmentLocationController::class, 'edit'])->name('equipment-locations.edit')->middleware('permission:equipment-locations.update');
+    Route::put('equipment-locations/{equipmentLocation}', [EquipmentLocationController::class, 'update'])->name('equipment-locations.update')->middleware('permission:equipment-locations.update');
+    Route::delete('equipment-locations/{equipmentLocation}', [EquipmentLocationController::class, 'destroy'])->name('equipment-locations.destroy')->middleware('permission:equipment-locations.delete');
 
     Route::get('roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:roles.view');
     Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:roles.create');

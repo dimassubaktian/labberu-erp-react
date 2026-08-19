@@ -23,5 +23,6 @@ return [
     'goods-receipt-notes' => ['view', 'create', 'update', 'delete', 'confirm', 'cancel'],
     'users' => ['view', 'create', 'update', 'delete'],
     'roles' => ['view', 'create', 'update', 'delete'],
-    'equipment' => ['view', 'create', 'update', 'delete', 'calibrations.create', 'calibrations.update', 'calibrations.delete', 'assignments.create', 'assignments.update'],
+    'equipment' => ['view', 'create', 'update', 'delete', 'calibrations.create', 'calibrations.update', 'calibrations.delete', 'assignments.create', 'assignments.update', 'locations.move'],
+    'equipment-locations' => ['view', 'create', 'update', 'delete'],
 ];

@@ -9,6 +9,7 @@ import {
     FileText,
     FolderKanban,
     LayoutGrid,
+    MapPin,
     Network,
     Package,
     Palette,
@@ -43,6 +44,7 @@ import { index as currenciesIndex } from '@/routes/currencies';
 import { index as customersIndex } from '@/routes/customers';
 import { index as deliveryOrdersIndex } from '@/routes/delivery-orders';
 import { index as equipmentIndex } from '@/routes/equipment';
+import { index as equipmentLocationsIndex } from '@/routes/equipment-locations';
 import { index as goodsReceiptNotesIndex } from '@/routes/goods-receipt-notes';
 import { index as invoicesIndex } from '@/routes/invoices';
 import { index as businessLinesIndex } from '@/routes/business-lines';
@@ -162,6 +164,12 @@ const navGroups: NavGroup[] = [
                 href: equipmentIndex(),
                 icon: Wrench,
                 permission: 'equipment.view',
+            },
+            {
+                title: 'Equipment Locations',
+                href: equipmentLocationsIndex(),
+                icon: MapPin,
+                permission: 'equipment-locations.view',
             },
         ],
     },

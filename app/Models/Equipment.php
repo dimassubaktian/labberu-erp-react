@@ -33,6 +33,7 @@ use Illuminate\Support\Str;
  * @property string $status
  * @property int|null $current_project_id
  * @property int|null $current_custodian_id
+ * @property int|null $location_id
  * @property string|null $remarks
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -109,6 +110,16 @@ class Equipment extends Model
     }
 
     /**
+     * Get the physical location this equipment is currently stored at, if any.
+     *
+     * @return BelongsTo<EquipmentLocation, $this>
+     */
+    public function currentLocation(): BelongsTo
+    {
+        return $this->belongsTo(EquipmentLocation::class, 'location_id');
+    }
+
+    /**
      * Get the calibration certificate history for this equipment.
      *
      * @return HasMany<EquipmentCalibration, $this>
@@ -116,6 +127,16 @@ class Equipment extends Model
     public function calibrations(): HasMany
     {
         return $this->hasMany(EquipmentCalibration::class)->latest('due_date');
+    }
+
+    /**
+     * Get the storage location move history for this equipment.
+     *
+     * @return HasMany<EquipmentLocationMove, $this>
+     */
+    public function locationMoves(): HasMany
+    {
+        return $this->hasMany(EquipmentLocationMove::class)->latest('moved_at');
     }
 
     /**
@@ -145,6 +166,25 @@ class Equipment extends Model
             $this->syncCurrentAssignment();
 
             return $assignment;
+        });
+    }
+
+    /**
+     * Record a move of this equipment to a physical storage location and update the
+     * denormalized current location. Independent of project/custodian custody, so it applies
+     * regardless of whether the equipment is currently checked out.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function moveToLocation(array $data): EquipmentLocationMove
+    {
+        return DB::transaction(function () use ($data): EquipmentLocationMove {
+            $move = $this->locationMoves()->create($data);
+
+            $this->location_id = $move->location_id;
+            $this->saveQuietly();
+
+            return $move;
         });
     }
 

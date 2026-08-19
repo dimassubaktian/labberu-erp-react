@@ -6,6 +6,7 @@ use App\Http\Requests\EquipmentStoreRequest;
 use App\Http\Requests\EquipmentUpdateRequest;
 use App\Models\Equipment;
 use App\Models\EquipmentCalibration;
+use App\Models\EquipmentLocation;
 use App\Models\Project;
 use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
@@ -86,7 +87,7 @@ class EquipmentController extends Controller
         $dueSoonThreshold = Carbon::today()->addDays(30);
 
         $equipment = Equipment::query()
-            ->with(['currentProject:id,uuid,name', 'currentCustodian:id,full_name'])
+            ->with(['currentProject:id,uuid,name', 'currentCustodian:id,full_name', 'currentLocation:id,uuid,name'])
             ->when($search !== '', function ($builder) use ($search): void {
                 $builder->where(function ($inner) use ($search): void {
                     $inner->where('equipment_code', 'like', "%{$search}%")
@@ -148,11 +149,14 @@ class EquipmentController extends Controller
             'vendor:id,uuid,name',
             'currentProject:id,uuid,name',
             'currentCustodian:id,full_name',
+            'currentLocation:id,uuid,name',
             'calibrations.provider:id,name',
             'calibrations.creator:id,name',
             'assignments.project:id,uuid,name',
             'assignments.custodian:id,full_name',
             'assignments.creator:id,name',
+            'locationMoves.location:id,uuid,name',
+            'locationMoves.creator:id,name',
         ]);
 
         return Inertia::render('equipment/show', [
@@ -161,6 +165,10 @@ class EquipmentController extends Controller
                 ->where('status', 'active')
                 ->orderBy('full_name')
                 ->get(['id', 'full_name']),
+            'locations' => EquipmentLocation::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'uuid', 'name']),
         ]);
     }
 

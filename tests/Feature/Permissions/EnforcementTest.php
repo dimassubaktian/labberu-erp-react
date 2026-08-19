@@ -28,6 +28,7 @@ $viewRoutes = [
     'users.index' => 'users.view',
     'roles.index' => 'roles.view',
     'equipment.index' => 'equipment.view',
+    'equipment-locations.index' => 'equipment-locations.view',
 ];
 
 $createRoutes = [
@@ -49,6 +50,7 @@ $createRoutes = [
     'users.create' => 'users.create',
     'roles.create' => 'roles.create',
     'equipment.create' => 'equipment.create',
+    'equipment-locations.create' => 'equipment-locations.create',
 ];
 
 foreach ([...$viewRoutes, ...$createRoutes] as $routeName => $permission) {

@@ -3,6 +3,7 @@ import {
     ArrowLeft,
     Download,
     LogOut,
+    MapPin,
     Package,
     Pencil,
     Trash2,
@@ -52,6 +53,7 @@ import {
     store as storeCalibration,
     update as updateCalibration,
 } from '@/routes/equipment/calibrations';
+import { store as storeLocationMove } from '@/routes/equipment/location-moves';
 import { search as searchProjects } from '@/routes/projects';
 import { search as searchVendors } from '@/routes/vendors';
 
@@ -89,6 +91,7 @@ const RESULT_VARIANTS: Record<string, 'secondary' | 'destructive' | 'outline'> =
 type VendorOption = { id: number; name: string; vendor_code: string };
 type ProjectOption = { id: number; uuid: string; name: string };
 type WorkforceOption = { id: number; full_name: string };
+type LocationOption = { id: number; uuid: string; name: string };
 
 function toDateInputValue(value: string): string {
     return value.slice(0, 10);
@@ -120,6 +123,15 @@ type Assignment = {
     creator: { id: number; name: string };
 };
 
+type LocationMove = {
+    id: number;
+    uuid: string;
+    moved_at: string;
+    notes: string | null;
+    location: { id: number; uuid: string; name: string } | null;
+    creator: { id: number; name: string };
+};
+
 type Equipment = {
     id: number;
     uuid: string;
@@ -143,13 +155,16 @@ type Equipment = {
     vendor: { id: number; uuid: string; name: string } | null;
     current_project: { id: number; uuid: string; name: string } | null;
     current_custodian: { id: number; full_name: string } | null;
+    current_location: { id: number; uuid: string; name: string } | null;
     calibrations: Calibration[];
     assignments: Assignment[];
+    location_moves: LocationMove[];
 };
 
 type Props = {
     equipment: Equipment;
     workforces: WorkforceOption[];
+    locations: LocationOption[];
 };
 
 function CalibrationEditDialog({
@@ -472,11 +487,14 @@ function ReturnEquipmentDialog({
     );
 }
 
-export default function EquipmentShow({ equipment, workforces }: Props) {
+export default function EquipmentShow({ equipment, workforces, locations }: Props) {
     const [providerId, setProviderId] = React.useState('');
     const [result, setResult] = React.useState('passed');
     const [projectId, setProjectId] = React.useState('');
     const [custodianId, setCustodianId] = React.useState('none');
+    const [locationId, setLocationId] = React.useState(
+        equipment.current_location ? String(equipment.current_location.id) : '',
+    );
 
     const openAssignment = equipment.assignments.find(
         (a) => a.returned_at === null,
@@ -603,14 +621,31 @@ export default function EquipmentShow({ equipment, workforces }: Props) {
 
                         <div>
                             <dt className="text-sm text-muted-foreground">
-                                Currently at
+                                Checked out to
                             </dt>
                             <dd className="font-medium">
                                 {equipment.current_project
                                     ? equipment.current_project.name
                                     : equipment.current_custodian
                                       ? equipment.current_custodian.full_name
-                                      : 'In storage'}
+                                      : (
+                                          <span className="text-muted-foreground">
+                                              &mdash;
+                                          </span>
+                                      )}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt className="text-sm text-muted-foreground">
+                                Storage location
+                            </dt>
+                            <dd className="font-medium">
+                                {equipment.current_location?.name ?? (
+                                    <span className="text-muted-foreground">
+                                        Unassigned
+                                    </span>
+                                )}
                             </dd>
                         </div>
 
@@ -723,6 +758,9 @@ export default function EquipmentShow({ equipment, workforces }: Props) {
                             Calibration History
                         </TabsTrigger>
                         <TabsTrigger value="assignments">
+                            Custody History
+                        </TabsTrigger>
+                        <TabsTrigger value="locations">
                             Location History
                         </TabsTrigger>
                     </TabsList>
@@ -1285,7 +1323,7 @@ export default function EquipmentShow({ equipment, workforces }: Props) {
 
                         {equipment.assignments.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
-                                No location history yet.
+                                No custody history yet.
                             </p>
                         ) : (
                             <div className="overflow-hidden rounded-xl border border-border/50">
@@ -1334,6 +1372,158 @@ export default function EquipmentShow({ equipment, workforces }: Props) {
                                                     </TableCell>
                                                     <TableCell className="max-w-xs text-muted-foreground">
                                                         {assignment.notes ?? (
+                                                            <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ),
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="locations" className="space-y-4">
+                        <Form
+                            {...storeLocationMove.form(equipment)}
+                            options={{ preserveScroll: true }}
+                            resetOnSuccess
+                        >
+                            {({ processing, errors }) => (
+                                <div className="space-y-4 rounded-lg border border-border/50 p-4">
+                                    <h3 className="text-sm font-semibold">
+                                        Move to a storage location
+                                    </h3>
+
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="location_id">
+                                                Location
+                                            </Label>
+                                            <input
+                                                type="hidden"
+                                                name="location_id"
+                                                value={locationId}
+                                            />
+                                            <Select
+                                                value={locationId}
+                                                onValueChange={setLocationId}
+                                            >
+                                                <SelectTrigger
+                                                    id="location_id"
+                                                    className="w-full"
+                                                >
+                                                    <SelectValue placeholder="Select a location" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {locations.map(
+                                                        (location) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    location.id
+                                                                }
+                                                                value={String(
+                                                                    location.id,
+                                                                )}
+                                                            >
+                                                                {location.name}
+                                                            </SelectItem>
+                                                        ),
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <InputError
+                                                message={errors.location_id}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="moved_at">
+                                                Moved at
+                                            </Label>
+                                            <Input
+                                                id="moved_at"
+                                                type="datetime-local"
+                                                name="moved_at"
+                                                required
+                                                defaultValue={new Date()
+                                                    .toISOString()
+                                                    .slice(0, 16)}
+                                            />
+                                            <InputError
+                                                message={errors.moved_at}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-2 sm:col-span-2">
+                                            <Label htmlFor="location_notes">
+                                                Notes
+                                            </Label>
+                                            <Textarea
+                                                id="location_notes"
+                                                name="notes"
+                                                placeholder="Optional"
+                                            />
+                                            <InputError
+                                                message={errors.notes}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="submit"
+                                        disabled={processing}
+                                    >
+                                        {processing ? (
+                                            <Spinner />
+                                        ) : (
+                                            <MapPin />
+                                        )}
+                                        Record move
+                                    </Button>
+                                </div>
+                            )}
+                        </Form>
+
+                        {equipment.location_moves.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                No location history yet.
+                            </p>
+                        ) : (
+                            <div className="overflow-hidden rounded-xl border border-border/50">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Location</TableHead>
+                                            <TableHead>Moved at</TableHead>
+                                            <TableHead>Recorded by</TableHead>
+                                            <TableHead>Notes</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {equipment.location_moves.map(
+                                            (move) => (
+                                                <TableRow key={move.id}>
+                                                    <TableCell className="font-medium">
+                                                        {move.location?.name ?? (
+                                                            <span className="text-muted-foreground">
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {formatDateTime(
+                                                            move.moved_at,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">
+                                                        {move.creator.name}
+                                                    </TableCell>
+                                                    <TableCell className="max-w-xs text-muted-foreground">
+                                                        {move.notes ?? (
                                                             <span>
                                                                 &mdash;
                                                             </span>
