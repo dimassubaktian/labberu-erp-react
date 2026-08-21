@@ -83,11 +83,25 @@ class EquipmentController extends Controller
         $category = (string) $request->query('category', '');
         $status = (string) $request->query('status', '');
         $calibration = (string) $request->query('calibration', '');
+        $returnStatus = (string) $request->query('return_status', '');
 
         $dueSoonThreshold = Carbon::today()->addDays(30);
 
+        $overdueReturn = function ($builder): void {
+            $builder->whereHas('assignments', function ($inner): void {
+                $inner->whereNull('returned_at')
+                    ->whereNotNull('expected_return_at')
+                    ->whereDate('expected_return_at', '<', Carbon::today());
+            });
+        };
+
         $equipment = Equipment::query()
-            ->with(['currentProject:id,uuid,name', 'currentCustodian:id,full_name', 'currentLocation:id,uuid,name'])
+            ->with([
+                'currentProject:id,uuid,name',
+                'currentCustodian:id,full_name',
+                'currentLocation:id,uuid,name',
+                'openAssignment:id,equipment_id,expected_return_at',
+            ])
             ->when($search !== '', function ($builder) use ($search): void {
                 $builder->where(function ($inner) use ($search): void {
                     $inner->where('equipment_code', 'like', "%{$search}%")
@@ -100,17 +114,19 @@ class EquipmentController extends Controller
             ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
             ->when($calibration === 'overdue', fn ($builder) => $builder->whereDate('next_calibration_due_date', '<', Carbon::today()))
             ->when($calibration === 'due_soon', fn ($builder) => $builder->whereBetween('next_calibration_due_date', [Carbon::today(), $dueSoonThreshold]))
+            ->when($returnStatus === 'overdue', $overdueReturn)
             ->orderBy('name')
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('equipment/index', [
             'equipment' => $equipment,
-            'filters' => ['search' => $search, 'category' => $category, 'status' => $status, 'calibration' => $calibration],
+            'filters' => ['search' => $search, 'category' => $category, 'status' => $status, 'calibration' => $calibration, 'return_status' => $returnStatus],
             'calibrationCounts' => [
                 'overdue' => Equipment::query()->whereDate('next_calibration_due_date', '<', Carbon::today())->count(),
                 'due_soon' => Equipment::query()->whereBetween('next_calibration_due_date', [Carbon::today(), $dueSoonThreshold])->count(),
             ],
+            'overdueReturnCount' => tap(Equipment::query(), $overdueReturn)->count(),
         ]);
     }
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -147,6 +148,17 @@ class Equipment extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(EquipmentAssignment::class)->latest('checked_out_at');
+    }
+
+    /**
+     * Get the currently open assignment for this equipment, if any (the one with no
+     * returned_at yet). At most one exists at a time, per checkOut()'s invariant.
+     *
+     * @return HasOne<EquipmentAssignment, $this>
+     */
+    public function openAssignment(): HasOne
+    {
+        return $this->hasOne(EquipmentAssignment::class)->whereNull('returned_at');
     }
 
     /**

@@ -8,12 +8,13 @@ type Props = {
     icon?: LucideIcon;
     className?: string;
     highlight?: 'warning' | 'danger';
+    compact?: boolean;
 };
 
-export function KpiCard({ label, value, icon: Icon, className, highlight }: Props) {
+export function KpiCard({ label, value, icon: Icon, className, highlight, compact }: Props) {
     return (
-        <Card className={cn('', className)}>
-            <CardContent className="flex items-start justify-between p-6">
+        <Card className={cn('py-0', className)}>
+            <CardContent className={cn('flex items-start justify-between', compact ? 'p-4' : 'p-6')}>
                 <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">{label}</p>
                     <p

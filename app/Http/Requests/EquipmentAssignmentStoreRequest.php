@@ -13,11 +13,14 @@ use Illuminate\Validation\Validator;
 class EquipmentAssignmentStoreRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determine if the user is authorized to make this request. Only available equipment can be
+     * checked out, mirroring the picker in EquipmentController::search().
      */
     public function authorize(): bool
     {
-        return true;
+        $equipment = $this->route('equipment');
+
+        return $equipment instanceof Equipment && $equipment->status === 'available';
     }
 
     /**

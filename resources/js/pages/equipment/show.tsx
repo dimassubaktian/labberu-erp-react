@@ -1155,6 +1155,15 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                     assignment={openAssignment}
                                 />
                             </div>
+                        ) : equipment.status !== 'available' ? (
+                            <div className="rounded-lg border border-border/50 p-4 text-sm text-muted-foreground">
+                                This equipment is currently{' '}
+                                <span className="font-medium">
+                                    {equipment.status.replaceAll('_', ' ')}
+                                </span>{' '}
+                                and cannot be checked out until it&apos;s
+                                available again.
+                            </div>
                         ) : (
                             <Form
                                 {...assignments.store.form(equipment)}

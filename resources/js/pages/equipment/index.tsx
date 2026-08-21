@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { AlertTriangle, Clock, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, Clock, PackageX, Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import Heading from '@/components/heading';
@@ -37,6 +37,7 @@ type Equipment = {
     next_calibration_due_date: string | null;
     current_project: { id: number; uuid: string; name: string } | null;
     current_custodian: { id: number; full_name: string } | null;
+    open_assignment: { expected_return_at: string | null } | null;
 };
 
 type Filters = {
@@ -44,12 +45,14 @@ type Filters = {
     category: string;
     status: string;
     calibration: string;
+    return_status: string;
 };
 
 type Props = {
     equipment: Paginated<Equipment>;
     filters: Filters;
     calibrationCounts: { overdue: number; due_soon: number };
+    overdueReturnCount: number;
 };
 
 const DEFAULT_FILTERS: Filters = {
@@ -57,6 +60,7 @@ const DEFAULT_FILTERS: Filters = {
     category: 'all',
     status: 'all',
     calibration: 'all',
+    return_status: 'all',
 };
 
 const CATEGORY_OPTIONS = [
@@ -97,6 +101,7 @@ export default function EquipmentIndex({
     equipment,
     filters,
     calibrationCounts,
+    overdueReturnCount,
 }: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [category, setCategory] = React.useState(filters.category || 'all');
@@ -104,16 +109,27 @@ export default function EquipmentIndex({
     const [calibration, setCalibration] = React.useState(
         filters.calibration || 'all',
     );
+    const [returnStatus, setReturnStatus] = React.useState(
+        filters.return_status || 'all',
+    );
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasActiveFilters =
         search !== DEFAULT_FILTERS.search ||
         category !== DEFAULT_FILTERS.category ||
         status !== DEFAULT_FILTERS.status ||
-        calibration !== DEFAULT_FILTERS.calibration;
+        calibration !== DEFAULT_FILTERS.calibration ||
+        returnStatus !== DEFAULT_FILTERS.return_status;
 
     function applyFilters(overrides: Partial<Filters>): void {
-        const next = { search, category, status, calibration, ...overrides };
+        const next = {
+            search,
+            category,
+            status,
+            calibration,
+            return_status: returnStatus,
+            ...overrides,
+        };
 
         router.get(
             equipmentIndex.url({
@@ -123,6 +139,10 @@ export default function EquipmentIndex({
                     status: next.status !== 'all' ? next.status : undefined,
                     calibration:
                         next.calibration !== 'all' ? next.calibration : undefined,
+                    return_status:
+                        next.return_status !== 'all'
+                            ? next.return_status
+                            : undefined,
                 },
             }),
             {},
@@ -158,6 +178,12 @@ export default function EquipmentIndex({
         applyFilters({ calibration: next });
     }
 
+    function toggleReturnFilter(value: string): void {
+        const next = returnStatus === value ? 'all' : value;
+        setReturnStatus(next);
+        applyFilters({ return_status: next });
+    }
+
     function handleReset(): void {
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -167,6 +193,7 @@ export default function EquipmentIndex({
         setCategory(DEFAULT_FILTERS.category);
         setStatus(DEFAULT_FILTERS.status);
         setCalibration(DEFAULT_FILTERS.calibration);
+        setReturnStatus(DEFAULT_FILTERS.return_status);
 
         router.get(
             equipmentIndex.url(),
@@ -194,7 +221,7 @@ export default function EquipmentIndex({
                     </Button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                     <button
                         type="button"
                         onClick={() => toggleCalibrationFilter('overdue')}
@@ -214,6 +241,7 @@ export default function EquipmentIndex({
                                     ? 'danger'
                                     : undefined
                             }
+                            compact
                         />
                     </button>
 
@@ -236,6 +264,28 @@ export default function EquipmentIndex({
                                     ? 'warning'
                                     : undefined
                             }
+                            compact
+                        />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => toggleReturnFilter('overdue')}
+                        className={cn(
+                            'text-left transition-opacity',
+                            returnStatus !== 'all' &&
+                                returnStatus !== 'overdue' &&
+                                'opacity-50',
+                        )}
+                    >
+                        <KpiCard
+                            label="Return Overdue"
+                            value={overdueReturnCount}
+                            icon={PackageX}
+                            highlight={
+                                overdueReturnCount > 0 ? 'danger' : undefined
+                            }
+                            compact
                         />
                     </button>
                 </div>
@@ -301,6 +351,7 @@ export default function EquipmentIndex({
                                 <TableHead>Serial number</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Currently at</TableHead>
+                                <TableHead>Expected return</TableHead>
                                 <TableHead>Calibration due</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -308,7 +359,7 @@ export default function EquipmentIndex({
                             {equipment.data.length === 0 && (
                                 <TableRow>
                                     <TableCell
-                                        colSpan={7}
+                                        colSpan={8}
                                         className="h-24 text-center text-muted-foreground"
                                     >
                                         No equipment found.
@@ -317,12 +368,19 @@ export default function EquipmentIndex({
                             )}
 
                             {equipment.data.map((item) => {
+                                const today = new Date(
+                                    new Date().toDateString(),
+                                );
                                 const isOverdue =
                                     item.next_calibration_due_date !== null &&
                                     new Date(item.next_calibration_due_date) <
-                                        new Date(
-                                            new Date().toDateString(),
-                                        );
+                                        today;
+                                const expectedReturnAt =
+                                    item.open_assignment?.expected_return_at ??
+                                    null;
+                                const isReturnOverdue =
+                                    expectedReturnAt !== null &&
+                                    new Date(expectedReturnAt) < today;
 
                                 return (
                                     <TableRow key={item.id}>
@@ -368,6 +426,25 @@ export default function EquipmentIndex({
                                                   ? item.current_custodian
                                                         .full_name
                                                   : 'In storage'}
+                                        </TableCell>
+                                        <TableCell>
+                                            {expectedReturnAt ? (
+                                                <span
+                                                    className={
+                                                        isReturnOverdue
+                                                            ? 'text-destructive'
+                                                            : 'text-muted-foreground'
+                                                    }
+                                                >
+                                                    {formatDate(
+                                                        expectedReturnAt,
+                                                    )}
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    &mdash;
+                                                </span>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             {item.next_calibration_due_date ? (

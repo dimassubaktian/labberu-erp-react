@@ -3,5 +3,6 @@
     "laravel-boost",
     "codegraph"
   ],
-  "spinnerTipsEnabled": false
+  "spinnerTipsEnabled": false,
+  "outputStyle": "Concise"
 }

@@ -28,7 +28,21 @@ test('equipment can be checked out to a project', function () {
     expect($assignment->returned_at)->toBeNull();
 });
 
-test('checking out again auto-closes the previously open assignment', function () {
+test('equipment that is not available cannot be checked out', function (string $status) {
+    $user = User::factory()->create();
+    $equipment = Equipment::factory()->create(['status' => $status]);
+    $project = Project::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('equipment.assignments.store', $equipment), [
+        'project_id' => $project->id,
+        'checked_out_at' => now()->toDateTimeString(),
+    ]);
+
+    $response->assertForbidden();
+    expect($equipment->assignments()->count())->toBe(0);
+})->with(['in_use', 'in_calibration', 'under_maintenance', 'retired', 'lost', 'damaged']);
+
+test('equipment already checked out cannot be checked out again without returning first', function () {
     $user = User::factory()->create();
     $equipment = Equipment::factory()->create();
     $firstProject = Project::factory()->create();
@@ -39,13 +53,14 @@ test('checking out again auto-closes the previously open assignment', function (
         'checked_out_at' => now()->subDay()->toDateTimeString(),
     ]);
 
-    $this->actingAs($user)->post(route('equipment.assignments.store', $equipment), [
+    $response = $this->actingAs($user)->post(route('equipment.assignments.store', $equipment), [
         'project_id' => $secondProject->id,
         'checked_out_at' => now()->toDateTimeString(),
     ]);
 
+    $response->assertForbidden();
     expect($equipment->assignments()->whereNull('returned_at')->count())->toBe(1);
-    expect($equipment->refresh()->current_project_id)->toBe($secondProject->id);
+    expect($equipment->refresh()->current_project_id)->toBe($firstProject->id);
 });
 
 test('equipment can be returned to storage as available', function () {
