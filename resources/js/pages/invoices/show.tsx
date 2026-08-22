@@ -4,6 +4,7 @@ import {
     Ban,
     Banknote,
     CircleCheck,
+    Download,
     Pencil,
     SendHorizonal,
     Trash2,
@@ -48,6 +49,7 @@ import { destroy, edit, index, issue, print } from '@/routes/invoices';
 import { update as updatePaymentTerms } from '@/routes/invoices/payment-terms';
 import {
     cancel as cancelPayment,
+    proof as proofPayment,
     store as storePayment,
 } from '@/routes/invoices/payments';
 import { show as showQuotation } from '@/routes/quotations';
@@ -71,6 +73,7 @@ type InvoicePayment = {
     payment_date: string;
     method: string | null;
     remarks: string | null;
+    proof_of_payment_path: string | null;
     recorded_by: { id: number; name: string } | null;
     cancelled_at: string | null;
     cancel_reason: string | null;
@@ -599,6 +602,7 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                             <TableHead>Amount</TableHead>
                                             <TableHead>Method</TableHead>
                                             <TableHead>Recorded by</TableHead>
+                                            <TableHead>Proof</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead />
                                         </TableRow>
@@ -626,6 +630,26 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                                     {payment.recorded_by
                                                         ?.name ?? (
                                                         <span>&mdash;</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {payment.proof_of_payment_path ? (
+                                                        <a
+                                                            href={proofPayment.url(
+                                                                {
+                                                                    invoice,
+                                                                    payment,
+                                                                },
+                                                            )}
+                                                            className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline dark:text-[oklch(0.72_0.13_160)]"
+                                                        >
+                                                            <Download className="size-4" />
+                                                            Download
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            &mdash;
+                                                        </span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
@@ -757,6 +781,7 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                             <Form
                                 noValidate
                                 {...storePayment.form(invoice)}
+                                encType="multipart/form-data"
                                 options={{ preserveScroll: true }}
                                 resetOnSuccess
                             >
@@ -878,6 +903,21 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                                     {errors.remarks}
                                                 </p>
                                             </div>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="proof_of_payment">
+                                                Proof of payment
+                                            </Label>
+                                            <Input
+                                                id="proof_of_payment"
+                                                type="file"
+                                                name="proof_of_payment"
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                            />
+                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                {errors.proof_of_payment}
+                                            </p>
                                         </div>
 
                                         <div>

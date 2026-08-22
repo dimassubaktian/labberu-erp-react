@@ -7,6 +7,7 @@ use App\Http\Requests\QuotationRevisionRequest;
 use App\Http\Requests\QuotationStatusUpdateRequest;
 use App\Http\Requests\QuotationStoreRequest;
 use App\Http\Requests\QuotationUpdateRequest;
+use App\Models\ActivityLog;
 use App\Models\Bom;
 use App\Models\BomItem;
 use App\Models\BomSubgroup;
@@ -524,6 +525,10 @@ class QuotationController extends Controller
             $quotation->project->recomputeActualValues($quotation);
         } elseif ($status === 'voided') {
             $quotation->project->recomputeActualValues(null);
+        }
+
+        if (in_array($status, ['approved', 'rejected'], true)) {
+            ActivityLog::record("quotation.{$status}", $quotation, ucfirst($status)." quotation {$quotation->quotation_code}.");
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation status updated.')]);

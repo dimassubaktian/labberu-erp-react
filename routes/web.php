@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\BusinessLineController;
 use App\Http\Controllers\CompanySettingController;
@@ -184,6 +185,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('invoices/{invoice}/print', [InvoiceController::class, 'print'])->name('invoices.print')->middleware('permission:invoices.view');
     Route::post('invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store')->middleware('permission:invoices.payments.create');
     Route::patch('invoices/{invoice}/payments/{payment}/cancel', [InvoicePaymentController::class, 'cancel'])->name('invoices.payments.cancel')->middleware('permission:invoices.payments.cancel');
+    Route::get('invoices/{invoice}/payments/{payment}/proof', [InvoicePaymentController::class, 'downloadProof'])->name('invoices.payments.proof')->middleware('permission:invoices.view');
 
     Route::get('boms/search', [BomController::class, 'search'])->name('boms.search')->middleware('permission:bom.view');
     Route::get('boms/{bom}/import-data', [BomController::class, 'importData'])->name('boms.import-data')->middleware('permission:bom.view');
@@ -225,6 +227,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('purchase-invoices/{purchaseInvoice}/issue', [PurchaseInvoiceController::class, 'issue'])->name('purchase-invoices.issue')->middleware('permission:purchase-invoices.issue');
     Route::post('purchase-invoices/{purchaseInvoice}/payments', [PurchaseInvoicePaymentController::class, 'store'])->name('purchase-invoices.payments.store')->middleware('permission:purchase-invoices.payments.create');
     Route::patch('purchase-invoices/{purchaseInvoice}/payments/{payment}/cancel', [PurchaseInvoicePaymentController::class, 'cancel'])->name('purchase-invoices.payments.cancel')->middleware('permission:purchase-invoices.payments.cancel');
+    Route::get('purchase-invoices/{purchaseInvoice}/payments/{payment}/proof', [PurchaseInvoicePaymentController::class, 'downloadProof'])->name('purchase-invoices.payments.proof')->middleware('permission:purchase-invoices.view');
 
     Route::get('goods-receipt-notes', [GoodsReceiptNoteController::class, 'index'])->name('goods-receipt-notes.index')->middleware('permission:goods-receipt-notes.view');
     Route::get('goods-receipt-notes/create', [GoodsReceiptNoteController::class, 'create'])->name('goods-receipt-notes.create')->middleware('permission:goods-receipt-notes.create');
@@ -235,6 +238,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'destroy'])->name('goods-receipt-notes.destroy')->middleware('permission:goods-receipt-notes.delete');
     Route::patch('goods-receipt-notes/{goodsReceiptNote}/confirm', [GoodsReceiptNoteController::class, 'confirm'])->name('goods-receipt-notes.confirm')->middleware('permission:goods-receipt-notes.confirm');
     Route::patch('goods-receipt-notes/{goodsReceiptNote}/cancel', [GoodsReceiptNoteController::class, 'cancel'])->name('goods-receipt-notes.cancel')->middleware('permission:goods-receipt-notes.cancel');
+    Route::get('goods-receipt-notes/{goodsReceiptNote}/print', [GoodsReceiptNoteController::class, 'print'])->name('goods-receipt-notes.print')->middleware('permission:goods-receipt-notes.view');
 
     Route::get('users', [UserController::class, 'index'])->name('users.index')->middleware('permission:users.view');
     Route::get('users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');
@@ -244,7 +248,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.update');
     Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.delete');
 
-    Route::get('design-reference', [DesignReferenceController::class, 'index'])->name('design-reference')->middleware('role:Super Admin');
+    Route::get('design-reference', [DesignReferenceController::class, 'index'])->name('design-reference')->middleware('permission:design-reference.view');
 
     Route::get('equipment', [EquipmentController::class, 'index'])->name('equipment.index')->middleware('permission:equipment.view');
     Route::get('equipment/create', [EquipmentController::class, 'create'])->name('equipment.create')->middleware('permission:equipment.create');
@@ -281,6 +285,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit')->middleware('permission:roles.update');
     Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update')->middleware('permission:roles.update');
     Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy')->middleware('permission:roles.delete');
+
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index')->middleware('permission:activity-logs.view');
 });
 
 require __DIR__.'/settings.php';

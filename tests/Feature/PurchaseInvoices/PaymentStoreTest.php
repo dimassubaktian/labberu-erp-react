@@ -3,6 +3,41 @@
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseOrder;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(function () {
+    Storage::fake('local');
+});
+
+test('payment can be recorded with a proof of payment file', function () {
+    $user = User::factory()->create();
+    $purchaseInvoice = PurchaseInvoice::factory()->create(['status' => 'issued', 'total' => 1_000_000]);
+
+    $response = $this->actingAs($user)->post(route('purchase-invoices.payments.store', $purchaseInvoice), [
+        'amount' => 400_000,
+        'payment_date' => now()->toDateString(),
+        'proof_of_payment' => UploadedFile::fake()->create('proof.pdf', 100, 'application/pdf'),
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $payment = $purchaseInvoice->payments()->sole();
+    expect($payment->proof_of_payment_path)->not->toBeNull();
+    Storage::disk('local')->assertExists($payment->proof_of_payment_path);
+});
+
+test('payment cannot exceed the purchase invoice remaining balance', function () {
+    $user = User::factory()->create();
+    $purchaseInvoice = PurchaseInvoice::factory()->create(['status' => 'issued', 'total' => 1_000_000]);
+
+    $this->actingAs($user)->post(route('purchase-invoices.payments.store', $purchaseInvoice), [
+        'amount' => 1_000_001,
+        'payment_date' => now()->toDateString(),
+    ])->assertSessionHasErrors('amount');
+
+    expect($purchaseInvoice->payments()->count())->toBe(0);
+});
 
 test('payment can be recorded against an issued purchase invoice', function () {
     $user = User::factory()->create();

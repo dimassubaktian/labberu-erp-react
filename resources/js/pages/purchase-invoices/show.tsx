@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Ban, Banknote, CircleCheck, Pencil, SendHorizonal, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Banknote, CircleCheck, Download, Pencil, SendHorizonal, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,7 @@ import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { destroy, edit, index, issue } from '@/routes/purchase-invoices';
 import {
     cancel as cancelPayment,
+    proof as proofPayment,
     store as storePayment,
 } from '@/routes/purchase-invoices/payments';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
@@ -59,6 +60,7 @@ type PurchaseInvoicePayment = {
     payment_date: string;
     method: string | null;
     remarks: string | null;
+    proof_of_payment_path: string | null;
     recorded_by: { id: number; name: string } | null;
     cancelled_at: string | null;
     cancel_reason: string | null;
@@ -418,6 +420,7 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                             <TableHead>Amount</TableHead>
                                             <TableHead>Method</TableHead>
                                             <TableHead>Recorded by</TableHead>
+                                            <TableHead>Proof</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead />
                                         </TableRow>
@@ -448,6 +451,26 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                                         {payment.recorded_by
                                                             ?.name ?? (
                                                             <span>
+                                                                &mdash;
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {payment.proof_of_payment_path ? (
+                                                            <a
+                                                                href={proofPayment.url(
+                                                                    {
+                                                                        purchaseInvoice,
+                                                                        payment,
+                                                                    },
+                                                                )}
+                                                                className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline dark:text-[oklch(0.72_0.13_160)]"
+                                                            >
+                                                                <Download className="size-4" />
+                                                                Download
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
                                                                 &mdash;
                                                             </span>
                                                         )}
@@ -584,6 +607,7 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                         {balanceDue > 0 && <Form
                             noValidate
                             {...storePayment.form(purchaseInvoice)}
+                            encType="multipart/form-data"
                             options={{ preserveScroll: true }}
                             resetOnSuccess
                         >
@@ -703,6 +727,21 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                                 {errors.remarks}
                                             </p>
                                         </div>
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="proof_of_payment">
+                                            Proof of payment
+                                        </Label>
+                                        <Input
+                                            id="proof_of_payment"
+                                            type="file"
+                                            name="proof_of_payment"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                        />
+                                        <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                            {errors.proof_of_payment}
+                                        </p>
                                     </div>
 
                                     <div>

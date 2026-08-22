@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PurchaseInvoicePaymentCancelRequest;
 use App\Http\Requests\PurchaseInvoicePaymentStoreRequest;
+use App\Models\ActivityLog;
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseInvoicePayment;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PurchaseInvoicePaymentController extends Controller
 {
@@ -21,21 +24,39 @@ class PurchaseInvoicePaymentController extends Controller
         $data = $request->validated();
 
         DB::transaction(function () use ($data, $purchaseInvoice, $request): void {
-            $purchaseInvoice->payments()->create([
+            $proofPath = $request->hasFile('proof_of_payment')
+                ? $request->file('proof_of_payment')->store('purchase-invoice-payment-proofs', 'local')
+                : null;
+
+            $payment = $purchaseInvoice->payments()->create([
                 'amount' => $data['amount'],
                 'payment_date' => $data['payment_date'],
                 'method' => $data['method'] ?? null,
                 'remarks' => $data['remarks'] ?? null,
+                'proof_of_payment_path' => $proofPath,
                 'recorded_by' => $request->user()->id,
             ]);
 
             $this->recomputePaymentStatus($purchaseInvoice);
             $this->recomputePurchaseOrderPaymentStatus($purchaseInvoice->purchaseOrder);
+
+            ActivityLog::record('purchase_invoice.payment.recorded', $purchaseInvoice, "Recorded a payment of {$payment->amount} against purchase invoice {$purchaseInvoice->purchase_invoice_code}.");
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment recorded.')]);
 
         return to_route('purchase-invoices.show', $purchaseInvoice);
+    }
+
+    /**
+     * Download the proof of payment attached to the specified payment.
+     */
+    public function downloadProof(PurchaseInvoice $purchaseInvoice, PurchaseInvoicePayment $payment): StreamedResponse
+    {
+        abort_if($payment->purchase_invoice_id !== $purchaseInvoice->id, 404);
+        abort_if($payment->proof_of_payment_path === null, 404);
+
+        return Storage::disk('local')->download($payment->proof_of_payment_path);
     }
 
     /**
@@ -54,6 +75,8 @@ class PurchaseInvoicePaymentController extends Controller
 
             $this->recomputePaymentStatus($purchaseInvoice);
             $this->recomputePurchaseOrderPaymentStatus($purchaseInvoice->purchaseOrder);
+
+            ActivityLog::record('purchase_invoice.payment.cancelled', $purchaseInvoice, "Cancelled a payment of {$payment->amount} against purchase invoice {$purchaseInvoice->purchase_invoice_code}.");
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment cancelled.')]);

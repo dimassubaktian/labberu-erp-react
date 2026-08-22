@@ -8,6 +8,7 @@ import {
     Contact,
     FileText,
     FolderKanban,
+    History,
     LayoutGrid,
     MapPin,
     Network,
@@ -39,6 +40,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard, designReference } from '@/routes';
+import { index as activityLogsIndex } from '@/routes/activity-logs';
 import { edit as companySettingsEdit } from '@/routes/company-settings';
 import { index as currenciesIndex } from '@/routes/currencies';
 import { index as customersIndex } from '@/routes/customers';
@@ -247,10 +249,16 @@ const navGroups: NavGroup[] = [
                 permission: 'company-settings.view',
             },
             {
+                title: 'Activity Log',
+                href: activityLogsIndex(),
+                icon: History,
+                permission: 'activity-logs.view',
+            },
+            {
                 title: 'Design Reference',
                 href: designReference(),
                 icon: Palette,
-                role: 'Super Admin',
+                permission: 'design-reference.view',
             },
         ],
     },

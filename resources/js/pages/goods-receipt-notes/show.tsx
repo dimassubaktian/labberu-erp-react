@@ -3,6 +3,7 @@ import { ArrowLeft, Ban, PackageCheck, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PrintDocumentDialog } from '@/components/print-document-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { cancel, confirm, destroy, edit, index } from '@/routes/goods-receipt-notes';
+import { cancel, confirm, destroy, edit, index, print } from '@/routes/goods-receipt-notes';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 
 type WorkforceOption = {
@@ -109,6 +110,15 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                 Back to Goods Receipt Notes
                             </Link>
                         </Button>
+
+                        <PrintDocumentDialog
+                            title="Print goods receipt note"
+                            description="Preview or download the goods receipt note as a PDF."
+                            previewUrl={print.url(goodsReceiptNote)}
+                            downloadUrl={print.url(goodsReceiptNote, {
+                                query: { download: true },
+                            })}
+                        />
 
                         {goodsReceiptNote.status === 'draft' && (
                             <Button asChild className="w-full sm:w-auto">

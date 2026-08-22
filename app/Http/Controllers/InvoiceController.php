@@ -6,6 +6,7 @@ use App\Http\Requests\InvoiceIssueRequest;
 use App\Http\Requests\InvoicePaymentTermsUpdateRequest;
 use App\Http\Requests\InvoiceStoreRequest;
 use App\Http\Requests\InvoiceUpdateRequest;
+use App\Models\ActivityLog;
 use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\PaymentTermTemplate;
@@ -214,6 +215,8 @@ class InvoiceController extends Controller
 
         $invoice->quotation->project->recomputeBillingStatus();
         $invoice->quotation->project->recomputeStatus();
+
+        ActivityLog::record('invoice.issued', $invoice, "Issued invoice {$invoice->invoice_code}.");
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Invoice issued.')]);
 

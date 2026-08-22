@@ -11,6 +11,7 @@ use App\Http\Requests\PurchaseOrderRejectRequest;
 use App\Http\Requests\PurchaseOrderStoreRequest;
 use App\Http\Requests\PurchaseOrderUpdateRequest;
 use App\Http\Requests\PurchaseOrderVoidRequest;
+use App\Models\ActivityLog;
 use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\GoodsReceiptNoteItem;
@@ -439,6 +440,8 @@ class PurchaseOrderController extends Controller
             'rejection_reason' => null,
         ]);
 
+        ActivityLog::record('purchase_order.issued', $purchaseOrder, "Issued purchase order {$purchaseOrder->purchase_order_code}.");
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order issued.')]);
 
         return to_route('purchase-orders.show', $purchaseOrder);
@@ -472,6 +475,8 @@ class PurchaseOrderController extends Controller
             'approved_at' => now(),
         ]);
 
+        ActivityLog::record('purchase_order.approved', $purchaseOrder, "Approved purchase order {$purchaseOrder->purchase_order_code}.");
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order approved.')]);
 
         return to_route('purchase-orders.show', $purchaseOrder);
@@ -492,6 +497,8 @@ class PurchaseOrderController extends Controller
             'checked_by_2_at' => null,
             'rejection_reason' => $request->validated('rejection_reason'),
         ]);
+
+        ActivityLog::record('purchase_order.rejected', $purchaseOrder, "Rejected purchase order {$purchaseOrder->purchase_order_code}.");
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase order rejected.')]);
 

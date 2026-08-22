@@ -128,6 +128,12 @@ class UserController extends Controller
             unset($data['password']);
         }
 
+        if ($this->wouldRemoveLastUserManager($user, $roleIds)) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('At least one user must keep a role that can manage users.')]);
+
+            return back();
+        }
+
         DB::transaction(function () use ($data, $workforceId, $roleIds, $user): void {
             $oldWorkforce = $user->workforce;
 
@@ -164,6 +170,40 @@ class UserController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('User deleted.')]);
 
         return to_route('users.index');
+    }
+
+    /**
+     * Determine whether replacing the given user's roles with $roleIds would leave no user
+     * able to manage users — either by demoting the last user with `users.update` (including
+     * self-demotion) or by removing it from someone else who happens to be the last one.
+     *
+     * @param  array<int, int>  $roleIds
+     */
+    private function wouldRemoveLastUserManager(User $user, array $roleIds): bool
+    {
+        if (! $user->hasPermissionTo('users.update')) {
+            return false;
+        }
+
+        if ($user->hasDirectPermission('users.update')) {
+            return false;
+        }
+
+        $newRoles = Role::query()->whereKey($roleIds)->get();
+
+        if ($newRoles->contains(fn (Role $role) => $role->hasPermissionTo('users.update'))) {
+            return false;
+        }
+
+        $otherUserManagerExists = User::query()
+            ->where('id', '!=', $user->id)
+            ->where(function ($query): void {
+                $query->whereHas('permissions', fn ($q) => $q->where('name', 'users.update'))
+                    ->orWhereHas('roles.permissions', fn ($q) => $q->where('name', 'users.update'));
+            })
+            ->exists();
+
+        return ! $otherUserManagerExists;
     }
 
     /**

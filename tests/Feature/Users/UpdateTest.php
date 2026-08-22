@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Models\Workforce;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 test('user edit page is displayed', function () {
@@ -177,6 +178,58 @@ test('a user cannot remove all of their own roles', function () {
         ->assertForbidden();
 
     expect($user->refresh()->hasRole('Editor'))->toBeTrue();
+});
+
+test('the last user manager cannot demote their own role', function () {
+    Permission::findOrCreate('users.update', 'web');
+    $role = Role::create(['name' => 'Manager Role', 'guard_name' => 'web']);
+    $role->givePermissionTo('users.update');
+    $otherRole = Role::create(['name' => 'Other Role', 'guard_name' => 'web']);
+
+    $user = User::factory()->create();
+    $user->assignRole($role);
+
+    $this->actingAs($user);
+    // actingAs() grants every permission directly for test convenience (see TestCase) — strip
+    // that blanket direct grant so this user's `users.update` access comes only from the role
+    // under test, matching how permissions actually flow in the real app.
+    $user->syncPermissions([]);
+
+    $this->put(route('users.update', $user), [
+        'name' => $user->name,
+        'email' => $user->email,
+        'password' => '',
+        'password_confirmation' => '',
+        'status' => 'active',
+        'roles' => [$otherRole->id],
+    ])->assertRedirect();
+
+    expect($user->refresh()->hasRole('Manager Role'))->toBeTrue();
+});
+
+test('a manager role can be reassigned when another user manager remains', function () {
+    Permission::findOrCreate('users.update', 'web');
+    $role = Role::create(['name' => 'Manager Role', 'guard_name' => 'web']);
+    $role->givePermissionTo('users.update');
+    $otherRole = Role::create(['name' => 'Other Role', 'guard_name' => 'web']);
+
+    $actor = User::factory()->create();
+    $actor->assignRole($role);
+    $target = User::factory()->create();
+    $target->assignRole($role);
+
+    $this->actingAs($actor)
+        ->put(route('users.update', $target), [
+            'name' => $target->name,
+            'email' => $target->email,
+            'password' => '',
+            'password_confirmation' => '',
+            'status' => 'active',
+            'roles' => [$otherRole->id],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($target->refresh()->hasRole('Manager Role'))->toBeFalse();
 });
 
 test('name is required', function () {

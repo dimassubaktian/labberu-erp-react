@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\PurchaseInvoiceIssueRequest;
 use App\Http\Requests\PurchaseInvoiceStoreRequest;
 use App\Http\Requests\PurchaseInvoiceUpdateRequest;
+use App\Models\ActivityLog;
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -198,6 +199,8 @@ class PurchaseInvoiceController extends Controller
         ]);
 
         $purchaseInvoice->purchaseOrder->project->recomputeActualCost();
+
+        ActivityLog::record('purchase_invoice.issued', $purchaseInvoice, "Issued purchase invoice {$purchaseInvoice->purchase_invoice_code}.");
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase invoice issued.')]);
 

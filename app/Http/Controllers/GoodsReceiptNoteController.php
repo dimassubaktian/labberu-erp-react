@@ -6,13 +6,16 @@ use App\Http\Requests\GoodsReceiptNoteCancelRequest;
 use App\Http\Requests\GoodsReceiptNoteConfirmRequest;
 use App\Http\Requests\GoodsReceiptNoteStoreRequest;
 use App\Http\Requests\GoodsReceiptNoteUpdateRequest;
+use App\Models\CompanySetting;
 use App\Models\GoodsReceiptNote;
 use App\Models\GoodsReceiptNoteItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\StockMovement;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -217,6 +220,44 @@ class GoodsReceiptNoteController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Goods receipt note cancelled.')]);
 
         return to_route('goods-receipt-notes.show', $goodsReceiptNote);
+    }
+
+    /**
+     * Stream the goods receipt note as a printable PDF document.
+     */
+    public function print(Request $request, GoodsReceiptNote $goodsReceiptNote): HttpResponse
+    {
+        $goodsReceiptNote->load([
+            'purchaseOrder.vendor',
+            'items.product',
+        ]);
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.goods-receipt-note', [
+            'goodsReceiptNote' => $goodsReceiptNote,
+            'company' => $company,
+            'loggedInUser' => $request->user(),
+        ])->setPaper('a4', 'portrait');
+
+        // dompdf's CSS `counter(pages)` never resolves to the total page count, so the
+        // "X / Y" page number is drawn directly on the canvas instead, which does. This
+        // requires an explicit render() first: page_text() only reaches pages that
+        // already exist and only knows the page count at the moment it is called.
+        $pdf->render();
+
+        $dompdf = $pdf->getDomPDF();
+        $fontMetrics = $dompdf->getFontMetrics();
+        $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+        $fontSize = 7.5;
+        $textWidth = $fontMetrics->getTextWidth('99 / 99', $font, $fontSize);
+        $dompdf->getCanvas()->page_text(563.28 - $textWidth, 816, '{PAGE_NUM} / {PAGE_COUNT}', $font, $fontSize, [0.53, 0.53, 0.53]);
+
+        $filename = "goods-receipt-note-{$goodsReceiptNote->grn_code}.pdf";
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
     }
 
     /**

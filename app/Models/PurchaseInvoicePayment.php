@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $payment_date
  * @property string|null $method
  * @property string|null $remarks
+ * @property string|null $proof_of_payment_path
  * @property int $recorded_by
  * @property Carbon|null $cancelled_at
  * @property string|null $cancel_reason
@@ -27,6 +28,7 @@ use Illuminate\Support\Carbon;
     'payment_date',
     'method',
     'remarks',
+    'proof_of_payment_path',
     'recorded_by',
     'cancelled_at',
     'cancel_reason',

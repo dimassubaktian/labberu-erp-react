@@ -25,4 +25,6 @@ return [
     'roles' => ['view', 'create', 'update', 'delete'],
     'equipment' => ['view', 'create', 'update', 'delete', 'calibrations.create', 'calibrations.update', 'calibrations.delete', 'assignments.create', 'assignments.update', 'locations.move'],
     'equipment-locations' => ['view', 'create', 'update', 'delete'],
+    'activity-logs' => ['view'],
+    'design-reference' => ['view'],
 ];
