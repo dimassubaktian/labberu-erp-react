@@ -18,6 +18,8 @@ use Illuminate\Support\Str;
  * @property Carbon|null $expected_return_at
  * @property Carbon|null $returned_at
  * @property string|null $notes
+ * @property string|null $checkout_photo
+ * @property string|null $return_photo
  * @property int $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -30,6 +32,8 @@ use Illuminate\Support\Str;
     'expected_return_at',
     'returned_at',
     'notes',
+    'checkout_photo',
+    'return_photo',
     'created_by',
 ])]
 class EquipmentAssignment extends Model

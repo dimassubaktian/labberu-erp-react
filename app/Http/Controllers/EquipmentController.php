@@ -4,14 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\EquipmentStoreRequest;
 use App\Http\Requests\EquipmentUpdateRequest;
+use App\Models\CompanySetting;
 use App\Models\Equipment;
 use App\Models\EquipmentCalibration;
 use App\Models\EquipmentLocation;
 use App\Models\Project;
 use App\Models\Workforce;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -128,6 +131,66 @@ class EquipmentController extends Controller
             ],
             'overdueReturnCount' => tap(Equipment::query(), $overdueReturn)->count(),
         ]);
+    }
+
+    /**
+     * Stream the (optionally filtered) equipment list as a printable PDF, for use as a
+     * physical reference in meetings or a quick status check on the floor.
+     */
+    public function print(Request $request): HttpResponse
+    {
+        $search = (string) $request->query('search', '');
+        $category = (string) $request->query('category', '');
+        $status = (string) $request->query('status', '');
+        $calibration = (string) $request->query('calibration', '');
+        $returnStatus = (string) $request->query('return_status', '');
+
+        $dueSoonThreshold = Carbon::today()->addDays(30);
+
+        $equipment = Equipment::query()
+            ->with([
+                'currentProject:id,uuid,name',
+                'currentCustodian:id,full_name',
+                'currentLocation:id,uuid,name',
+                'openAssignment:id,equipment_id,expected_return_at',
+                'calibrations' => fn ($query) => $query->orderByDesc('calibration_date')->limit(1),
+            ])
+            ->when($search !== '', function ($builder) use ($search): void {
+                $builder->where(function ($inner) use ($search): void {
+                    $inner->where('equipment_code', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhere('serial_number', 'like', "%{$search}%")
+                        ->orWhere('brand', 'like', "%{$search}%");
+                });
+            })
+            ->when($category !== '' && $category !== 'all', fn ($builder) => $builder->where('category', $category))
+            ->when($status !== '' && $status !== 'all', fn ($builder) => $builder->where('status', $status))
+            ->when($calibration === 'overdue', fn ($builder) => $builder->whereDate('next_calibration_due_date', '<', Carbon::today()))
+            ->when($calibration === 'due_soon', fn ($builder) => $builder->whereBetween('next_calibration_due_date', [Carbon::today(), $dueSoonThreshold]))
+            ->when($returnStatus === 'overdue', function ($builder): void {
+                $builder->whereHas('assignments', function ($inner): void {
+                    $inner->whereNull('returned_at')
+                        ->whereNotNull('expected_return_at')
+                        ->whereDate('expected_return_at', '<', Carbon::today());
+                });
+            })
+            ->orderBy('name')
+            ->get();
+
+        $company = CompanySetting::current();
+
+        $pdf = Pdf::loadView('pdf.equipment-list', [
+            'equipment' => $equipment,
+            'company' => $company,
+            'generatedAt' => Carbon::now(),
+            'loggedInUser' => $request->user(),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'equipment-list-'.Carbon::now()->format('Y-m-d').'.pdf';
+
+        return $request->boolean('download')
+            ? $pdf->download($filename)
+            : $pdf->stream($filename);
     }
 
     /**

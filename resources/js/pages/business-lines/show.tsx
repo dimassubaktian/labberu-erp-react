@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, FolderKanban, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, FolderKanban, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -255,8 +255,11 @@ export default function BusinessLinesShow({ businessLine, projects }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
 

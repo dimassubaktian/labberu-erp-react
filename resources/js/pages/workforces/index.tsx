@@ -54,14 +54,22 @@ type Props = {
     filters: Filters;
 };
 
-const DEFAULT_FILTERS: Filters = { search: '', job_title: 'all', status: 'all' };
+const DEFAULT_FILTERS: Filters = {
+    search: '',
+    job_title: 'all',
+    status: 'all',
+};
 
 const STATUS_OPTIONS = [
     { value: 'active', label: 'Active' },
     { value: 'inactive', label: 'Inactive' },
 ];
 
-export default function WorkforcesIndex({ workforces, jobTitles, filters }: Props) {
+export default function WorkforcesIndex({
+    workforces,
+    jobTitles,
+    filters,
+}: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [jobTitle, setJobTitle] = React.useState(filters.job_title || 'all');
     const [status, setStatus] = React.useState(filters.status || 'all');
@@ -79,7 +87,8 @@ export default function WorkforcesIndex({ workforces, jobTitles, filters }: Prop
             workforcesIndex.url({
                 query: {
                     search: next.search || undefined,
-                    job_title: next.job_title !== 'all' ? next.job_title : undefined,
+                    job_title:
+                        next.job_title !== 'all' ? next.job_title : undefined,
                     status: next.status !== 'all' ? next.status : undefined,
                 },
             }),
@@ -156,7 +165,10 @@ export default function WorkforcesIndex({ workforces, jobTitles, filters }: Prop
                         />
                     </div>
 
-                    <Select value={jobTitle} onValueChange={handleJobTitleChange}>
+                    <Select
+                        value={jobTitle}
+                        onValueChange={handleJobTitleChange}
+                    >
                         <SelectTrigger className="w-full sm:w-48">
                             <SelectValue placeholder="Job title" />
                         </SelectTrigger>
@@ -177,7 +189,10 @@ export default function WorkforcesIndex({ workforces, jobTitles, filters }: Prop
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

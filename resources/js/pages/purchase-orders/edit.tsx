@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, useHttp } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -406,8 +406,13 @@ function LineItemForm({
 
             <div className="flex justify-end gap-2">
                 {editingIndex !== null && (
-                    <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel edit
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={onCancel}
+                    >
+                        <X /> Cancel edit
                     </Button>
                 )}
                 <Button type="button" onClick={onCommit}>
@@ -1162,9 +1167,10 @@ export default function PurchaseOrdersEdit({
                                                     <DialogClose asChild>
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant="ghost"
+                                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                         >
-                                                            Cancel
+                                                            <X /> Cancel
                                                         </Button>
                                                     </DialogClose>
                                                     <DialogClose asChild>
@@ -1444,8 +1450,10 @@ export default function PurchaseOrdersEdit({
                                                                         >
                                                                             <Button
                                                                                 type="button"
-                                                                                variant="outline"
+                                                                                variant="ghost"
+                                                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                                             >
+                                                                                <X />{' '}
                                                                                 Cancel
                                                                             </Button>
                                                                         </DialogClose>
@@ -1768,9 +1776,14 @@ export default function PurchaseOrdersEdit({
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
                                     <Link href={show(purchaseOrder)}>
-                                        Cancel
+                                        <X /> Cancel
                                     </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>

@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -502,8 +502,13 @@ function LineItemForm({
 
             <div className="flex justify-end gap-2">
                 {isEditing && (
-                    <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel edit
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={onCancel}
+                    >
+                        <X /> Cancel edit
                     </Button>
                 )}
                 <Button
@@ -676,8 +681,12 @@ function LineItemRow({
                             </DialogDescription>
                             <DialogFooter>
                                 <DialogClose asChild>
-                                    <Button type="button" variant="outline">
-                                        Cancel
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <X /> Cancel
                                     </Button>
                                 </DialogClose>
                                 <DialogClose asChild>
@@ -1611,7 +1620,11 @@ export default function BomsEdit({ quotation, bom }: Props) {
                     description={`For quotation ${quotation.quotation_code}`}
                 />
 
-                <Form noValidate {...update.form(quotation)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...update.form(quotation)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             {groups.map((group, groupIndex) => {
@@ -2118,9 +2131,14 @@ export default function BomsEdit({ quotation, bom }: Props) {
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
                                     <Link href={showBom(quotation)}>
-                                        Cancel
+                                        <X /> Cancel
                                     </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>

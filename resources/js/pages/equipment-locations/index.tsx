@@ -21,7 +21,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { create, index as equipmentLocationsIndex, show } from '@/routes/equipment-locations';
+import {
+    create,
+    index as equipmentLocationsIndex,
+    show,
+} from '@/routes/equipment-locations';
 import type { Paginated } from '@/types';
 
 type EquipmentLocation = {
@@ -142,7 +146,10 @@ export default function EquipmentLocationsIndex({ locations, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -214,7 +221,9 @@ export default function EquipmentLocationsIndex({ locations, filters }: Props) {
                                                     : 'outline'
                                             }
                                         >
-                                            {location.is_active ? 'Active' : 'Inactive'}
+                                            {location.is_active
+                                                ? 'Active'
+                                                : 'Inactive'}
                                         </Badge>
                                     </TableCell>
                                 </TableRow>

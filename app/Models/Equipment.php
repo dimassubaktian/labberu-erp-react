@@ -213,7 +213,24 @@ class Equipment extends Model
             return true;
         }
 
-        $lastCalibratedAt = $this->calibrations()->max('calibration_date');
+        return $this->calibrationRecencySatisfiedBy(
+            $this->calibrations()->max('calibration_date'),
+            $maxAgeMonths,
+            $asOf,
+        );
+    }
+
+    /**
+     * The freshness check with the latest calibration date supplied by the caller, so batched
+     * callers (e.g. a project's assignment list) can fetch every equipment's max calibration_date
+     * in one grouped query instead of one query per row. A null $lastCalibratedAt means the
+     * equipment has never been calibrated.
+     */
+    public function calibrationRecencySatisfiedBy(?string $lastCalibratedAt, ?int $maxAgeMonths, ?Carbon $asOf = null): bool
+    {
+        if ($maxAgeMonths === null || ! $this->calibration_required) {
+            return true;
+        }
 
         if ($lastCalibratedAt === null) {
             return false;

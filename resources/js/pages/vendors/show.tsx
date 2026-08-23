@@ -95,8 +95,7 @@ export default function VendorsShow({ vendor, purchaseOrders }: Props) {
                 po.purchase_order_code
                     .toLowerCase()
                     .includes(poSearch.toLowerCase());
-            const matchesStatus =
-                poStatus === 'all' || po.status === poStatus;
+            const matchesStatus = poStatus === 'all' || po.status === poStatus;
             const matchesProgress =
                 poProgress === 'all' ||
                 (poProgress === 'none' && po.progress === null) ||
@@ -321,24 +320,39 @@ export default function VendorsShow({ vendor, purchaseOrders }: Props) {
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All statuses</SelectItem>
+                                <SelectItem value="all">
+                                    All statuses
+                                </SelectItem>
                                 {PO_STATUS_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
                                         {opt.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
-                        <Select value={poProgress} onValueChange={setPoProgress}>
+                        <Select
+                            value={poProgress}
+                            onValueChange={setPoProgress}
+                        >
                             <SelectTrigger className="w-full sm:w-48">
                                 <SelectValue placeholder="Progress" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All progress</SelectItem>
-                                <SelectItem value="none">No progress</SelectItem>
+                                <SelectItem value="all">
+                                    All progress
+                                </SelectItem>
+                                <SelectItem value="none">
+                                    No progress
+                                </SelectItem>
                                 {PO_PROGRESS_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
+                                    <SelectItem
+                                        key={opt.value}
+                                        value={opt.value}
+                                    >
                                         {opt.label}
                                     </SelectItem>
                                 ))}
@@ -411,7 +425,10 @@ export default function VendorsShow({ vendor, purchaseOrders }: Props) {
                                                     variant="secondary"
                                                     className="capitalize"
                                                 >
-                                                    {po.progress.replaceAll('_', ' ')}
+                                                    {po.progress.replaceAll(
+                                                        '_',
+                                                        ' ',
+                                                    )}
                                                 </Badge>
                                             ) : (
                                                 <span className="text-muted-foreground">
@@ -420,7 +437,8 @@ export default function VendorsShow({ vendor, purchaseOrders }: Props) {
                                             )}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
-                                            {po.currency.symbol ?? po.currency.iso_code}{' '}
+                                            {po.currency.symbol ??
+                                                po.currency.iso_code}{' '}
                                             {formatNumber(po.grand_total)}
                                         </TableCell>
                                     </TableRow>
@@ -468,8 +486,11 @@ export default function VendorsShow({ vendor, purchaseOrders }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
 

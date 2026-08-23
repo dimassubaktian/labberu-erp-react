@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, useHttp } from '@inertiajs/react';
-import { ReceiptText } from 'lucide-react';
+import { ReceiptText, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -153,9 +153,7 @@ export default function PurchaseInvoicesEdit({
 
                 const existingByPurchaseOrderItemId = new Map(
                     purchaseInvoice.items
-                        .filter(
-                            (item) => item.purchase_order_item_id !== null,
-                        )
+                        .filter((item) => item.purchase_order_item_id !== null)
                         .map((item) => [
                             item.purchase_order_item_id as number,
                             item,
@@ -165,8 +163,9 @@ export default function PurchaseInvoicesEdit({
                 setItemStates(
                     Object.fromEntries(
                         response.data.map((item) => {
-                            const existing =
-                                existingByPurchaseOrderItemId.get(item.id);
+                            const existing = existingByPurchaseOrderItemId.get(
+                                item.id,
+                            );
 
                             return [
                                 item.id,
@@ -657,9 +656,14 @@ export default function PurchaseInvoicesEdit({
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
                                     <Link href={show(purchaseInvoice)}>
-                                        Cancel
+                                        <X /> Cancel
                                     </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>

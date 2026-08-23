@@ -142,7 +142,10 @@ export default function TaxesIndex({ taxes, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All types</SelectItem>
                             {TYPE_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

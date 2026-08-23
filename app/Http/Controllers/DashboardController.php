@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,21 +60,46 @@ class DashboardController extends Controller
             'available_years' => $availableYears,
         ];
 
+        // These sections run ~20 aggregate queries each and are identical for every viewer of the
+        // same year, so a short TTL absorbs repeated dashboard loads. The version segment lets
+        // flushCache() invalidate every cached year at once when the underlying data changes.
         if ($isSuperAdmin || in_array('Manager', $roles)) {
-            $props['management'] = $this->managementData($year);
+            $props['management'] = Cache::remember(self::cacheKey('management', $year), now()->addMinutes(5), fn () => $this->managementData($year));
         }
 
         if ($isSuperAdmin || in_array('Finance', $roles)) {
-            $props['finance'] = $this->financeData($year);
+            $props['finance'] = Cache::remember(self::cacheKey('finance', $year), now()->addMinutes(5), fn () => $this->financeData($year));
         }
 
         if ($isSuperAdmin || in_array('Procurement', $roles)) {
-            $props['purchasing'] = $this->purchasingData($year);
+            $props['purchasing'] = Cache::remember(self::cacheKey('purchasing', $year), now()->addMinutes(5), fn () => $this->purchasingData($year));
         }
 
         $props['staff'] = $this->staffData($user, $staffStatus, $staffPriority);
 
         return Inertia::render('dashboard', $props);
+    }
+
+    /**
+     * Cache key for a dashboard section and year, tagged with the current cache version so a single
+     * flushCache() call retires every cached section/year without enumerating them (the file and
+     * database cache stores have no tag support).
+     */
+    private static function cacheKey(string $section, int $year): string
+    {
+        $version = Cache::get('dashboard.version', 1);
+
+        return "dashboard.{$section}.v{$version}.{$year}";
+    }
+
+    /**
+     * Invalidate every cached dashboard section for every year. Called when data the dashboards
+     * aggregate changes — e.g. invoices or payments — so figures like outstanding revenue don't
+     * stay stale for the full cache TTL.
+     */
+    public static function flushCache(): void
+    {
+        Cache::forever('dashboard.version', Cache::get('dashboard.version', 1) + 1);
     }
 
     /**

@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, X } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
@@ -71,7 +71,11 @@ function toDateInputValue(value: string | null): string {
     return value ? value.slice(0, 10) : '';
 }
 
-export default function ProjectsEdit({ project, workforces, businessLines }: Props) {
+export default function ProjectsEdit({
+    project,
+    workforces,
+    businessLines,
+}: Props) {
     const { auth } = usePage().props;
     const canCreateBusinessLine = auth.permissions.includes(
         'business-lines.create',
@@ -104,7 +108,11 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                     description="Update this project's details"
                 />
 
-                <Form noValidate {...update.form(project)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...update.form(project)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -245,9 +253,7 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError
-                                    message={errors.business_line_id}
-                                />
+                                <InputError message={errors.business_line_id} />
                             </div>
 
                             <div className="grid gap-2">
@@ -493,8 +499,15 @@ export default function ProjectsEdit({ project, workforces, businessLines }: Pro
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={show(project)}>Cancel</Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
+                                    <Link href={show(project)}>
+                                        <X /> Cancel
+                                    </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}

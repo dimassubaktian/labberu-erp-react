@@ -769,7 +769,11 @@ export default function BomsCreate({ quotation, importFrom }: Props) {
                     }
                 />
 
-                <Form noValidate {...store.form(quotation)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...store.form(quotation)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             {groups.map((group, groupIndex) => {

@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, Users, X } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -243,8 +243,11 @@ export default function JobTitlesShow({ jobTitle, workforces }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
 

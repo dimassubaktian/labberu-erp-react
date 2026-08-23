@@ -1,5 +1,5 @@
 import { Form, Head, Link, useHttp } from '@inertiajs/react';
-import { ReceiptText } from 'lucide-react';
+import { ReceiptText, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -285,7 +285,9 @@ export default function PurchaseInvoicesCreate({
                                     <AsyncCombobox<PurchaseOrderOption>
                                         id="purchase_order_id"
                                         value={purchaseOrderId}
-                                        onValueChange={handlePurchaseOrderChange}
+                                        onValueChange={
+                                            handlePurchaseOrderChange
+                                        }
                                         searchUrl={searchPurchaseOrders().url}
                                         getOptionId={(purchaseOrder) =>
                                             String(purchaseOrder.id)
@@ -363,8 +365,8 @@ export default function PurchaseInvoicesCreate({
 
                                 {!purchaseOrderUuid && (
                                     <p className="text-sm text-muted-foreground">
-                                        Select a purchase order to list its
-                                        line items.
+                                        Select a purchase order to list its line
+                                        items.
                                     </p>
                                 )}
 
@@ -675,8 +677,15 @@ export default function PurchaseInvoicesCreate({
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={index()}>Cancel</Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
+                                    <Link href={index()}>
+                                        <X /> Cancel
+                                    </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}

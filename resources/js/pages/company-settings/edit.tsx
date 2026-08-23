@@ -33,7 +33,9 @@ type Props = {
 
 export default function CompanySettingsEdit({ companySetting }: Props) {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [certifiedPicturePreview, setCertifiedPicturePreview] = useState<string | null>(null);
+    const [certifiedPicturePreview, setCertifiedPicturePreview] = useState<
+        string | null
+    >(null);
 
     useEffect(() => {
         return () => {
@@ -58,7 +60,9 @@ export default function CompanySettingsEdit({ companySetting }: Props) {
         });
     }
 
-    function handleCertifiedPictureChange(event: React.ChangeEvent<HTMLInputElement>) {
+    function handleCertifiedPictureChange(
+        event: React.ChangeEvent<HTMLInputElement>,
+    ) {
         const file = event.target.files?.[0];
 
         setCertifiedPicturePreview((previous) => {
@@ -329,9 +333,12 @@ export default function CompanySettingsEdit({ companySetting }: Props) {
                                     />
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    Leave empty to keep the current certified picture.
+                                    Leave empty to keep the current certified
+                                    picture.
                                 </p>
-                                <InputError message={errors.certified_picture} />
+                                <InputError
+                                    message={errors.certified_picture}
+                                />
                             </div>
 
                             <div className="flex justify-end">

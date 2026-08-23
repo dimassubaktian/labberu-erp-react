@@ -4,6 +4,8 @@ use App\Models\Equipment;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\Workforce;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 test('equipment can be checked out to a project', function () {
     $user = User::factory()->create();
@@ -142,6 +144,89 @@ test('an already-returned assignment cannot be returned again', function () {
     $this->actingAs($user)
         ->patch(route('equipment.assignments.return', [$equipment, $assignment]), [])
         ->assertForbidden();
+});
+
+test('a proof photo can be recorded when checking out equipment', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $equipment = Equipment::factory()->create(['status' => 'available']);
+    $project = Project::factory()->create();
+
+    $response = $this->actingAs($user)->post(route('equipment.assignments.store', $equipment), [
+        'project_id' => $project->id,
+        'checked_out_at' => now()->toDateTimeString(),
+        'checkout_photo' => UploadedFile::fake()->image('checkout.jpg'),
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $assignment = $equipment->assignments()->sole();
+    expect($assignment->checkout_photo)->not->toBeNull();
+    Storage::disk('local')->assertExists($assignment->checkout_photo);
+
+    $this->actingAs($user)
+        ->get(route('equipment.assignments.checkout-photo', [$equipment, $assignment]))
+        ->assertOk();
+});
+
+test('a proof photo can be recorded when returning equipment', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $equipment = Equipment::factory()->create();
+
+    $this->actingAs($user)->post(route('equipment.assignments.store', $equipment), [
+        'checked_out_at' => now()->toDateTimeString(),
+    ]);
+
+    $assignment = $equipment->assignments()->sole();
+
+    $response = $this->actingAs($user)->patch(route('equipment.assignments.return', [$equipment, $assignment]), [
+        'status' => 'available',
+        'return_photo' => UploadedFile::fake()->image('return.jpg'),
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $assignment->refresh();
+    expect($assignment->return_photo)->not->toBeNull();
+    Storage::disk('local')->assertExists($assignment->return_photo);
+
+    $this->actingAs($user)
+        ->get(route('equipment.assignments.return-photo', [$equipment, $assignment]))
+        ->assertOk();
+});
+
+test('proof photos 404 when none was recorded', function () {
+    $user = User::factory()->create();
+    $equipment = Equipment::factory()->create();
+    $assignment = $equipment->assignments()->create([
+        'checked_out_at' => now(),
+        'created_by' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('equipment.assignments.checkout-photo', [$equipment, $assignment]))
+        ->assertNotFound();
+
+    $this->actingAs($user)
+        ->get(route('equipment.assignments.return-photo', [$equipment, $assignment]))
+        ->assertNotFound();
+});
+
+test('guests cannot view proof photos', function () {
+    $equipment = Equipment::factory()->create();
+    $assignment = $equipment->assignments()->create([
+        'checked_out_at' => now(),
+        'created_by' => User::factory()->create()->id,
+    ]);
+
+    $this->get(route('equipment.assignments.checkout-photo', [$equipment, $assignment]))
+        ->assertRedirect(route('login'));
+
+    $this->get(route('equipment.assignments.return-photo', [$equipment, $assignment]))
+        ->assertRedirect(route('login'));
 });
 
 test('guests cannot check out or return equipment', function () {

@@ -1,13 +1,48 @@
-import { AlertTriangle, CheckCircle, DollarSign, TrendingDown } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+    AlertTriangle,
+    CheckCircle,
+    DollarSign,
+    TrendingDown,
+} from 'lucide-react';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Pie,
+    PieChart,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { formatCompact } from '@/lib/utils';
 
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_LABELS = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+];
 
 const PAYMENT_STATUS_COLORS: Record<string, string> = {
     paid: '#22c55e',
@@ -37,25 +72,45 @@ type Props = {
     overdue_invoices: OverdueInvoice[];
 };
 
-export function FinanceTab({ year, kpis, monthly_chart, payment_status, overdue_invoices }: Props) {
+export function FinanceTab({
+    year,
+    kpis,
+    monthly_chart,
+    payment_status,
+    overdue_invoices,
+}: Props) {
     const chartData = monthly_chart.map((row) => ({
         month: MONTH_LABELS[row.month - 1],
         revenue: row.revenue,
         collected: row.collected,
     }));
 
-    const statusData = Object.entries(payment_status).map(([status, count]) => ({
-        name: status.replace(/_/g, ' '),
-        value: count,
-        fill: PAYMENT_STATUS_COLORS[status] ?? '#94a3b8',
-    }));
+    const statusData = Object.entries(payment_status).map(
+        ([status, count]) => ({
+            name: status.replace(/_/g, ' '),
+            value: count,
+            fill: PAYMENT_STATUS_COLORS[status] ?? '#94a3b8',
+        }),
+    );
 
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-4">
-                <KpiCard label="Total Invoiced" value={`Rp ${formatCompact(kpis.total_invoiced)}`} icon={DollarSign} />
-                <KpiCard label="Collected" value={`Rp ${formatCompact(kpis.total_collected)}`} icon={CheckCircle} />
-                <KpiCard label="Outstanding" value={`Rp ${formatCompact(kpis.outstanding)}`} icon={TrendingDown} />
+                <KpiCard
+                    label="Total Invoiced"
+                    value={`Rp ${formatCompact(kpis.total_invoiced)}`}
+                    icon={DollarSign}
+                />
+                <KpiCard
+                    label="Collected"
+                    value={`Rp ${formatCompact(kpis.total_collected)}`}
+                    icon={CheckCircle}
+                />
+                <KpiCard
+                    label="Outstanding"
+                    value={`Rp ${formatCompact(kpis.outstanding)}`}
+                    icon={TrendingDown}
+                />
                 <KpiCard
                     label="Overdue Invoices"
                     value={kpis.overdue_count}
@@ -66,21 +121,57 @@ export function FinanceTab({ year, kpis, monthly_chart, payment_status, overdue_
 
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="md:col-span-2">
-                    <SectionCard title={`Monthly Revenue vs. Collections (${year})`}>
+                    <SectionCard
+                        title={`Monthly Revenue vs. Collections (${year})`}
+                    >
                         <ChartContainer
                             className="h-64 w-full"
                             config={{
-                                revenue: { label: 'Invoiced', color: '#6366f1' },
-                                collected: { label: 'Collected', color: '#22c55e' },
+                                revenue: {
+                                    label: 'Invoiced',
+                                    color: '#6366f1',
+                                },
+                                collected: {
+                                    label: 'Collected',
+                                    color: '#22c55e',
+                                },
                             }}
                         >
-                            <BarChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                                <YAxis tickFormatter={(v) => formatCompact(v)} tick={{ fontSize: 11 }} width={48} />
+                            <BarChart
+                                data={chartData}
+                                margin={{
+                                    top: 4,
+                                    right: 4,
+                                    left: 4,
+                                    bottom: 4,
+                                }}
+                            >
+                                <CartesianGrid
+                                    strokeDasharray="3 3"
+                                    vertical={false}
+                                />
+                                <XAxis
+                                    dataKey="month"
+                                    tick={{ fontSize: 11 }}
+                                />
+                                <YAxis
+                                    tickFormatter={(v) => formatCompact(v)}
+                                    tick={{ fontSize: 11 }}
+                                    width={48}
+                                />
                                 <Tooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[3, 3, 0, 0]} name="Invoiced" />
-                                <Bar dataKey="collected" fill="var(--color-collected)" radius={[3, 3, 0, 0]} name="Collected" />
+                                <Bar
+                                    dataKey="revenue"
+                                    fill="var(--color-revenue)"
+                                    radius={[3, 3, 0, 0]}
+                                    name="Invoiced"
+                                />
+                                <Bar
+                                    dataKey="collected"
+                                    fill="var(--color-collected)"
+                                    radius={[3, 3, 0, 0]}
+                                    name="Collected"
+                                />
                             </BarChart>
                         </ChartContainer>
                     </SectionCard>
@@ -90,22 +181,43 @@ export function FinanceTab({ year, kpis, monthly_chart, payment_status, overdue_
                     <ChartContainer
                         className="h-64 w-full"
                         config={Object.fromEntries(
-                            Object.entries(PAYMENT_STATUS_COLORS).map(([k, v]) => [k, { label: k.replace(/_/g, ' '), color: v }]),
+                            Object.entries(PAYMENT_STATUS_COLORS).map(
+                                ([k, v]) => [
+                                    k,
+                                    { label: k.replace(/_/g, ' '), color: v },
+                                ],
+                            ),
                         )}
                     >
                         <PieChart>
-                            <Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" nameKey="name">
+                            <Pie
+                                data={statusData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={85}
+                                dataKey="value"
+                                nameKey="name"
+                            >
                                 {statusData.map((entry, i) => (
                                     <Cell key={i} fill={entry.fill} />
                                 ))}
                             </Pie>
-                            <Tooltip formatter={(value, name) => [value, name]} />
+                            <Tooltip
+                                formatter={(value, name) => [value, name]}
+                            />
                         </PieChart>
                     </ChartContainer>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                         {statusData.map((s) => (
-                            <span key={s.name} className="flex items-center gap-1">
-                                <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.fill }} />
+                            <span
+                                key={s.name}
+                                className="flex items-center gap-1"
+                            >
+                                <span
+                                    className="inline-block h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: s.fill }}
+                                />
                                 {s.name} ({s.value})
                             </span>
                         ))}
@@ -121,19 +233,29 @@ export function FinanceTab({ year, kpis, monthly_chart, payment_status, overdue_
                                 <TableHead>Invoice</TableHead>
                                 <TableHead>Customer</TableHead>
                                 <TableHead>Due Date</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                                <TableHead className="text-right">Days Overdue</TableHead>
+                                <TableHead className="text-right">
+                                    Amount
+                                </TableHead>
+                                <TableHead className="text-right">
+                                    Days Overdue
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {overdue_invoices.map((inv) => (
                                 <TableRow key={inv.invoice_code}>
-                                    <TableCell className="font-mono text-xs">{inv.invoice_code}</TableCell>
+                                    <TableCell className="font-mono text-xs">
+                                        {inv.invoice_code}
+                                    </TableCell>
                                     <TableCell>{inv.customer_name}</TableCell>
                                     <TableCell>{inv.due_date}</TableCell>
-                                    <TableCell className="text-right">Rp {formatCompact(inv.total)}</TableCell>
                                     <TableCell className="text-right">
-                                        <Badge variant="destructive">{inv.days_overdue}d</Badge>
+                                        Rp {formatCompact(inv.total)}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Badge variant="destructive">
+                                            {inv.days_overdue}d
+                                        </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))}

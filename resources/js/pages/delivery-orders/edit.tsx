@@ -184,7 +184,11 @@ export default function DeliveryOrdersEdit({ deliveryOrder }: Props) {
                     description="Update this delivery order"
                 />
 
-                <Form noValidate {...update.form(deliveryOrder)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...update.form(deliveryOrder)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             <div className="space-y-6">

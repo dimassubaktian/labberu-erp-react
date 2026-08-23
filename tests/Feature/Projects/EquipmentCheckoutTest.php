@@ -4,6 +4,8 @@ use App\Models\Equipment;
 use App\Models\Project;
 use App\Models\User;
 use App\Models\Workforce;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('available equipment can be checked out to a project from the project page', function () {
@@ -127,6 +129,24 @@ test('returned equipment still appears in the project page history, not just cur
         ->where('equipmentAssignments.0.equipment.id', $equipment->id)
         ->whereNot('equipmentAssignments.0.returned_at', null)
     );
+});
+
+test('a proof photo can be recorded when checking out equipment from the project page', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $project = Project::factory()->create();
+    $equipment = Equipment::factory()->create(['status' => 'available']);
+
+    $this->actingAs($user)->post(route('projects.equipment-checkouts.store', $project), [
+        'equipment_id' => $equipment->id,
+        'checked_out_at' => now()->toDateTimeString(),
+        'checkout_photo' => UploadedFile::fake()->image('checkout.jpg'),
+    ])->assertSessionHasNoErrors();
+
+    $assignment = $equipment->assignments()->sole();
+    expect($assignment->checkout_photo)->not->toBeNull();
+    Storage::disk('local')->assertExists($assignment->checkout_photo);
 });
 
 test('guests cannot check out equipment from the project page', function () {

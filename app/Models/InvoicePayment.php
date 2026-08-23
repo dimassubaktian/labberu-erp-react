@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\DashboardController;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,6 +37,17 @@ use Illuminate\Support\Carbon;
 ])]
 class InvoicePayment extends Model
 {
+    /**
+     * Bootstrap the model and its traits.
+     */
+    protected static function booted(): void
+    {
+        // Collected and outstanding figures on the finance dashboard sum payments, so any write
+        // invalidates the cached dashboard sections.
+        static::saved(fn () => DashboardController::flushCache());
+        static::deleted(fn () => DashboardController::flushCache());
+    }
+
     /**
      * Get the invoice this payment was recorded against.
      *

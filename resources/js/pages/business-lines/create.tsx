@@ -1,4 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import { X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -105,10 +106,13 @@ export default function BusinessLinesCreate() {
                                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                                     <Button
                                         type="button"
-                                        variant="outline"
+                                        variant="ghost"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                         asChild
                                     >
-                                        <Link href={index()}>Cancel</Link>
+                                        <Link href={index()}>
+                                            <X /> Cancel
+                                        </Link>
                                     </Button>
                                     <Button
                                         type="submit"

@@ -1,4 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
@@ -293,7 +294,10 @@ export default function EquipmentCreate() {
                                     name="status"
                                     value={status}
                                 />
-                                <Select value={status} onValueChange={setStatus}>
+                                <Select
+                                    value={status}
+                                    onValueChange={setStatus}
+                                >
                                     <SelectTrigger
                                         id="status"
                                         className="w-full"
@@ -325,8 +329,15 @@ export default function EquipmentCreate() {
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={index()}>Cancel</Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
+                                    <Link href={index()}>
+                                        <X /> Cancel
+                                    </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}

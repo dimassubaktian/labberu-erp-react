@@ -33,7 +33,7 @@ export function PrintDocumentDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-auto">
+                <Button variant="accent" className="w-full sm:w-auto">
                     <Printer />
                     Print
                 </Button>

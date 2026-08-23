@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, PackageCheck, Pencil, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -27,7 +27,14 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { cancel, confirm, destroy, edit, index, print } from '@/routes/goods-receipt-notes';
+import {
+    cancel,
+    confirm,
+    destroy,
+    edit,
+    index,
+    print,
+} from '@/routes/goods-receipt-notes';
 import { show as showPurchaseOrder } from '@/routes/purchase-orders';
 
 type WorkforceOption = {
@@ -74,7 +81,9 @@ type Props = {
 export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
     const { auth } = usePage().props;
     const hasWorkforce = auth.workforce_id !== null;
-    const canConfirm = hasWorkforce && auth.permissions.includes('goods-receipt-notes.confirm');
+    const canConfirm =
+        hasWorkforce &&
+        auth.permissions.includes('goods-receipt-notes.confirm');
     const canCancel = auth.permissions.includes('goods-receipt-notes.cancel');
 
     const [cancelReason, setCancelReason] = useState('');
@@ -310,15 +319,22 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
                                             <Button
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                {processing ? <Spinner /> : <PackageCheck />}
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <PackageCheck />
+                                                )}
                                                 Confirm
                                             </Button>
                                         </DialogFooter>
@@ -468,8 +484,11 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
 

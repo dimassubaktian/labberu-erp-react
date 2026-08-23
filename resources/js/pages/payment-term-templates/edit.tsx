@@ -28,7 +28,10 @@ export default function PaymentTermTemplatesEdit({
     setLayoutProps({
         breadcrumbs: [
             { title: 'Payment Term Templates', href: index() },
-            { title: paymentTermTemplate.name, href: show(paymentTermTemplate) },
+            {
+                title: paymentTermTemplate.name,
+                href: show(paymentTermTemplate),
+            },
             { title: 'Edit', href: edit(paymentTermTemplate) },
         ],
     });

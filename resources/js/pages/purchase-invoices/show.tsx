@@ -1,5 +1,15 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Ban, Banknote, CircleCheck, Download, Pencil, SendHorizonal, Trash2 } from 'lucide-react';
+import {
+    ArrowLeft,
+    Ban,
+    Banknote,
+    CircleCheck,
+    Download,
+    Pencil,
+    SendHorizonal,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import { Badge } from '@/components/ui/badge';
@@ -377,9 +387,9 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                     Issue this purchase invoice?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    This locks the purchase invoice from
-                                    further edits and makes it ready to
-                                    receive payments.
+                                    This locks the purchase invoice from further
+                                    edits and makes it ready to receive
+                                    payments.
                                 </DialogDescription>
 
                                 <Form
@@ -389,15 +399,22 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
                                             <Button
                                                 type="submit"
                                                 disabled={processing}
                                             >
-                                                {processing ? <Spinner /> : <SendHorizonal />}
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <SendHorizonal />
+                                                )}
                                                 Issue
                                             </Button>
                                         </DialogFooter>
@@ -442,17 +459,13 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {payment.method ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {payment.recorded_by
                                                             ?.name ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
@@ -559,7 +572,9 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                                                                         id="cancel_reason"
                                                                                         name="cancel_reason"
                                                                                         required
-                                                                                        rows={3}
+                                                                                        rows={
+                                                                                            3
+                                                                                        }
                                                                                     />
                                                                                     <p className="text-sm text-destructive dark:text-destructive-foreground">
                                                                                         {
@@ -604,158 +619,166 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                             </div>
                         )}
 
-                        {balanceDue > 0 && <Form
-                            noValidate
-                            {...storePayment.form(purchaseInvoice)}
-                            encType="multipart/form-data"
-                            options={{ preserveScroll: true }}
-                            resetOnSuccess
-                        >
-                            {({ processing, errors }) => (
-                                <div className="grid gap-4 rounded-lg border border-border/50 p-4">
-                                    <div className="flex justify-end">
-                                        <Button
-                                            type="button"
-                                            variant="default"
-                                            size="sm"
-                                            onClick={() => {
-                                                if (amountRef.current) {
-                                                    amountRef.current.value =
-                                                        String(balanceDue);
-                                                }
-                                            }}
-                                        >
-                                            <Banknote />
-                                            Pay all remaining
-                                        </Button>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="amount">
-                                                Amount
-                                            </Label>
-                                            <Input
-                                                ref={amountRef}
-                                                id="amount"
-                                                type="number"
-                                                step="1"
-                                                name="amount"
-                                                defaultValue="0"
-                                            />
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.amount}
-                                            </p>
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="payment_date">
-                                                Payment date
-                                            </Label>
-                                            <Input
-                                                id="payment_date"
-                                                type="date"
-                                                name="payment_date"
-                                                defaultValue={new Date()
-                                                    .toISOString()
-                                                    .slice(0, 10)}
-                                            />
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.payment_date}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="method">
-                                                Method
-                                            </Label>
-                                            <input
-                                                type="hidden"
-                                                name="method"
-                                                value={
-                                                    paymentMethod === 'none'
-                                                        ? ''
-                                                        : paymentMethod
-                                                }
-                                            />
-                                            <Select
-                                                value={paymentMethod}
-                                                onValueChange={setPaymentMethod}
+                        {balanceDue > 0 && (
+                            <Form
+                                noValidate
+                                {...storePayment.form(purchaseInvoice)}
+                                encType="multipart/form-data"
+                                options={{ preserveScroll: true }}
+                                resetOnSuccess
+                            >
+                                {({ processing, errors }) => (
+                                    <div className="grid gap-4 rounded-lg border border-border/50 p-4">
+                                        <div className="flex justify-end">
+                                            <Button
+                                                type="button"
+                                                variant="default"
+                                                size="sm"
+                                                onClick={() => {
+                                                    if (amountRef.current) {
+                                                        amountRef.current.value =
+                                                            String(balanceDue);
+                                                    }
+                                                }}
                                             >
-                                                <SelectTrigger
-                                                    id="method"
-                                                    className="w-full"
+                                                <Banknote />
+                                                Pay all remaining
+                                            </Button>
+                                        </div>
+
+                                        <div className="grid gap-2 sm:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="amount">
+                                                    Amount
+                                                </Label>
+                                                <Input
+                                                    ref={amountRef}
+                                                    id="amount"
+                                                    type="number"
+                                                    step="1"
+                                                    name="amount"
+                                                    defaultValue="0"
+                                                />
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.amount}
+                                                </p>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="payment_date">
+                                                    Payment date
+                                                </Label>
+                                                <Input
+                                                    id="payment_date"
+                                                    type="date"
+                                                    name="payment_date"
+                                                    defaultValue={new Date()
+                                                        .toISOString()
+                                                        .slice(0, 10)}
+                                                />
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.payment_date}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid gap-2 sm:grid-cols-2 sm:items-start">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="method">
+                                                    Method
+                                                </Label>
+                                                <input
+                                                    type="hidden"
+                                                    name="method"
+                                                    value={
+                                                        paymentMethod === 'none'
+                                                            ? ''
+                                                            : paymentMethod
+                                                    }
+                                                />
+                                                <Select
+                                                    value={paymentMethod}
+                                                    onValueChange={
+                                                        setPaymentMethod
+                                                    }
                                                 >
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">
-                                                        None
-                                                    </SelectItem>
-                                                    <SelectItem value="Bank Transfer">
-                                                        Bank Transfer
-                                                    </SelectItem>
-                                                    <SelectItem value="Card">
-                                                        Card
-                                                    </SelectItem>
-                                                    <SelectItem value="QRIS">
-                                                        QRIS
-                                                    </SelectItem>
-                                                    <SelectItem value="Cash">
-                                                        Cash
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.method}
-                                            </p>
+                                                    <SelectTrigger
+                                                        id="method"
+                                                        className="w-full"
+                                                    >
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">
+                                                            None
+                                                        </SelectItem>
+                                                        <SelectItem value="Bank Transfer">
+                                                            Bank Transfer
+                                                        </SelectItem>
+                                                        <SelectItem value="Card">
+                                                            Card
+                                                        </SelectItem>
+                                                        <SelectItem value="QRIS">
+                                                            QRIS
+                                                        </SelectItem>
+                                                        <SelectItem value="Cash">
+                                                            Cash
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.method}
+                                                </p>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="remarks">
+                                                    Remarks
+                                                </Label>
+                                                <Textarea
+                                                    id="remarks"
+                                                    name="remarks"
+                                                    placeholder="Optional"
+                                                    rows={1}
+                                                />
+                                                <p className="text-sm text-destructive dark:text-destructive-foreground">
+                                                    {errors.remarks}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="remarks">
-                                                Remarks
+                                            <Label htmlFor="proof_of_payment">
+                                                Proof of payment
                                             </Label>
-                                            <Textarea
-                                                id="remarks"
-                                                name="remarks"
-                                                placeholder="Optional"
-                                                rows={1}
+                                            <Input
+                                                id="proof_of_payment"
+                                                type="file"
+                                                name="proof_of_payment"
+                                                accept=".pdf,.jpg,.jpeg,.png"
                                             />
                                             <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                                {errors.remarks}
+                                                {errors.proof_of_payment}
                                             </p>
                                         </div>
-                                    </div>
 
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="proof_of_payment">
-                                            Proof of payment
-                                        </Label>
-                                        <Input
-                                            id="proof_of_payment"
-                                            type="file"
-                                            name="proof_of_payment"
-                                            accept=".pdf,.jpg,.jpeg,.png"
-                                        />
-                                        <p className="text-sm text-destructive dark:text-destructive-foreground">
-                                            {errors.proof_of_payment}
-                                        </p>
+                                        <div>
+                                            <Button
+                                                type="submit"
+                                                disabled={processing}
+                                            >
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <CircleCheck />
+                                                )}
+                                                Record Payment
+                                            </Button>
+                                        </div>
                                     </div>
-
-                                    <div>
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                        >
-                                            {processing ? <Spinner /> : <CircleCheck />}
-                                            Record Payment
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </Form>}
+                                )}
+                            </Form>
+                        )}
                     </div>
                 )}
 
@@ -804,8 +827,11 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
 

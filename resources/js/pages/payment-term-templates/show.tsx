@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +34,10 @@ export default function PaymentTermTemplatesShow({
     setLayoutProps({
         breadcrumbs: [
             { title: 'Payment Term Templates', href: index() },
-            { title: paymentTermTemplate.name, href: show(paymentTermTemplate) },
+            {
+                title: paymentTermTemplate.name,
+                href: show(paymentTermTemplate),
+            },
         ],
     });
 
@@ -109,13 +112,11 @@ export default function PaymentTermTemplatesShow({
                     </h2>
                     <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                            <p className="font-medium">
-                                Delete this template
-                            </p>
+                            <p className="font-medium">Delete this template</p>
                             <p className="text-sm">
-                                Once deleted, this template cannot be
-                                restored. Quotations that already snapshotted
-                                its content are unaffected.
+                                Once deleted, this template cannot be restored.
+                                Quotations that already snapshotted its content
+                                are unaffected.
                             </p>
                         </div>
 
@@ -135,8 +136,8 @@ export default function PaymentTermTemplatesShow({
                                     &quot;?
                                 </DialogTitle>
                                 <DialogDescription>
-                                    This action cannot be undone. This
-                                    template will be permanently deleted.
+                                    This action cannot be undone. This template
+                                    will be permanently deleted.
                                 </DialogDescription>
 
                                 <Form
@@ -146,8 +147,11 @@ export default function PaymentTermTemplatesShow({
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
 

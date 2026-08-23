@@ -174,7 +174,10 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

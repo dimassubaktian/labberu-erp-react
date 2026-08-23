@@ -21,7 +21,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { create, index as businessLinesIndex, show } from '@/routes/business-lines';
+import {
+    create,
+    index as businessLinesIndex,
+    show,
+} from '@/routes/business-lines';
 import type { Paginated } from '@/types';
 
 type BusinessLine = {
@@ -140,7 +144,10 @@ export default function BusinessLinesIndex({ businessLines, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -164,9 +171,7 @@ export default function BusinessLinesIndex({ businessLines, filters }: Props) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead className="w-[5%]">
-                                    Status
-                                </TableHead>
+                                <TableHead className="w-[5%]">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

@@ -1,5 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
@@ -1902,8 +1902,15 @@ export default function QuotationsEdit({
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={show(quotation)}>Cancel</Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
+                                    <Link href={show(quotation)}>
+                                        <X /> Cancel
+                                    </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}

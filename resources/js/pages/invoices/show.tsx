@@ -8,6 +8,7 @@ import {
     Pencil,
     SendHorizonal,
     Trash2,
+    X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
@@ -238,7 +239,12 @@ function PaymentTermsDialog({
 
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="secondary">Cancel</Button>
+                                    <Button
+                                        variant="ghost"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <X /> Cancel
+                                    </Button>
                                 </DialogClose>
 
                                 <Button type="submit" disabled={processing}>
@@ -567,8 +573,11 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
                                             <Button
@@ -983,8 +992,11 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
 

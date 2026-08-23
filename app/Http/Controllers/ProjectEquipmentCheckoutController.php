@@ -22,6 +22,10 @@ class ProjectEquipmentCheckoutController extends Controller
         $data['project_id'] = $project->id;
         $data['created_by'] = $request->user()->id;
 
+        if ($request->hasFile('checkout_photo')) {
+            $data['checkout_photo'] = $request->file('checkout_photo')->store('equipment-assignment-photos', 'local');
+        }
+
         $equipment->checkOut($data);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Equipment checked out.')]);

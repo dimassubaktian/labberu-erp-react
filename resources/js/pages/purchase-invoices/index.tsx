@@ -21,7 +21,11 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn, formatDate } from '@/lib/utils';
-import { create, index as purchaseInvoicesIndex, show } from '@/routes/purchase-invoices';
+import {
+    create,
+    index as purchaseInvoicesIndex,
+    show,
+} from '@/routes/purchase-invoices';
 import type { Paginated } from '@/types';
 
 type PurchaseInvoice = {
@@ -75,10 +79,15 @@ const SORT_OPTIONS = [
     { value: 'due_date_asc', label: 'Oldest due date' },
 ];
 
-export default function PurchaseInvoicesIndex({ purchaseInvoices, filters }: Props) {
+export default function PurchaseInvoicesIndex({
+    purchaseInvoices,
+    filters,
+}: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [status, setStatus] = React.useState(filters.status || 'all');
-    const [paymentStatus, setPaymentStatus] = React.useState(filters.payment_status || 'all');
+    const [paymentStatus, setPaymentStatus] = React.useState(
+        filters.payment_status || 'all',
+    );
     const [sort, setSort] = React.useState(filters.sort || 'latest');
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -89,14 +98,23 @@ export default function PurchaseInvoicesIndex({ purchaseInvoices, filters }: Pro
         sort !== DEFAULT_FILTERS.sort;
 
     function applyFilters(overrides: Partial<Filters>): void {
-        const next = { search, status, payment_status: paymentStatus, sort, ...overrides };
+        const next = {
+            search,
+            status,
+            payment_status: paymentStatus,
+            sort,
+            ...overrides,
+        };
 
         router.get(
             purchaseInvoicesIndex.url({
                 query: {
                     search: next.search || undefined,
                     status: next.status !== 'all' ? next.status : undefined,
-                    payment_status: next.payment_status !== 'all' ? next.payment_status : undefined,
+                    payment_status:
+                        next.payment_status !== 'all'
+                            ? next.payment_status
+                            : undefined,
                     sort: next.sort !== 'latest' ? next.sort : undefined,
                 },
             }),
@@ -186,21 +204,30 @@ export default function PurchaseInvoicesIndex({ purchaseInvoices, filters }: Pro
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
 
-                    <Select value={paymentStatus} onValueChange={handlePaymentStatusChange}>
+                    <Select
+                        value={paymentStatus}
+                        onValueChange={handlePaymentStatusChange}
+                    >
                         <SelectTrigger className="w-full sm:w-44">
                             <SelectValue placeholder="Payment" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All payments</SelectItem>
                             {PAYMENT_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -213,7 +240,10 @@ export default function PurchaseInvoicesIndex({ purchaseInvoices, filters }: Pro
                         </SelectTrigger>
                         <SelectContent>
                             {SORT_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -261,17 +291,27 @@ export default function PurchaseInvoicesIndex({ purchaseInvoices, filters }: Pro
                                 <TableRow key={purchaseInvoice.id}>
                                     <TableCell className="font-medium">
                                         <Link href={show(purchaseInvoice)}>
-                                            {purchaseInvoice.purchase_invoice_code}
+                                            {
+                                                purchaseInvoice.purchase_invoice_code
+                                            }
                                         </Link>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {purchaseInvoice.purchase_order.purchase_order_code}
+                                        {
+                                            purchaseInvoice.purchase_order
+                                                .purchase_order_code
+                                        }
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {purchaseInvoice.purchase_order.vendor.name}
+                                        {
+                                            purchaseInvoice.purchase_order
+                                                .vendor.name
+                                        }
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {formatDate(purchaseInvoice.invoice_date)}
+                                        {formatDate(
+                                            purchaseInvoice.invoice_date,
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {formatDate(purchaseInvoice.due_date)}

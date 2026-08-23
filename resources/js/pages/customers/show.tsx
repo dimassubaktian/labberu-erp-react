@@ -86,7 +86,9 @@ export default function CustomersShow({ customer }: Props) {
             const matchesSearch =
                 projectSearch === '' ||
                 p.name.toLowerCase().includes(projectSearch.toLowerCase()) ||
-                p.project_code.toLowerCase().includes(projectSearch.toLowerCase());
+                p.project_code
+                    .toLowerCase()
+                    .includes(projectSearch.toLowerCase());
             const matchesStatus =
                 projectStatus === 'all' || p.status === projectStatus;
             return matchesSearch && matchesStatus;
@@ -315,7 +317,9 @@ export default function CustomersShow({ customer }: Props) {
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All statuses</SelectItem>
+                                <SelectItem value="all">
+                                    All statuses
+                                </SelectItem>
                                 {PROJECT_STATUS_OPTIONS.map((opt) => (
                                     <SelectItem
                                         key={opt.value}
@@ -488,8 +492,11 @@ export default function CustomersShow({ customer }: Props) {
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
 

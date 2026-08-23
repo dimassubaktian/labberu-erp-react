@@ -1,4 +1,5 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -86,7 +87,11 @@ export default function ProductsEdit({ product }: Props) {
                     description="Update this product's details"
                 />
 
-                <Form noValidate {...update.form(product)} className="space-y-6">
+                <Form
+                    noValidate
+                    {...update.form(product)}
+                    className="space-y-6"
+                >
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
@@ -285,8 +290,15 @@ export default function ProductsEdit({ product }: Props) {
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={show(product)}>Cancel</Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
+                                    <Link href={show(product)}>
+                                        <X /> Cancel
+                                    </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}

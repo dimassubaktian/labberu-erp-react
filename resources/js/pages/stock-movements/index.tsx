@@ -89,7 +89,10 @@ const TYPE_OPTIONS = [
     { value: 'out', label: 'Out' },
 ];
 
-export default function StockMovementsIndex({ stockMovements, filters }: Props) {
+export default function StockMovementsIndex({
+    stockMovements,
+    filters,
+}: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [type, setType] = React.useState(filters.type || 'all');
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -172,7 +175,10 @@ export default function StockMovementsIndex({ stockMovements, filters }: Props) 
                         <SelectContent>
                             <SelectItem value="all">All types</SelectItem>
                             {TYPE_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -220,10 +226,16 @@ export default function StockMovementsIndex({ stockMovements, filters }: Props) 
                                         {formatDate(movement.movement_date)}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        <div>{movement.product.product_code} &mdash; {movement.product.name}</div>
+                                        <div>
+                                            {movement.product.product_code}{' '}
+                                            &mdash; {movement.product.name}
+                                        </div>
                                         {movement.product.reference_number && (
                                             <div className="text-sm text-muted-foreground">
-                                                {movement.product.reference_number}
+                                                {
+                                                    movement.product
+                                                        .reference_number
+                                                }
                                             </div>
                                         )}
                                     </TableCell>

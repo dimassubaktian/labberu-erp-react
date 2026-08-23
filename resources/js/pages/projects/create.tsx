@@ -1,5 +1,5 @@
 import { Form, Head, Link, usePage } from '@inertiajs/react';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, X } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import { Combobox } from '@/components/combobox';
@@ -118,9 +118,7 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                         value={customerId}
                                         onValueChange={(value, option) => {
                                             setCustomerId(value);
-                                            setSelectedCustomer(
-                                                option ?? null,
-                                            );
+                                            setSelectedCustomer(option ?? null);
                                         }}
                                         searchUrl={searchCustomers().url}
                                         getOptionId={(customer) =>
@@ -233,9 +231,7 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError
-                                    message={errors.business_line_id}
-                                />
+                                <InputError message={errors.business_line_id} />
                             </div>
 
                             <div className="grid gap-2">
@@ -412,8 +408,15 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                             </div>
 
                             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href={index()}>Cancel</Link>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    asChild
+                                >
+                                    <Link href={index()}>
+                                        <X /> Cancel
+                                    </Link>
                                 </Button>
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />}

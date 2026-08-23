@@ -50,7 +50,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { show as showCustomer } from '@/routes/customers';
 import { show as showDeliveryOrder } from '@/routes/delivery-orders';
-import { search as searchEquipment, show as showEquipment } from '@/routes/equipment';
+import {
+    search as searchEquipment,
+    show as showEquipment,
+} from '@/routes/equipment';
 import { show as showInvoice } from '@/routes/invoices';
 import {
     cancel,
@@ -1850,7 +1853,11 @@ export default function ProjectsShow({
                                                                 <DialogClose
                                                                     asChild
                                                                 >
-                                                                    <Button variant="secondary">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                                    >
+                                                                        <X />{' '}
                                                                         Cancel
                                                                     </Button>
                                                                 </DialogClose>
@@ -1896,6 +1903,7 @@ export default function ProjectsShow({
 
                         <Form
                             {...storeEquipmentCheckout.form(project)}
+                            encType="multipart/form-data"
                             options={{ preserveScroll: true }}
                             onSuccess={() => {
                                 setCheckoutEquipmentId('');
@@ -2011,9 +2019,7 @@ export default function ProjectsShow({
                                                     .slice(0, 16)}
                                             />
                                             <InputError
-                                                message={
-                                                    errors.checked_out_at
-                                                }
+                                                message={errors.checked_out_at}
                                             />
                                         </div>
 
@@ -2047,14 +2053,30 @@ export default function ProjectsShow({
                                                 message={errors.notes}
                                             />
                                         </div>
+
+                                        <div className="grid gap-2 sm:col-span-2">
+                                            <Label htmlFor="checkout_photo">
+                                                Proof photo
+                                            </Label>
+                                            <Input
+                                                id="checkout_photo"
+                                                type="file"
+                                                name="checkout_photo"
+                                                accept="image/png,image/jpeg"
+                                                capture="environment"
+                                            />
+                                            <p className="text-sm text-muted-foreground">
+                                                Optional photo of the equipment
+                                                as checked out.
+                                            </p>
+                                            <InputError
+                                                message={errors.checkout_photo}
+                                            />
+                                        </div>
                                     </div>
 
                                     <Button type="submit" disabled={processing}>
-                                        {processing ? (
-                                            <Spinner />
-                                        ) : (
-                                            <Package />
-                                        )}
+                                        {processing ? <Spinner /> : <Package />}
                                         Check out
                                     </Button>
                                 </div>
@@ -2106,24 +2128,20 @@ export default function ProjectsShow({
                                                     </TableCell>
                                                     <TableCell>
                                                         {
-                                                            assignment
-                                                                .equipment.name
+                                                            assignment.equipment
+                                                                .name
                                                         }
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {assignment.equipment
                                                             .category ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {assignment.custodian
                                                             ?.full_name ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
@@ -2146,9 +2164,7 @@ export default function ProjectsShow({
                                                     </TableCell>
                                                     <TableCell className="max-w-xs text-muted-foreground">
                                                         {assignment.notes ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                     {project.equipment_calibration_max_age_months && (
@@ -2383,8 +2399,11 @@ export default function ProjectsShow({
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
 

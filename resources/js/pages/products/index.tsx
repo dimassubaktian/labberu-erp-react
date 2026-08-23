@@ -160,7 +160,10 @@ export default function ProductsIndex({ products, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All types</SelectItem>
                             {TYPE_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -174,7 +177,10 @@ export default function ProductsIndex({ products, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

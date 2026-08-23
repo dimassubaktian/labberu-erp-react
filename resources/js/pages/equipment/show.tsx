@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import {
     ArrowLeft,
+    Camera,
     Download,
     LogOut,
     MapPin,
@@ -8,6 +9,7 @@ import {
     Pencil,
     Trash2,
     Upload,
+    X,
 } from 'lucide-react';
 import React from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
@@ -46,6 +48,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
 import { destroy, edit, index, picture, show } from '@/routes/equipment';
+import {
+    checkoutPhoto as checkoutPhotoUrl,
+    returnPhoto as returnPhotoUrl,
+} from '@/routes/equipment/assignments';
 import assignments from '@/routes/equipment/assignments';
 import {
     destroy as destroyCalibration,
@@ -72,21 +78,23 @@ const RETURN_STATUS_OPTIONS = [
     { value: 'damaged', label: 'Damaged' },
 ];
 
-const STATUS_VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> = {
-    available: 'secondary',
-    in_use: 'secondary',
-    in_calibration: 'outline',
-    under_maintenance: 'outline',
-    retired: 'outline',
-    lost: 'destructive',
-    damaged: 'destructive',
-};
+const STATUS_VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> =
+    {
+        available: 'secondary',
+        in_use: 'secondary',
+        in_calibration: 'outline',
+        under_maintenance: 'outline',
+        retired: 'outline',
+        lost: 'destructive',
+        damaged: 'destructive',
+    };
 
-const RESULT_VARIANTS: Record<string, 'secondary' | 'destructive' | 'outline'> = {
-    passed: 'secondary',
-    failed: 'destructive',
-    conditional: 'outline',
-};
+const RESULT_VARIANTS: Record<string, 'secondary' | 'destructive' | 'outline'> =
+    {
+        passed: 'secondary',
+        failed: 'destructive',
+        conditional: 'outline',
+    };
 
 type VendorOption = { id: number; name: string; vendor_code: string };
 type ProjectOption = { id: number; uuid: string; name: string };
@@ -118,6 +126,8 @@ type Assignment = {
     expected_return_at: string | null;
     returned_at: string | null;
     notes: string | null;
+    checkout_photo: string | null;
+    return_photo: string | null;
     project: { id: number; uuid: string; name: string } | null;
     custodian: { id: number; full_name: string } | null;
     creator: { id: number; name: string };
@@ -204,7 +214,9 @@ function CalibrationEditDialog({
                         <>
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`certificate_number-${calibration.id}`}>
+                                    <Label
+                                        htmlFor={`certificate_number-${calibration.id}`}
+                                    >
                                         Certificate number
                                     </Label>
                                     <Input
@@ -221,7 +233,9 @@ function CalibrationEditDialog({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`provider_id-${calibration.id}`}>
+                                    <Label
+                                        htmlFor={`provider_id-${calibration.id}`}
+                                    >
                                         Provider
                                     </Label>
                                     <input
@@ -255,7 +269,9 @@ function CalibrationEditDialog({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`calibration_date-${calibration.id}`}>
+                                    <Label
+                                        htmlFor={`calibration_date-${calibration.id}`}
+                                    >
                                         Calibration date
                                     </Label>
                                     <Input
@@ -273,7 +289,9 @@ function CalibrationEditDialog({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor={`due_date-${calibration.id}`}>
+                                    <Label
+                                        htmlFor={`due_date-${calibration.id}`}
+                                    >
                                         Due date
                                     </Label>
                                     <Input
@@ -297,7 +315,10 @@ function CalibrationEditDialog({
                                         name="result"
                                         value={result}
                                     />
-                                    <Select value={result} onValueChange={setResult}>
+                                    <Select
+                                        value={result}
+                                        onValueChange={setResult}
+                                    >
                                         <SelectTrigger
                                             id={`result-${calibration.id}`}
                                             className="w-full"
@@ -335,7 +356,9 @@ function CalibrationEditDialog({
                                 </div>
 
                                 <div className="grid gap-2 sm:col-span-2">
-                                    <Label htmlFor={`certificate_file-${calibration.id}`}>
+                                    <Label
+                                        htmlFor={`certificate_file-${calibration.id}`}
+                                    >
                                         Certificate file
                                     </Label>
                                     <Input
@@ -368,7 +391,12 @@ function CalibrationEditDialog({
 
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="secondary">Cancel</Button>
+                                    <Button
+                                        variant="ghost"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <X /> Cancel
+                                    </Button>
                                 </DialogClose>
 
                                 <Button type="submit" disabled={processing}>
@@ -410,6 +438,7 @@ function ReturnEquipmentDialog({
 
                 <Form
                     {...assignments.return.form({ equipment, assignment })}
+                    encType="multipart/form-data"
                     options={{ preserveScroll: true }}
                     onSuccess={() => {
                         setOpen(false);
@@ -428,7 +457,10 @@ function ReturnEquipmentDialog({
                                     name="status"
                                     value={status}
                                 />
-                                <Select value={status} onValueChange={setStatus}>
+                                <Select
+                                    value={status}
+                                    onValueChange={setStatus}
+                                >
                                     <SelectTrigger
                                         id="return_status"
                                         className="w-full"
@@ -436,16 +468,14 @@ function ReturnEquipmentDialog({
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {RETURN_STATUS_OPTIONS.map(
-                                            (option) => (
-                                                <SelectItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </SelectItem>
-                                            ),
-                                        )}
+                                        {RETURN_STATUS_OPTIONS.map((option) => (
+                                            <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.status} />
@@ -469,9 +499,31 @@ function ReturnEquipmentDialog({
                                 <InputError message={errors.notes} />
                             </div>
 
+                            <div className="grid gap-2">
+                                <Label htmlFor="return_photo">
+                                    Proof photo
+                                </Label>
+                                <Input
+                                    id="return_photo"
+                                    type="file"
+                                    name="return_photo"
+                                    accept="image/png,image/jpeg"
+                                    capture="environment"
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    Optional photo of the equipment as returned.
+                                </p>
+                                <InputError message={errors.return_photo} />
+                            </div>
+
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="secondary">Cancel</Button>
+                                    <Button
+                                        variant="ghost"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <X /> Cancel
+                                    </Button>
                                 </DialogClose>
 
                                 <Button type="submit" disabled={processing}>
@@ -487,7 +539,11 @@ function ReturnEquipmentDialog({
     );
 }
 
-export default function EquipmentShow({ equipment, workforces, locations }: Props) {
+export default function EquipmentShow({
+    equipment,
+    workforces,
+    locations,
+}: Props) {
     const [providerId, setProviderId] = React.useState('');
     const [result, setResult] = React.useState('passed');
     const [projectId, setProjectId] = React.useState('');
@@ -624,15 +680,15 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                 Checked out to
                             </dt>
                             <dd className="font-medium">
-                                {equipment.current_project
-                                    ? equipment.current_project.name
-                                    : equipment.current_custodian
-                                      ? equipment.current_custodian.full_name
-                                      : (
-                                          <span className="text-muted-foreground">
-                                              &mdash;
-                                          </span>
-                                      )}
+                                {equipment.current_project ? (
+                                    equipment.current_project.name
+                                ) : equipment.current_custodian ? (
+                                    equipment.current_custodian.full_name
+                                ) : (
+                                    <span className="text-muted-foreground">
+                                        &mdash;
+                                    </span>
+                                )}
                             </dd>
                         </div>
 
@@ -823,9 +879,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                     placeholder="Select a provider (optional)"
                                                 />
                                                 <InputError
-                                                    message={
-                                                        errors.provider_id
-                                                    }
+                                                    message={errors.provider_id}
                                                 />
                                             </div>
 
@@ -1086,8 +1140,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                                         },
                                                                     )}
                                                                     options={{
-                                                                        preserveScroll:
-                                                                            true,
+                                                                        preserveScroll: true,
                                                                     }}
                                                                 >
                                                                     {({
@@ -1097,7 +1150,11 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                                             <DialogClose
                                                                                 asChild
                                                                             >
-                                                                                <Button variant="secondary">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                                                >
+                                                                                    <X />{' '}
                                                                                     Cancel
                                                                                 </Button>
                                                                             </DialogClose>
@@ -1167,6 +1224,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                         ) : (
                             <Form
                                 {...assignments.store.form(equipment)}
+                                encType="multipart/form-data"
                                 options={{ preserveScroll: true }}
                                 resetOnSuccess
                             >
@@ -1189,9 +1247,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                 <AsyncCombobox<ProjectOption>
                                                     id="project_id"
                                                     value={projectId}
-                                                    onValueChange={
-                                                        setProjectId
-                                                    }
+                                                    onValueChange={setProjectId}
                                                     searchUrl={
                                                         searchProjects().url
                                                     }
@@ -1312,6 +1368,28 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                     message={errors.notes}
                                                 />
                                             </div>
+
+                                            <div className="grid gap-2 sm:col-span-2">
+                                                <Label htmlFor="checkout_photo">
+                                                    Proof photo
+                                                </Label>
+                                                <Input
+                                                    id="checkout_photo"
+                                                    type="file"
+                                                    name="checkout_photo"
+                                                    accept="image/png,image/jpeg"
+                                                    capture="environment"
+                                                />
+                                                <p className="text-sm text-muted-foreground">
+                                                    Optional photo of the
+                                                    equipment as checked out.
+                                                </p>
+                                                <InputError
+                                                    message={
+                                                        errors.checkout_photo
+                                                    }
+                                                />
+                                            </div>
                                         </div>
 
                                         <Button
@@ -1344,6 +1422,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                             <TableHead>Checked out</TableHead>
                                             <TableHead>Returned</TableHead>
                                             <TableHead>Remarks</TableHead>
+                                            <TableHead>Proof</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -1358,9 +1437,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                     <TableCell className="text-muted-foreground">
                                                         {assignment.custodian
                                                             ?.full_name ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
@@ -1381,10 +1458,60 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                     </TableCell>
                                                     <TableCell className="max-w-xs text-muted-foreground">
                                                         {assignment.notes ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex gap-2">
+                                                            {assignment.checkout_photo && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    asChild
+                                                                >
+                                                                    <a
+                                                                        href={checkoutPhotoUrl.url(
+                                                                            {
+                                                                                equipment,
+                                                                                assignment,
+                                                                            },
+                                                                        )}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        title="Checkout photo"
+                                                                    >
+                                                                        <Camera />
+                                                                    </a>
+                                                                </Button>
+                                                            )}
+                                                            {assignment.return_photo && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    asChild
+                                                                >
+                                                                    <a
+                                                                        href={returnPhotoUrl.url(
+                                                                            {
+                                                                                equipment,
+                                                                                assignment,
+                                                                            },
+                                                                        )}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        title="Return photo"
+                                                                    >
+                                                                        <LogOut />
+                                                                    </a>
+                                                                </Button>
+                                                            )}
+                                                            {!assignment.checkout_photo &&
+                                                                !assignment.return_photo && (
+                                                                    <span className="text-muted-foreground">
+                                                                        &mdash;
+                                                                    </span>
+                                                                )}
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             ),
@@ -1482,15 +1609,8 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                         </div>
                                     </div>
 
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                    >
-                                        {processing ? (
-                                            <Spinner />
-                                        ) : (
-                                            <MapPin />
-                                        )}
+                                    <Button type="submit" disabled={processing}>
+                                        {processing ? <Spinner /> : <MapPin />}
                                         Record move
                                     </Button>
                                 </div>
@@ -1517,7 +1637,8 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                             (move) => (
                                                 <TableRow key={move.id}>
                                                     <TableCell className="font-medium">
-                                                        {move.location?.name ?? (
+                                                        {move.location
+                                                            ?.name ?? (
                                                             <span className="text-muted-foreground">
                                                                 &mdash;
                                                             </span>
@@ -1533,9 +1654,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                     </TableCell>
                                                     <TableCell className="max-w-xs text-muted-foreground">
                                                         {move.notes ?? (
-                                                            <span>
-                                                                &mdash;
-                                                            </span>
+                                                            <span>&mdash;</span>
                                                         )}
                                                     </TableCell>
                                                 </TableRow>
@@ -1556,9 +1675,9 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
                             <p className="font-medium">Delete this equipment</p>
                             <p className="text-sm">
-                                Once deleted, this equipment can be restored
-                                by an administrator, but its history stays
-                                hidden until then.
+                                Once deleted, this equipment can be restored by
+                                an administrator, but its history stays hidden
+                                until then.
                             </p>
                         </div>
 
@@ -1587,8 +1706,11 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                     {({ processing }) => (
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
-                                                <Button variant="secondary">
-                                                    Cancel
+                                                <Button
+                                                    variant="ghost"
+                                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                >
+                                                    <X /> Cancel
                                                 </Button>
                                             </DialogClose>
 
@@ -1598,9 +1720,7 @@ export default function EquipmentShow({ equipment, workforces, locations }: Prop
                                                 asChild
                                             >
                                                 <button type="submit">
-                                                    {processing && (
-                                                        <Spinner />
-                                                    )}
+                                                    {processing && <Spinner />}
                                                     Delete Equipment
                                                 </button>
                                             </Button>

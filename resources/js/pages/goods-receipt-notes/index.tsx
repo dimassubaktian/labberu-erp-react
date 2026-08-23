@@ -73,7 +73,10 @@ const SORT_OPTIONS: { value: Sort; label: string }[] = [
     { value: 'date_asc', label: 'Oldest received date' },
 ];
 
-export default function GoodsReceiptNotesIndex({ goodsReceiptNotes, filters }: Props) {
+export default function GoodsReceiptNotesIndex({
+    goodsReceiptNotes,
+    filters,
+}: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [status, setStatus] = React.useState(filters.status || 'all');
     const [sort, setSort] = React.useState<Sort>(filters.sort || 'latest');
@@ -175,7 +178,10 @@ export default function GoodsReceiptNotesIndex({ goodsReceiptNotes, filters }: P
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -188,7 +194,10 @@ export default function GoodsReceiptNotesIndex({ goodsReceiptNotes, filters }: P
                         </SelectTrigger>
                         <SelectContent>
                             {SORT_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

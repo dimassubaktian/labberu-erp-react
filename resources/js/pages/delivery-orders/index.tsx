@@ -74,10 +74,15 @@ const SORT_OPTIONS: { value: Sort; label: string }[] = [
     { value: 'delivery_date_asc', label: 'Oldest delivery date' },
 ];
 
-export default function DeliveryOrdersIndex({ deliveryOrders, filters }: Props) {
+export default function DeliveryOrdersIndex({
+    deliveryOrders,
+    filters,
+}: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [status, setStatus] = React.useState(filters.status || 'all');
-    const [sort, setSort] = React.useState<Sort>(filters.sort || 'delivery_date_desc');
+    const [sort, setSort] = React.useState<Sort>(
+        filters.sort || 'delivery_date_desc',
+    );
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasActiveFilters =
@@ -93,7 +98,10 @@ export default function DeliveryOrdersIndex({ deliveryOrders, filters }: Props) 
                 query: {
                     search: next.search || undefined,
                     status: next.status !== 'all' ? next.status : undefined,
-                    sort: next.sort !== 'delivery_date_desc' ? next.sort : undefined,
+                    sort:
+                        next.sort !== 'delivery_date_desc'
+                            ? next.sort
+                            : undefined,
                 },
             }),
             {},
@@ -104,7 +112,10 @@ export default function DeliveryOrdersIndex({ deliveryOrders, filters }: Props) 
     function handleSearchChange(value: string): void {
         setSearch(value);
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => applyFilters({ search: value }), 400);
+        debounceRef.current = setTimeout(
+            () => applyFilters({ search: value }),
+            400,
+        );
     }
 
     function handleStatusChange(value: string): void {

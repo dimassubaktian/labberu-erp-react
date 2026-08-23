@@ -8,6 +8,7 @@ use App\Http\Requests\ProjectUpdateRequest;
 use App\Http\Requests\ProjectVoidRequest;
 use App\Models\BusinessLine;
 use App\Models\EquipmentAssignment;
+use App\Models\EquipmentCalibration;
 use App\Models\Project;
 use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
@@ -139,15 +140,30 @@ class ProjectController extends Controller
                 'creator:id,name',
             ])
             ->orderByDesc('checked_out_at')
-            ->get()
-            ->each(function (EquipmentAssignment $assignment) use ($project): void {
-                $assignment->setAttribute(
-                    'calibration_compliant',
-                    $assignment->returned_at === null
-                        ? $assignment->equipment->satisfiesCalibrationRecency($project->equipment_calibration_max_age_months)
-                        : null,
-                );
-            });
+            ->get();
+
+        // Latest calibration date per equipment for the still-open assignments, fetched in a single
+        // grouped query so the compliance check below doesn't run one query per assignment.
+        $lastCalibratedAt = EquipmentCalibration::query()
+            ->whereIn('equipment_id', $equipmentAssignments
+                ->whereNull('returned_at')
+                ->pluck('equipment_id')
+                ->unique())
+            ->selectRaw('equipment_id, MAX(calibration_date) as last_calibrated_at')
+            ->groupBy('equipment_id')
+            ->pluck('last_calibrated_at', 'equipment_id');
+
+        $equipmentAssignments->each(function (EquipmentAssignment $assignment) use ($project, $lastCalibratedAt): void {
+            $assignment->setAttribute(
+                'calibration_compliant',
+                $assignment->returned_at === null
+                    ? $assignment->equipment->calibrationRecencySatisfiedBy(
+                        $lastCalibratedAt->get($assignment->equipment_id),
+                        $project->equipment_calibration_max_age_months,
+                    )
+                    : null,
+            );
+        });
 
         $quotations = $project->quotations()
             ->with('currency')

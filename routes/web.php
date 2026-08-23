@@ -254,6 +254,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('equipment/create', [EquipmentController::class, 'create'])->name('equipment.create')->middleware('permission:equipment.create');
     Route::post('equipment', [EquipmentController::class, 'store'])->name('equipment.store')->middleware('permission:equipment.create');
     Route::get('equipment/search', [EquipmentController::class, 'search'])->name('equipment.search')->middleware('permission:equipment.view');
+    Route::get('equipment/print', [EquipmentController::class, 'print'])->name('equipment.print')->middleware('permission:equipment.view');
     Route::get('equipment/{equipment}', [EquipmentController::class, 'show'])->name('equipment.show')->middleware('permission:equipment.view');
     Route::get('equipment/{equipment}/edit', [EquipmentController::class, 'edit'])->name('equipment.edit')->middleware('permission:equipment.update');
     Route::put('equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update')->middleware('permission:equipment.update');
@@ -267,6 +268,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('equipment/{equipment}/assignments', [EquipmentAssignmentController::class, 'store'])->name('equipment.assignments.store')->middleware('permission:equipment.assignments.create');
     Route::patch('equipment/{equipment}/assignments/{assignment}/return', [EquipmentAssignmentController::class, 'return'])->name('equipment.assignments.return')->middleware('permission:equipment.assignments.update');
+    Route::get('equipment/{equipment}/assignments/{assignment}/checkout-photo', [EquipmentAssignmentController::class, 'checkoutPhoto'])->name('equipment.assignments.checkout-photo')->middleware('permission:equipment.view');
+    Route::get('equipment/{equipment}/assignments/{assignment}/return-photo', [EquipmentAssignmentController::class, 'returnPhoto'])->name('equipment.assignments.return-photo')->middleware('permission:equipment.view');
 
     Route::post('equipment/{equipment}/location-moves', [EquipmentLocationMoveController::class, 'store'])->name('equipment.location-moves.store')->middleware('permission:equipment.locations.move');
 

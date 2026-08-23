@@ -33,6 +33,7 @@ class ProjectEquipmentCheckoutRequest extends FormRequest
             'checked_out_at' => ['required', 'date'],
             'expected_return_at' => ['nullable', 'date', 'after_or_equal:checked_out_at'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'checkout_photo' => ['nullable', 'file', 'max:10240', 'mimes:png,jpg,jpeg'],
         ];
     }
 

@@ -177,7 +177,9 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             value={search}
-                            onChange={(event) => handleSearchChange(event.target.value)}
+                            onChange={(event) =>
+                                handleSearchChange(event.target.value)
+                            }
                             placeholder="Search by code, project, or customer"
                             className="pl-9"
                         />
@@ -190,7 +192,10 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -203,7 +208,10 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         </SelectTrigger>
                         <SelectContent>
                             {SORT_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -214,7 +222,7 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         <Button
                             variant="ghost"
                             onClick={handleReset}
-                            className="w-full text-destructive hover:text-destructive dark:text-destructive-foreground dark:hover:text-destructive-foreground sm:w-auto"
+                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
                         >
                             <X />
                             Reset
@@ -256,12 +264,23 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                                         </Link>
                                     </TableCell>
                                     <TableCell>
-                                        <Link href={showProject(quotation.project).url}>
+                                        <Link
+                                            href={
+                                                showProject(quotation.project)
+                                                    .url
+                                            }
+                                        >
                                             {quotation.project.name}
                                         </Link>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        <Link href={showCustomer(quotation.project.customer).url}>
+                                        <Link
+                                            href={
+                                                showCustomer(
+                                                    quotation.project.customer,
+                                                ).url
+                                            }
+                                        >
                                             {quotation.project.customer.name}
                                         </Link>
                                     </TableCell>

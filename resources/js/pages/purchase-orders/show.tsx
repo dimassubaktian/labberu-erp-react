@@ -1241,8 +1241,11 @@ export default function PurchaseOrdersShow({
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
                                                 <Button
@@ -1291,8 +1294,11 @@ export default function PurchaseOrdersShow({
                                                     />
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
-                                                            <Button variant="secondary">
-                                                                Cancel
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                            >
+                                                                <X /> Cancel
                                                             </Button>
                                                         </DialogClose>
                                                         <Button
@@ -1346,8 +1352,11 @@ export default function PurchaseOrdersShow({
                                                     />
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
-                                                            <Button variant="secondary">
-                                                                Cancel
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                            >
+                                                                <X /> Cancel
                                                             </Button>
                                                         </DialogClose>
                                                         <Button
@@ -1396,8 +1405,11 @@ export default function PurchaseOrdersShow({
                                             {({ processing }) => (
                                                 <DialogFooter className="gap-2">
                                                     <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                        >
+                                                            <X /> Cancel
                                                         </Button>
                                                     </DialogClose>
                                                     <Button
@@ -1457,8 +1469,11 @@ export default function PurchaseOrdersShow({
                                                 </div>
                                                 <DialogFooter className="gap-2">
                                                     <DialogClose asChild>
-                                                        <Button variant="secondary">
-                                                            Cancel
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                        >
+                                                            <X /> Cancel
                                                         </Button>
                                                     </DialogClose>
                                                     <Button
@@ -1596,8 +1611,11 @@ export default function PurchaseOrdersShow({
                                                     />
                                                     <DialogFooter className="gap-2">
                                                         <DialogClose asChild>
-                                                            <Button variant="secondary">
-                                                                Cancel
+                                                            <Button
+                                                                variant="ghost"
+                                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                            >
+                                                                <X /> Cancel
                                                             </Button>
                                                         </DialogClose>
 
@@ -1668,8 +1686,11 @@ export default function PurchaseOrdersShow({
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
 

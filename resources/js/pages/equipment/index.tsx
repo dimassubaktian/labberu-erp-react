@@ -3,6 +3,7 @@ import { AlertTriangle, Clock, PackageX, Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import Heading from '@/components/heading';
+import { PrintDocumentDialog } from '@/components/print-document-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +23,12 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { cn, formatDate } from '@/lib/utils';
-import { create, index as equipmentIndex, show } from '@/routes/equipment';
+import {
+    create,
+    index as equipmentIndex,
+    print,
+    show,
+} from '@/routes/equipment';
 import type { Paginated } from '@/types';
 
 type Equipment = {
@@ -87,15 +93,29 @@ const STATUS_OPTIONS = [
     { value: 'damaged', label: 'Damaged' },
 ];
 
-const STATUS_VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> = {
-    available: 'secondary',
-    in_use: 'secondary',
-    in_calibration: 'outline',
-    under_maintenance: 'outline',
-    retired: 'outline',
-    lost: 'destructive',
-    damaged: 'destructive',
-};
+function printQuery(filters: Filters): Record<string, string> {
+    const query: Record<string, string> = {};
+
+    if (filters.search) query.search = filters.search;
+    if (filters.category !== 'all') query.category = filters.category;
+    if (filters.status !== 'all') query.status = filters.status;
+    if (filters.calibration !== 'all') query.calibration = filters.calibration;
+    if (filters.return_status !== 'all')
+        query.return_status = filters.return_status;
+
+    return query;
+}
+
+const STATUS_VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> =
+    {
+        available: 'secondary',
+        in_use: 'secondary',
+        in_calibration: 'outline',
+        under_maintenance: 'outline',
+        retired: 'outline',
+        lost: 'destructive',
+        damaged: 'destructive',
+    };
 
 export default function EquipmentIndex({
     equipment,
@@ -135,10 +155,13 @@ export default function EquipmentIndex({
             equipmentIndex.url({
                 query: {
                     search: next.search || undefined,
-                    category: next.category !== 'all' ? next.category : undefined,
+                    category:
+                        next.category !== 'all' ? next.category : undefined,
                     status: next.status !== 'all' ? next.status : undefined,
                     calibration:
-                        next.calibration !== 'all' ? next.calibration : undefined,
+                        next.calibration !== 'all'
+                            ? next.calibration
+                            : undefined,
                     return_status:
                         next.return_status !== 'all'
                             ? next.return_status
@@ -213,12 +236,28 @@ export default function EquipmentIndex({
                         description="Manage the tools and equipment your organization owns"
                     />
 
-                    <Button asChild className="w-full sm:w-auto">
-                        <Link href={create()}>
-                            <Plus />
-                            New Equipment
-                        </Link>
-                    </Button>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <PrintDocumentDialog
+                            title="Print equipment list"
+                            description="Preview or download the equipment list as a PDF, using your current filters."
+                            previewUrl={print.url({
+                                query: printQuery(filters),
+                            })}
+                            downloadUrl={print.url({
+                                query: {
+                                    ...printQuery(filters),
+                                    download: 'true',
+                                },
+                            })}
+                        />
+
+                        <Button asChild className="w-full sm:w-auto">
+                            <Link href={create()}>
+                                <Plus />
+                                New Equipment
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -301,7 +340,10 @@ export default function EquipmentIndex({
                         />
                     </div>
 
-                    <Select value={category} onValueChange={handleCategoryChange}>
+                    <Select
+                        value={category}
+                        onValueChange={handleCategoryChange}
+                    >
                         <SelectTrigger className="w-full sm:w-48">
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
@@ -322,7 +364,10 @@ export default function EquipmentIndex({
                         <SelectContent>
                             <SelectItem value="all">All statuses</SelectItem>
                             {STATUS_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

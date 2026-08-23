@@ -30,6 +30,7 @@ class EquipmentAssignmentReturnRequest extends FormRequest
             // Required whenever the tool isn't simply going back on the shelf as-is, so a
             // "damaged" or "lost" return always explains itself in the history.
             'notes' => ['nullable', 'string', 'max:2000', 'required_unless:status,available'],
+            'return_photo' => ['nullable', 'file', 'max:10240', 'mimes:png,jpg,jpeg'],
         ];
     }
 }

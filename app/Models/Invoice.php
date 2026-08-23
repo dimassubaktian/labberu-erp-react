@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\DashboardController;
 use Database\Factories\InvoiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -100,6 +101,11 @@ class Invoice extends Model
                 );
             }
         });
+
+        // Finance and management dashboards aggregate invoices, so any write invalidates their cache.
+        static::saved(fn () => DashboardController::flushCache());
+        static::deleted(fn () => DashboardController::flushCache());
+        static::restored(fn () => DashboardController::flushCache());
     }
 
     /**

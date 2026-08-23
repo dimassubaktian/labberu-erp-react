@@ -69,7 +69,10 @@ const SORT_OPTIONS = [
     { value: 'oldest', label: 'Oldest first' },
 ];
 
-export default function StockAdjustmentsIndex({ stockAdjustments, filters }: Props) {
+export default function StockAdjustmentsIndex({
+    stockAdjustments,
+    filters,
+}: Props) {
     const [search, setSearch] = React.useState(filters.search);
     const [type, setType] = React.useState(filters.type || 'all');
     const [sort, setSort] = React.useState(filters.sort || 'latest');
@@ -167,7 +170,10 @@ export default function StockAdjustmentsIndex({ stockAdjustments, filters }: Pro
                         <SelectContent>
                             <SelectItem value="all">All types</SelectItem>
                             {TYPE_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}
@@ -180,7 +186,10 @@ export default function StockAdjustmentsIndex({ stockAdjustments, filters }: Pro
                         </SelectTrigger>
                         <SelectContent>
                             {SORT_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
+                                <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
                                     {option.label}
                                 </SelectItem>
                             ))}

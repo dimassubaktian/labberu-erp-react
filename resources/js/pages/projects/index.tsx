@@ -231,7 +231,7 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                         <Button
                             variant="ghost"
                             onClick={handleReset}
-                            className="w-full text-destructive hover:text-destructive dark:text-destructive-foreground dark:hover:text-destructive-foreground sm:w-auto"
+                            className="w-full text-destructive hover:text-destructive sm:w-auto dark:text-destructive-foreground dark:hover:text-destructive-foreground"
                         >
                             <X />
                             Reset
@@ -296,7 +296,9 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                         {project.customer.name}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {project.business_line?.name ?? <span>&mdash;</span>}
+                                        {project.business_line?.name ?? (
+                                            <span>&mdash;</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

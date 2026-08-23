@@ -3,6 +3,7 @@
 use App\Models\Equipment;
 use App\Models\Project;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('checkout is blocked when the project requires more recent calibration than the equipment has', function () {
@@ -153,6 +154,37 @@ test('the project page flags equipment that has drifted out of compliance while 
     $response->assertInertia(fn (Assert $page) => $page
         ->where('equipmentAssignments.0.calibration_compliant', false)
     );
+});
+
+test('the project page checks calibration compliance without one query per checked-out tool', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->create(['equipment_calibration_max_age_months' => 6]);
+
+    foreach (range(1, 3) as $ignored) {
+        $equipment = Equipment::factory()->create(['status' => 'available', 'calibration_required' => true]);
+        $equipment->calibrations()->create([
+            'calibration_date' => now()->subMonth(),
+            'due_date' => now()->addMonths(11),
+            'result' => 'passed',
+            'created_by' => $user->id,
+        ]);
+        $equipment->checkOut([
+            'project_id' => $project->id,
+            'checked_out_at' => now()->subDay(),
+            'created_by' => $user->id,
+        ]);
+    }
+
+    DB::enableQueryLog();
+    $this->actingAs($user)->get(route('projects.show', $project))->assertOk();
+
+    // The compliance check for all three checked-out tools is batched into a single grouped query
+    // against equipment_calibrations — not one MAX(calibration_date) lookup per assignment.
+    $calibrationQueries = collect(DB::getQueryLog())
+        ->filter(fn ($entry) => str_contains($entry['query'], 'equipment_calibrations')
+            && str_contains(strtolower($entry['query']), 'max('));
+
+    expect($calibrationQueries)->toHaveCount(1);
 });
 
 test('the project page still shows equipment after it has been returned', function () {

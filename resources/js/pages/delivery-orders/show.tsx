@@ -1,5 +1,13 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
-import { ArrowLeft, Ban, Download, PackageCheck, Pencil, Trash2 } from 'lucide-react';
+import {
+    ArrowLeft,
+    Ban,
+    Download,
+    PackageCheck,
+    Pencil,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -28,7 +36,15 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate, formatDateTime, formatNumber } from '@/lib/utils';
-import { cancel, confirm, destroy, edit, index, print, signedDocument } from '@/routes/delivery-orders';
+import {
+    cancel,
+    confirm,
+    destroy,
+    edit,
+    index,
+    print,
+    signedDocument,
+} from '@/routes/delivery-orders';
 import { show as showQuotation } from '@/routes/quotations';
 
 type WorkforceOption = {
@@ -74,7 +90,8 @@ type Props = {
 export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
     const { auth } = usePage().props;
     const hasWorkforce = auth.workforce_id !== null;
-    const canConfirm = hasWorkforce && auth.permissions.includes('delivery-orders.confirm');
+    const canConfirm =
+        hasWorkforce && auth.permissions.includes('delivery-orders.confirm');
     const canCancel = auth.permissions.includes('delivery-orders.cancel');
 
     const [cancelReason, setCancelReason] = useState('');
@@ -316,19 +333,30 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                                     name="signed_document"
                                                     accept=".pdf,.jpg,.jpeg,.png"
                                                 />
-                                                <InputError message={errors.signed_document} />
+                                                <InputError
+                                                    message={
+                                                        errors.signed_document
+                                                    }
+                                                />
                                             </div>
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
                                                 <Button
                                                     type="submit"
                                                     disabled={processing}
                                                 >
-                                                    {processing ? <Spinner /> : <PackageCheck />}
+                                                    {processing ? (
+                                                        <Spinner />
+                                                    ) : (
+                                                        <PackageCheck />
+                                                    )}
                                                     Confirm delivery
                                                 </Button>
                                             </DialogFooter>
@@ -479,8 +507,11 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                         {({ processing }) => (
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>
-                                                    <Button variant="secondary">
-                                                        Cancel
+                                                    <Button
+                                                        variant="ghost"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                                    >
+                                                        <X /> Cancel
                                                     </Button>
                                                 </DialogClose>
 

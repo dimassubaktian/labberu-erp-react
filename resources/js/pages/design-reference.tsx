@@ -512,7 +512,12 @@ formatDateTime(value)    // ${formatDateTime('2026-08-16 09:30:00')}`}</Snippet>
                             </DialogDescription>
                             <DialogFooter className="gap-2">
                                 <DialogClose asChild>
-                                    <Button variant="secondary">Cancel</Button>
+                                    <Button
+                                        variant="ghost"
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    >
+                                        <X /> Cancel
+                                    </Button>
                                 </DialogClose>
                                 <Button variant="destructive">Delete</Button>
                             </DialogFooter>
