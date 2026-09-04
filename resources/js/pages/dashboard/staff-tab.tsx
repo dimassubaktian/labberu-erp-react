@@ -9,6 +9,7 @@ import {
 import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
+import { SectionIntro } from '@/components/dashboard/section-intro';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChartContainer } from '@/components/ui/chart';
@@ -58,9 +59,11 @@ type Project = {
     name: string;
     customer_name: string;
     status: string;
+    sales_status: string | null;
     billing_status: string | null;
     end_date: string | null;
     is_overdue: boolean;
+    days_until_due: number | null;
     priority: string;
 };
 
@@ -81,6 +84,40 @@ type Props = {
         staff_priority?: string;
     }) => void;
 };
+
+function nextStep(project: Project): string {
+    if (project.is_overdue) {
+        return 'Recover the delivery schedule';
+    }
+
+    if (!project.sales_status) {
+        return 'Prepare the quotation';
+    }
+
+    if (project.sales_status === 'quoting') {
+        return 'Move the quotation forward';
+    }
+
+    if (project.sales_status === 'approved') {
+        return 'Send the approved quotation';
+    }
+
+    if (project.sales_status === 'sent') {
+        return 'Follow up with the customer';
+    }
+
+    if (project.status === 'in_progress') {
+        return 'Keep delivery milestones updated';
+    }
+
+    if (project.billing_status === 'awaiting_payment') {
+        return 'Coordinate payment follow-up';
+    }
+
+    return project.status === 'completed'
+        ? 'No action required'
+        : 'Confirm the next milestone';
+}
 
 export function StaffTab({
     kpis,
@@ -108,7 +145,20 @@ export function StaffTab({
 
     return (
         <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-4">
+            <SectionIntro
+                icon={FolderKanban}
+                label="My delivery desk"
+                description="Overdue and urgent projects are placed first. Use the next-step column to decide what to move today."
+                statusLabel="Personal workload"
+                statusValue={
+                    kpis.overdue > 0
+                        ? `${kpis.overdue} projects overdue`
+                        : `${kpis.in_progress} projects in progress`
+                }
+                tone={kpis.overdue > 0 ? 'danger' : 'success'}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <KpiCard
                     label="My Projects"
                     value={kpis.total}
@@ -132,7 +182,7 @@ export function StaffTab({
                 />
             </div>
 
-            <SectionCard title="My Project List">
+            <SectionCard title="My prioritized projects">
                 <div className="mb-3 flex flex-wrap gap-2">
                     <Select
                         value={staffStatus}
@@ -198,8 +248,9 @@ export function StaffTab({
                                 <TableHead>Project</TableHead>
                                 <TableHead>Customer</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Billing</TableHead>
+                                <TableHead>Priority</TableHead>
                                 <TableHead>Due Date</TableHead>
+                                <TableHead>Next Step</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -234,18 +285,19 @@ export function StaffTab({
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {project.billing_status ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {project.billing_status.replace(
-                                                    /_/g,
-                                                    ' ',
-                                                )}
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground">
-                                                —
-                                            </span>
-                                        )}
+                                        <Badge
+                                            variant="outline"
+                                            className={
+                                                project.priority === 'urgent'
+                                                    ? 'border-destructive/30 text-destructive'
+                                                    : project.priority ===
+                                                        'high'
+                                                      ? 'border-amber-500/30 text-amber-700 dark:text-amber-400'
+                                                      : undefined
+                                            }
+                                        >
+                                            {project.priority}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
                                         {project.end_date ? (
@@ -259,13 +311,30 @@ export function StaffTab({
                                                 {project.is_overdue && (
                                                     <AlertTriangle className="mr-1 inline h-3 w-3" />
                                                 )}
-                                                {project.end_date}
+                                                {project.is_overdue
+                                                    ? `${Math.abs(project.days_until_due ?? 0)}d overdue`
+                                                    : project.days_until_due ===
+                                                        0
+                                                      ? 'Due today'
+                                                      : project.days_until_due !==
+                                                          null
+                                                        ? `Due in ${project.days_until_due}d`
+                                                        : project.end_date}
                                             </span>
                                         ) : (
                                             <span className="text-muted-foreground">
                                                 —
                                             </span>
                                         )}
+                                    </TableCell>
+                                    <TableCell className="text-sm font-medium">
+                                        <Link
+                                            href={show(project)}
+                                            prefetch
+                                            className="hover:underline"
+                                        >
+                                            {nextStep(project)}
+                                        </Link>
                                     </TableCell>
                                 </TableRow>
                             ))}

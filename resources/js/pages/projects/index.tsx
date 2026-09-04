@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Plus, Search, X } from 'lucide-react';
 import * as React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { ProjectBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -301,24 +301,17 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {project.status.replace('_', ' ')}
-                                        </Badge>
+                                        <ProjectBadge
+                                            category="status"
+                                            value={project.status}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {project.sales_status ? (
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {project.sales_status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <ProjectBadge
+                                                category="sales"
+                                                value={project.sales_status}
+                                            />
                                         ) : (
                                             <span className="text-muted-foreground">
                                                 &mdash;
@@ -327,15 +320,10 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                     </TableCell>
                                     <TableCell>
                                         {project.po_status ? (
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {project.po_status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <ProjectBadge
+                                                category="po"
+                                                value={project.po_status}
+                                            />
                                         ) : (
                                             <span className="text-muted-foreground">
                                                 &mdash;
@@ -344,15 +332,10 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                     </TableCell>
                                     <TableCell>
                                         {project.billing_status ? (
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {project.billing_status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <ProjectBadge
+                                                category="billing"
+                                                value={project.billing_status}
+                                            />
                                         ) : (
                                             <span className="text-muted-foreground">
                                                 &mdash;
@@ -360,12 +343,10 @@ export default function ProjectsIndex({ projects, filters }: Props) {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className="capitalize"
-                                        >
-                                            {project.priority}
-                                        </Badge>
+                                        <ProjectBadge
+                                            category="priority"
+                                            value={project.priority}
+                                        />
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {formatDate(project.request_date)}

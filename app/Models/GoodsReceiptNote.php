@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\DashboardController;
 use Database\Factories\GoodsReceiptNoteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -83,6 +84,10 @@ class GoodsReceiptNote extends Model
                 );
             }
         });
+
+        static::saved(fn () => DashboardController::flushCache());
+        static::deleted(fn () => DashboardController::flushCache());
+        static::restored(fn () => DashboardController::flushCache());
     }
 
     /**

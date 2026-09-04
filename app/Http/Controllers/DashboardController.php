@@ -75,6 +75,10 @@ class DashboardController extends Controller
             $props['purchasing'] = Cache::remember(self::cacheKey('purchasing', $year), now()->addMinutes(5), fn () => $this->purchasingData($year));
         }
 
+        if ($user->can('projects.view') && $user->can('quotations.view')) {
+            $props['sales'] = Cache::remember(self::cacheKey('sales', $year), now()->addMinutes(5), fn () => $this->salesData($year));
+        }
+
         $props['staff'] = $this->staffData($user, $staffStatus, $staffPriority);
 
         return Inertia::render('dashboard', $props);
@@ -141,6 +145,7 @@ class DashboardController extends Controller
         return InvoicePayment::query()
             ->join('invoices', 'invoices.id', '=', 'invoice_payments.invoice_id')
             ->join('quotations', 'quotations.id', '=', 'invoices.quotation_id')
+            ->whereNull('invoice_payments.cancelled_at')
             ->whereNull('invoices.deleted_at');
     }
 
@@ -263,6 +268,29 @@ class DashboardController extends Controller
             ])
             ->toArray();
 
+        $managementAttention = [
+            'quotation_approvals' => Quotation::query()
+                ->where('is_current', true)
+                ->where('status', 'request_for_approval')
+                ->count(),
+            'purchase_order_approvals' => PurchaseOrder::query()
+                ->where('status', 'issued')
+                ->count(),
+            'overdue_invoices' => Invoice::query()
+                ->where('status', 'issued')
+                ->whereNot('payment_status', 'paid')
+                ->where('due_date', '<', Carbon::today())
+                ->count(),
+            'overdue_projects' => Project::query()
+                ->whereIn('status', ['new', 'planning', 'in_progress'])
+                ->where('end_date', '<', Carbon::today())
+                ->count(),
+            'loss_making_lines' => collect($businessLineStats)
+                ->where('total_revenue', '>', 0)
+                ->where('gross_profit', '<', 0)
+                ->count(),
+        ];
+
         return [
             'year' => $year,
             'kpis' => [
@@ -283,6 +311,7 @@ class DashboardController extends Controller
             ],
             'top_customers' => $topCustomers,
             'business_line_stats' => $businessLineStats,
+            'attention' => $managementAttention,
         ];
     }
 
@@ -343,21 +372,35 @@ class DashboardController extends Controller
             'collected' => $monthlyCollections[$m] ?? 0,
         ], $months);
 
-        $overdueInvoices = Invoice::query()
-            ->with('quotation.project.customer')
-            ->whereNull('deleted_at')
+        $collectionSummary = Invoice::query()
             ->where('status', 'issued')
-            ->whereNotIn('payment_status', ['paid'])
-            ->where('due_date', '<', Carbon::today())
+            ->whereNot('payment_status', 'paid')
+            ->toBase()
+            ->selectRaw('COUNT(CASE WHEN due_date < ? THEN 1 END) as overdue', [Carbon::today()->toDateString()])
+            ->selectRaw('COUNT(CASE WHEN due_date >= ? AND due_date <= ? THEN 1 END) as due_soon', [Carbon::today()->toDateString(), Carbon::today()->addDays(7)->toDateString()])
+            ->selectRaw("COUNT(CASE WHEN payment_status = 'partially_paid' THEN 1 END) as partially_paid")
+            ->first();
+
+        $collectionActions = Invoice::query()
+            ->with('quotation.project.customer')
+            ->withSum([
+                'payments as active_payments_sum_amount' => fn ($query) => $query->whereNull('cancelled_at'),
+            ], 'amount')
+            ->where('status', 'issued')
+            ->whereNot('payment_status', 'paid')
+            ->where('due_date', '<=', Carbon::today()->addDays(7))
             ->orderBy('due_date')
-            ->limit(10)
+            ->limit(12)
             ->get()
             ->map(fn ($inv) => [
+                'uuid' => $inv->uuid,
                 'invoice_code' => $inv->invoice_code,
-                'customer_name' => $inv->quotation?->project?->customer?->name ?? '—',
+                'project_name' => $inv->quotation->project->name,
+                'customer_name' => $inv->quotation->project->customer->name,
                 'due_date' => $inv->due_date->toDateString(),
-                'total' => (float) $inv->total * (float) $inv->quotation->exchange_rate,
-                'days_overdue' => (int) Carbon::today()->diffInDays($inv->due_date),
+                'outstanding' => max(0, (float) $inv->total - (float) ($inv->active_payments_sum_amount ?? 0)) * (float) $inv->quotation->exchange_rate,
+                'days_from_due' => (int) Carbon::today()->diffInDays($inv->due_date, false),
+                'payment_status' => $inv->payment_status,
             ])
             ->toArray();
 
@@ -371,7 +414,13 @@ class DashboardController extends Controller
             ],
             'monthly_chart' => $monthlyChart,
             'payment_status' => $paymentStatusCounts,
-            'overdue_invoices' => $overdueInvoices,
+            'collection_summary' => [
+                'overdue' => (int) ($collectionSummary->overdue ?? 0),
+                'due_soon' => (int) ($collectionSummary->due_soon ?? 0),
+                'partially_paid' => (int) ($collectionSummary->partially_paid ?? 0),
+                'draft_invoices' => Invoice::query()->where('status', 'draft')->count(),
+            ],
+            'collection_actions' => $collectionActions,
         ];
     }
 
@@ -382,7 +431,16 @@ class DashboardController extends Controller
     {
         $totalPos = PurchaseOrder::query()->whereNull('deleted_at')->count();
         $totalPoValue = (float) $this->committedPurchaseOrders()->sum(DB::raw('grand_total * exchange_rate'));
-        $openPos = PurchaseOrder::query()->whereNull('deleted_at')->whereIn('status', ['issued', 'approved'])->count();
+        $openPos = PurchaseOrder::query()
+            ->where(function (Builder $query): void {
+                $query->where('status', 'issued')
+                    ->orWhere(function (Builder $query): void {
+                        $query->where('status', 'approved')->where(function (Builder $query): void {
+                            $query->whereNull('progress')->orWhereNot('progress', 'closed');
+                        });
+                    });
+            })
+            ->count();
         $awaitingApproval = PurchaseOrder::query()->whereNull('deleted_at')->where('status', 'issued')->count();
 
         $poByStatus = PurchaseOrder::query()
@@ -427,6 +485,70 @@ class DashboardController extends Controller
             ->pluck('count', 'status')
             ->toArray();
 
+        $purchaseActionSummary = PurchaseOrder::query()
+            ->whereNotIn('status', ['cancelled', 'voided'])
+            ->toBase()
+            ->selectRaw("COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft")
+            ->selectRaw("COUNT(CASE WHEN status = 'issued' THEN 1 END) as approval")
+            ->selectRaw("COUNT(CASE WHEN status = 'approved' AND progress IS NULL THEN 1 END) as ready_to_send")
+            ->selectRaw("COUNT(CASE WHEN progress = 'sent' THEN 1 END) as in_transit")
+            ->selectRaw("COUNT(CASE WHEN progress = 'partially_received' THEN 1 END) as partial")
+            ->selectRaw("COUNT(CASE WHEN progress IN ('sent', 'partially_received') AND delivery_date IS NOT NULL AND delivery_date < ? THEN 1 END) as overdue", [Carbon::today()->toDateString()])
+            ->first();
+
+        $purchaseActions = PurchaseOrder::query()
+            ->with(['project:id,name', 'vendor:id,name'])
+            ->where(function (Builder $query): void {
+                $query->whereIn('status', ['draft', 'issued'])
+                    ->orWhere(function (Builder $query): void {
+                        $query->where('status', 'approved')
+                            ->where(function (Builder $query): void {
+                                $query->whereNull('progress')
+                                    ->orWhereIn('progress', ['sent', 'partially_received']);
+                            });
+                    });
+            })
+            ->oldest('updated_at')
+            ->limit(40)
+            ->get(['id', 'uuid', 'purchase_order_code', 'project_id', 'vendor_id', 'status', 'progress', 'delivery_date', 'grand_total', 'exchange_rate', 'updated_at'])
+            ->map(function (PurchaseOrder $purchaseOrder): array {
+                $ageDays = (int) $purchaseOrder->updated_at->diffInDays(now());
+                $daysFromDelivery = $purchaseOrder->delivery_date
+                    ? (int) Carbon::today()->diffInDays($purchaseOrder->delivery_date, false)
+                    : null;
+
+                [$category, $nextAction, $severity, $sortOrder] = match (true) {
+                    $daysFromDelivery !== null && $daysFromDelivery < 0 && in_array($purchaseOrder->progress, ['sent', 'partially_received']) => ['Delivery overdue', 'Escalate with the vendor', 'danger', -1],
+                    $purchaseOrder->status === 'issued' => ['Awaiting approval', 'Follow up on approval', $ageDays >= 3 ? 'warning' : 'info', 0],
+                    $purchaseOrder->status === 'approved' && $purchaseOrder->progress === null => ['Ready to send', 'Send the PO to the vendor', $ageDays >= 2 ? 'warning' : 'info', 1],
+                    $purchaseOrder->progress === 'partially_received' => ['Partial delivery', 'Confirm the remaining delivery', 'warning', 2],
+                    $purchaseOrder->progress === 'sent' => ['In transit', 'Track the vendor delivery', $daysFromDelivery !== null && $daysFromDelivery <= 3 ? 'warning' : 'info', 3],
+                    default => ['Draft PO', 'Finish and issue the purchase order', $ageDays >= 7 ? 'warning' : 'info', 4],
+                };
+
+                return [
+                    'uuid' => $purchaseOrder->uuid,
+                    'purchase_order_code' => $purchaseOrder->purchase_order_code,
+                    'project_name' => $purchaseOrder->project->name,
+                    'vendor_name' => $purchaseOrder->vendor->name,
+                    'category' => $category,
+                    'next_action' => $nextAction,
+                    'severity' => $severity,
+                    'age_days' => $ageDays,
+                    'delivery_date' => $purchaseOrder->delivery_date?->toDateString(),
+                    'value' => (float) $purchaseOrder->grand_total * (float) $purchaseOrder->exchange_rate,
+                    'sort_order' => $sortOrder,
+                ];
+            })
+            ->sortBy([
+                ['sort_order', 'asc'],
+                ['age_days', 'desc'],
+            ])
+            ->take(12)
+            ->map(fn (array $item) => collect($item)->except('sort_order')->all())
+            ->values()
+            ->all();
+
         return [
             'year' => $year,
             'kpis' => [
@@ -439,6 +561,211 @@ class DashboardController extends Controller
             'po_by_status' => $poByStatus,
             'top_vendors' => $topVendors,
             'grn_by_status' => $grnByStatus,
+            'action_summary' => [
+                'draft' => (int) ($purchaseActionSummary->draft ?? 0),
+                'approval' => (int) ($purchaseActionSummary->approval ?? 0),
+                'ready_to_send' => (int) ($purchaseActionSummary->ready_to_send ?? 0),
+                'in_transit' => (int) ($purchaseActionSummary->in_transit ?? 0),
+                'partial' => (int) ($purchaseActionSummary->partial ?? 0),
+                'overdue' => (int) ($purchaseActionSummary->overdue ?? 0),
+            ],
+            'action_items' => $purchaseActions,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function salesData(int $year): array
+    {
+        $activeProjectStatuses = ['new', 'planning', 'in_progress'];
+        $pipelineProjectStatuses = [...$activeProjectStatuses, 'completed'];
+        $terminalQuotationStatuses = ['rejected', 'cancelled', 'voided'];
+
+        $pipelineRows = Project::query()
+            ->whereIn('status', $pipelineProjectStatuses)
+            ->whereYear('request_date', $year)
+            ->toBase()
+            ->selectRaw("COALESCE(sales_status, 'new') as stage")
+            ->selectRaw('COUNT(*) as count')
+            ->selectRaw('COALESCE(SUM(COALESCE(actual_contract_value, estimate_contract_value, 0)), 0) as value')
+            ->groupBy('sales_status')
+            ->get()
+            ->mapWithKeys(fn (object $row) => [
+                (string) $row->stage => [
+                    'count' => (int) $row->count,
+                    'value' => (float) $row->value,
+                ],
+            ]);
+
+        $stageDefinitions = [
+            ['key' => 'new', 'label' => 'New opportunities'],
+            ['key' => 'quoting', 'label' => 'Quotation in progress'],
+            ['key' => 'approved', 'label' => 'Ready to send'],
+            ['key' => 'sent', 'label' => 'Awaiting customer'],
+            ['key' => 'signed', 'label' => 'Signed'],
+        ];
+
+        $pipeline = collect($stageDefinitions)
+            ->map(function (array $stage) use ($pipelineRows): array {
+                $row = $pipelineRows->get($stage['key'], ['count' => 0, 'value' => 0]);
+
+                return [
+                    ...$stage,
+                    'count' => $row['count'],
+                    'value' => $row['value'],
+                ];
+            })
+            ->all();
+
+        $openStages = collect($pipeline)->whereIn('key', ['new', 'quoting', 'approved', 'sent']);
+        $signedStage = collect($pipeline)->firstWhere('key', 'signed');
+
+        $unquotedQuery = Project::query()
+            ->whereIn('status', $activeProjectStatuses)
+            ->whereNotIn('id', Quotation::query()->select('project_id'));
+
+        $quotationSummary = Quotation::query()
+            ->where('is_current', true)
+            ->whereNotIn('status', $terminalQuotationStatuses)
+            ->whereIn('project_id', Project::query()->select('id')->whereIn('status', $activeProjectStatuses))
+            ->toBase()
+            ->selectRaw("COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft")
+            ->selectRaw("COUNT(CASE WHEN status = 'request_for_approval' THEN 1 END) as approval")
+            ->selectRaw("COUNT(CASE WHEN status = 'approved' AND progress IS NULL THEN 1 END) as ready_to_send")
+            ->selectRaw("COUNT(CASE WHEN status = 'approved' AND progress = 'sent' THEN 1 END) as follow_up")
+            ->selectRaw("COUNT(CASE WHEN (progress IS NULL OR progress != 'signed') AND valid_until IS NOT NULL AND valid_until <= ? THEN 1 END) as at_risk", [Carbon::today()->addDays(7)->toDateString()])
+            ->first();
+
+        $actionSummary = [
+            'no_quotation' => $unquotedQuery->clone()->count(),
+            'draft' => (int) ($quotationSummary->draft ?? 0),
+            'approval' => (int) ($quotationSummary->approval ?? 0),
+            'ready_to_send' => (int) ($quotationSummary->ready_to_send ?? 0),
+            'follow_up' => (int) ($quotationSummary->follow_up ?? 0),
+            'at_risk' => (int) ($quotationSummary->at_risk ?? 0),
+        ];
+
+        $unquotedActions = $unquotedQuery
+            ->with('customer:id,name')
+            ->oldest('request_date')
+            ->limit(12)
+            ->get(['id', 'uuid', 'project_code', 'name', 'customer_id', 'request_date', 'estimate_contract_value'])
+            ->map(function (Project $project): array {
+                $ageDays = (int) $project->request_date->diffInDays(Carbon::today());
+
+                return [
+                    'key' => "project-{$project->uuid}",
+                    'target_type' => 'project',
+                    'uuid' => $project->uuid,
+                    'code' => $project->project_code,
+                    'project_name' => $project->name,
+                    'customer_name' => $project->customer->name,
+                    'category' => 'No quotation',
+                    'next_action' => 'Create the first quotation',
+                    'severity' => $ageDays >= 7 ? 'danger' : 'warning',
+                    'age_days' => $ageDays,
+                    'valid_until' => null,
+                    'value' => (float) ($project->estimate_contract_value ?? 0),
+                    'sort_order' => $ageDays >= 7 ? 1 : 5,
+                ];
+            });
+
+        $quotationActions = Quotation::query()
+            ->with('project.customer:id,name')
+            ->where('is_current', true)
+            ->whereNotIn('status', $terminalQuotationStatuses)
+            ->where(function (Builder $query): void {
+                $query->whereIn('status', ['draft', 'request_for_approval'])
+                    ->orWhere(function (Builder $query): void {
+                        $query->where('status', 'approved')
+                            ->where(function (Builder $query): void {
+                                $query->whereNull('progress')->orWhere('progress', 'sent');
+                            });
+                    });
+            })
+            ->whereIn('project_id', Project::query()->select('id')->whereIn('status', $activeProjectStatuses))
+            ->oldest('updated_at')
+            ->limit(40)
+            ->get(['id', 'uuid', 'quotation_code', 'project_id', 'status', 'progress', 'valid_until', 'total', 'exchange_rate', 'updated_at'])
+            ->map(function (Quotation $quotation): array {
+                $ageDays = (int) $quotation->updated_at->diffInDays(now());
+                $daysUntilExpiry = $quotation->valid_until
+                    ? (int) Carbon::today()->diffInDays($quotation->valid_until, false)
+                    : null;
+
+                [$category, $nextAction, $severity, $sortOrder] = match (true) {
+                    $daysUntilExpiry !== null && $daysUntilExpiry < 0 => ['Expired quotation', 'Revise or close this quotation', 'danger', -1],
+                    $daysUntilExpiry !== null && $daysUntilExpiry <= 7 => ['Quotation expiring soon', 'Follow up before it expires', 'warning', 0],
+                    $quotation->status === 'request_for_approval' => ['Awaiting approval', 'Follow up on internal approval', $ageDays >= 3 ? 'warning' : 'info', 2],
+                    $quotation->status === 'approved' && $quotation->progress === null => ['Approved, not sent', 'Send the quotation to the customer', $ageDays >= 2 ? 'warning' : 'info', 3],
+                    $quotation->progress === 'sent' => ['Awaiting customer', 'Follow up for a decision', $ageDays >= 7 ? 'warning' : 'info', 4],
+                    default => ['Draft quotation', 'Finish and submit for approval', $ageDays >= 7 ? 'warning' : 'info', 5],
+                };
+
+                return [
+                    'key' => "quotation-{$quotation->uuid}",
+                    'target_type' => 'quotation',
+                    'uuid' => $quotation->uuid,
+                    'code' => $quotation->quotation_code,
+                    'project_name' => $quotation->project->name,
+                    'customer_name' => $quotation->project->customer->name,
+                    'category' => $category,
+                    'next_action' => $nextAction,
+                    'severity' => $severity,
+                    'age_days' => $ageDays,
+                    'valid_until' => $quotation->valid_until?->toDateString(),
+                    'value' => (float) $quotation->total * (float) $quotation->exchange_rate,
+                    'sort_order' => $sortOrder,
+                ];
+            });
+
+        $actionItems = $unquotedActions
+            ->concat($quotationActions)
+            ->sortBy([
+                ['sort_order', 'asc'],
+                ['age_days', 'desc'],
+            ])
+            ->take(12)
+            ->map(fn (array $item) => collect($item)->except('sort_order')->all())
+            ->values()
+            ->all();
+
+        $recentWins = Quotation::query()
+            ->with('project.customer:id,name')
+            ->where('is_current', true)
+            ->where('status', 'approved')
+            ->where('progress', 'signed')
+            ->whereYear('updated_at', $year)
+            ->latest('updated_at')
+            ->limit(5)
+            ->get(['id', 'uuid', 'quotation_code', 'project_id', 'total', 'exchange_rate', 'updated_at'])
+            ->map(fn (Quotation $quotation) => [
+                'uuid' => $quotation->uuid,
+                'quotation_code' => $quotation->quotation_code,
+                'project_name' => $quotation->project->name,
+                'customer_name' => $quotation->project->customer->name,
+                'value' => (float) $quotation->total * (float) $quotation->exchange_rate,
+                'signed_at' => $quotation->updated_at->toDateString(),
+            ])
+            ->all();
+
+        return [
+            'year' => $year,
+            'kpis' => [
+                'open_opportunities' => (int) $openStages->sum('count'),
+                'pipeline_value' => (float) $openStages->sum('value'),
+                'signed_value' => (float) ($signedStage['value'] ?? 0),
+                'needs_attention' => $actionSummary['no_quotation']
+                    + $actionSummary['draft']
+                    + $actionSummary['approval']
+                    + $actionSummary['ready_to_send']
+                    + $actionSummary['follow_up'],
+            ],
+            'pipeline' => $pipeline,
+            'action_summary' => $actionSummary,
+            'action_items' => $actionItems,
+            'recent_wins' => $recentWins,
         ];
     }
 
@@ -458,18 +785,33 @@ class DashboardController extends Controller
 
         $myProjects = $myProjectsQuery->clone()
             ->orderByDesc('request_date')
-            ->get(['id', 'uuid', 'project_code', 'name', 'customer_id', 'status', 'billing_status', 'end_date', 'priority'])
+            ->get(['id', 'uuid', 'project_code', 'name', 'customer_id', 'status', 'sales_status', 'billing_status', 'end_date', 'priority'])
             ->map(fn ($p) => [
                 'uuid' => $p->uuid,
                 'project_code' => $p->project_code,
                 'name' => $p->name,
                 'customer_name' => $p->customer?->name ?? '—',
                 'status' => $p->status,
+                'sales_status' => $p->sales_status,
                 'billing_status' => $p->billing_status,
                 'end_date' => $p->end_date?->toDateString(),
                 'is_overdue' => $p->end_date && $p->end_date->isPast() && $p->status !== 'completed',
+                'days_until_due' => $p->end_date ? (int) Carbon::today()->diffInDays($p->end_date, false) : null,
                 'priority' => $p->priority,
+                'priority_score' => match ($p->priority) {
+                    'urgent' => 4,
+                    'high' => 3,
+                    'medium' => 2,
+                    default => 1,
+                },
             ])
+            ->sortBy([
+                ['is_overdue', 'desc'],
+                ['priority_score', 'desc'],
+                ['days_until_due', 'asc'],
+            ])
+            ->map(fn (array $project) => collect($project)->except('priority_score')->all())
+            ->values()
             ->toArray();
 
         $statusCounts = Project::query()

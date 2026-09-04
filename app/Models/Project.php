@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\DashboardController;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -90,6 +91,10 @@ class Project extends Model
                 );
             }
         });
+
+        static::saved(fn () => DashboardController::flushCache());
+        static::deleted(fn () => DashboardController::flushCache());
+        static::restored(fn () => DashboardController::flushCache());
     }
 
     /**

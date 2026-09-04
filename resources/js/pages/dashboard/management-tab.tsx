@@ -1,4 +1,15 @@
-import { Activity, DollarSign, Layers, TrendingUp, Users } from 'lucide-react';
+import {
+    Activity,
+    AlertTriangle,
+    ClipboardCheck,
+    DollarSign,
+    FolderClock,
+    Layers,
+    Receipt,
+    ShoppingCart,
+    TrendingUp,
+    Users,
+} from 'lucide-react';
 import {
     Bar,
     BarChart,
@@ -13,6 +24,7 @@ import {
 } from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
+import { SectionIntro } from '@/components/dashboard/section-intro';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import {
     Table,
@@ -80,6 +92,13 @@ type Props = {
     pipeline: PipelineRow[];
     top_customers: CustomerRow[];
     business_line_stats: BusinessLineRow[];
+    attention: {
+        quotation_approvals: number;
+        purchase_order_approvals: number;
+        overdue_invoices: number;
+        overdue_projects: number;
+        loss_making_lines: number;
+    };
 };
 
 export function ManagementTab({
@@ -90,6 +109,7 @@ export function ManagementTab({
     pipeline,
     top_customers,
     business_line_stats,
+    attention,
 }: Props) {
     const chartData = monthly_chart.map((row) => ({
         month: MONTH_LABELS[row.month - 1],
@@ -111,10 +131,27 @@ export function ManagementTab({
         fill: FUNNEL_COLORS[i] ?? '#94a3b8',
         pct: Math.round((row.count / maxFunnelCount) * 100),
     }));
+    const decisionCount = Object.values(attention).reduce(
+        (total, count) => total + count,
+        0,
+    );
 
     return (
         <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-4">
+            <SectionIntro
+                icon={Activity}
+                label="Management overview"
+                description="Start with decisions that are blocking teams, then review profitability, project flow, and where revenue is concentrated."
+                statusLabel="Decisions and risks"
+                statusValue={
+                    decisionCount > 0
+                        ? `${decisionCount} signals need review`
+                        : 'Operations are clear'
+                }
+                tone={decisionCount > 0 ? 'warning' : 'success'}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <KpiCard
                     label="Active Projects"
                     value={kpis.active_projects}
@@ -136,6 +173,73 @@ export function ManagementTab({
                     icon={Activity}
                 />
             </div>
+
+            <SectionCard title="Decision queue">
+                <div className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 xl:grid-cols-5">
+                    {[
+                        {
+                            label: 'Quotation approvals',
+                            value: attention.quotation_approvals,
+                            hint: 'Sales is waiting',
+                            icon: ClipboardCheck,
+                        },
+                        {
+                            label: 'PO approvals',
+                            value: attention.purchase_order_approvals,
+                            hint: 'Purchasing is waiting',
+                            icon: ShoppingCart,
+                        },
+                        {
+                            label: 'Overdue invoices',
+                            value: attention.overdue_invoices,
+                            hint: 'Cash collection risk',
+                            icon: Receipt,
+                        },
+                        {
+                            label: 'Overdue projects',
+                            value: attention.overdue_projects,
+                            hint: 'Delivery risk',
+                            icon: FolderClock,
+                        },
+                        {
+                            label: 'Loss-making lines',
+                            value: attention.loss_making_lines,
+                            hint: 'Margin intervention',
+                            icon: AlertTriangle,
+                        },
+                    ].map((item) => {
+                        const Icon = item.icon;
+
+                        return (
+                            <div
+                                key={item.label}
+                                className="flex gap-3 bg-card p-4"
+                            >
+                                <Icon
+                                    className={
+                                        item.value > 0
+                                            ? 'mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400'
+                                            : 'mt-0.5 size-4 shrink-0 text-muted-foreground'
+                                    }
+                                />
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-sm font-medium">
+                                            {item.label}
+                                        </p>
+                                        <span className="font-bold tabular-nums">
+                                            {item.value}
+                                        </span>
+                                    </div>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        {item.hint}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </SectionCard>
 
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="md:col-span-2">

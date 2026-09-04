@@ -8,15 +8,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { dashboard } from '@/routes';
 import { FinanceTab } from '@/pages/dashboard/finance-tab';
 import { ManagementTab } from '@/pages/dashboard/management-tab';
 import { PurchasingTab } from '@/pages/dashboard/purchasing-tab';
+import { SalesTab } from '@/pages/dashboard/sales-tab';
 import { StaffTab } from '@/pages/dashboard/staff-tab';
+import { dashboard } from '@/routes';
 
 type ManagementData = React.ComponentProps<typeof ManagementTab>;
 type FinanceData = React.ComponentProps<typeof FinanceTab>;
 type PurchasingData = React.ComponentProps<typeof PurchasingTab>;
+type SalesData = React.ComponentProps<typeof SalesTab>;
 type StaffData = Omit<
     React.ComponentProps<typeof StaffTab>,
     'staffStatus' | 'staffPriority' | 'onFilterChange'
@@ -32,6 +34,7 @@ type Props = {
     management?: ManagementData;
     finance?: FinanceData;
     purchasing?: PurchasingData;
+    sales?: SalesData;
     staff: StaffData;
     filters: Filters;
     available_years: number[];
@@ -43,18 +46,20 @@ const DEFAULT_FILTERS: Filters = {
     staff_priority: 'all',
 };
 
-const CHART_TABS = ['management', 'finance', 'purchasing'];
+const CHART_TABS = ['management', 'sales', 'finance', 'purchasing'];
 
 export default function Dashboard({
     management,
     finance,
     purchasing,
+    sales,
     staff,
     filters,
     available_years,
 }: Props) {
     const tabs = [
         management && { value: 'management', label: 'Management' },
+        sales && { value: 'sales', label: 'Sales' },
         finance && { value: 'finance', label: 'Finance' },
         purchasing && { value: 'purchasing', label: 'Purchasing' },
         { value: 'staff', label: 'My Projects' },
@@ -139,6 +144,12 @@ export default function Dashboard({
                     {finance && (
                         <TabsContent value="finance">
                             <FinanceTab {...finance} />
+                        </TabsContent>
+                    )}
+
+                    {sales && (
+                        <TabsContent value="sales">
+                            <SalesTab {...sales} />
                         </TabsContent>
                     )}
 

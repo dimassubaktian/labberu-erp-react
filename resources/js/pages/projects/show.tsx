@@ -16,7 +16,7 @@ import React from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
+import { ProjectBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -526,12 +526,10 @@ export default function ProjectsShow({
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {project.status.replace('_', ' ')}
-                                </Badge>
+                                <ProjectBadge
+                                    category="status"
+                                    value={project.status}
+                                />
                             </dd>
                         </div>
 
@@ -541,15 +539,10 @@ export default function ProjectsShow({
                             </dt>
                             <dd>
                                 {project.sales_status ? (
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {project.sales_status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <ProjectBadge
+                                        category="sales"
+                                        value={project.sales_status}
+                                    />
                                 ) : (
                                     <span className="text-muted-foreground">
                                         &mdash;
@@ -564,12 +557,10 @@ export default function ProjectsShow({
                             </dt>
                             <dd>
                                 {project.po_status ? (
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {project.po_status.replaceAll('_', ' ')}
-                                    </Badge>
+                                    <ProjectBadge
+                                        category="po"
+                                        value={project.po_status}
+                                    />
                                 ) : (
                                     <span className="text-muted-foreground">
                                         &mdash;
@@ -584,15 +575,10 @@ export default function ProjectsShow({
                             </dt>
                             <dd>
                                 {project.billing_status ? (
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {project.billing_status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <ProjectBadge
+                                        category="billing"
+                                        value={project.billing_status}
+                                    />
                                 ) : (
                                     <span className="text-muted-foreground">
                                         &mdash;
@@ -606,9 +592,10 @@ export default function ProjectsShow({
                                 Priority
                             </dt>
                             <dd>
-                                <Badge variant="outline" className="capitalize">
-                                    {project.priority}
-                                </Badge>
+                                <ProjectBadge
+                                    category="priority"
+                                    value={project.priority}
+                                />
                             </dd>
                         </div>
 
@@ -985,15 +972,12 @@ export default function ProjectsShow({
                                                                 ' (current)'}
                                                         </TableCell>
                                                         <TableCell>
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="capitalize"
-                                                            >
-                                                                {quotation.status.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </Badge>
+                                                            <ProjectBadge
+                                                                category="document"
+                                                                value={
+                                                                    quotation.status
+                                                                }
+                                                            />
                                                         </TableCell>
                                                         <TableCell className="text-muted-foreground">
                                                             {quotation.valid_until ? (
@@ -1141,15 +1125,12 @@ export default function ProjectsShow({
                                                             }
                                                         </TableCell>
                                                         <TableCell>
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="capitalize"
-                                                            >
-                                                                {purchaseOrder.status.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </Badge>
+                                                            <ProjectBadge
+                                                                category="document"
+                                                                value={
+                                                                    purchaseOrder.status
+                                                                }
+                                                            />
                                                         </TableCell>
                                                         <TableCell className="text-muted-foreground">
                                                             {purchaseOrder
@@ -1300,15 +1281,12 @@ export default function ProjectsShow({
                                                             )}
                                                         </TableCell>
                                                         <TableCell>
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="capitalize"
-                                                            >
-                                                                {deliveryOrder.status.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </Badge>
+                                                            <ProjectBadge
+                                                                category="document"
+                                                                value={
+                                                                    deliveryOrder.status
+                                                                }
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 ),
@@ -1470,27 +1448,21 @@ export default function ProjectsShow({
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="capitalize"
-                                                        >
-                                                            {invoice.status.replaceAll(
-                                                                '_',
-                                                                ' ',
-                                                            )}
-                                                        </Badge>
+                                                        <ProjectBadge
+                                                            category="document"
+                                                            value={
+                                                                invoice.status
+                                                            }
+                                                        />
                                                     </TableCell>
                                                     <TableCell>
                                                         {invoice.payment_status ? (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="capitalize"
-                                                            >
-                                                                {invoice.payment_status.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </Badge>
+                                                            <ProjectBadge
+                                                                category="payment"
+                                                                value={
+                                                                    invoice.payment_status
+                                                                }
+                                                            />
                                                         ) : (
                                                             <span className="text-muted-foreground">
                                                                 &mdash;
@@ -1672,27 +1644,21 @@ export default function ProjectsShow({
                                                             )}
                                                         </TableCell>
                                                         <TableCell>
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="capitalize"
-                                                            >
-                                                                {purchaseInvoice.status.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </Badge>
+                                                            <ProjectBadge
+                                                                category="document"
+                                                                value={
+                                                                    purchaseInvoice.status
+                                                                }
+                                                            />
                                                         </TableCell>
                                                         <TableCell>
                                                             {purchaseInvoice.payment_status ? (
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="capitalize"
-                                                                >
-                                                                    {purchaseInvoice.payment_status.replaceAll(
-                                                                        '_',
-                                                                        ' ',
-                                                                    )}
-                                                                </Badge>
+                                                                <ProjectBadge
+                                                                    category="payment"
+                                                                    value={
+                                                                        purchaseInvoice.payment_status
+                                                                    }
+                                                                />
                                                             ) : (
                                                                 <span className="text-muted-foreground">
                                                                     &mdash;
@@ -2157,9 +2123,11 @@ export default function ProjectsShow({
                                                                 )}
                                                             </span>
                                                         ) : (
-                                                            <Badge variant="secondary">
-                                                                Active
-                                                            </Badge>
+                                                            <ProjectBadge
+                                                                category="equipment"
+                                                                value="active"
+                                                                label="Active"
+                                                            />
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="max-w-xs text-muted-foreground">
@@ -2175,13 +2143,17 @@ export default function ProjectsShow({
                                                                     &mdash;
                                                                 </span>
                                                             ) : assignment.calibration_compliant ? (
-                                                                <Badge variant="secondary">
-                                                                    Compliant
-                                                                </Badge>
+                                                                <ProjectBadge
+                                                                    category="calibration"
+                                                                    value="compliant"
+                                                                    label="Compliant"
+                                                                />
                                                             ) : (
-                                                                <Badge variant="destructive">
-                                                                    Non-compliant
-                                                                </Badge>
+                                                                <ProjectBadge
+                                                                    category="calibration"
+                                                                    value="non_compliant"
+                                                                    label="Non-compliant"
+                                                                />
                                                             )}
                                                         </TableCell>
                                                     )}

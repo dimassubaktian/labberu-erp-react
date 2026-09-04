@@ -22,6 +22,7 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintQuotationDialog } from '@/components/print-quotation-dialog';
+import { ProjectBadge } from '@/components/project-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -731,12 +732,10 @@ export default function QuotationsShow({
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {quotation.status.replaceAll('_', ' ')}
-                                </Badge>
+                                <ProjectBadge
+                                    category="document"
+                                    value={quotation.status}
+                                />
                             </dd>
                         </div>
 
@@ -746,15 +745,10 @@ export default function QuotationsShow({
                                     Progress
                                 </dt>
                                 <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {quotation.progress.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <ProjectBadge
+                                        category="progress"
+                                        value={quotation.progress}
+                                    />
                                 </dd>
                             </div>
                         )}
@@ -1373,15 +1367,12 @@ export default function QuotationsShow({
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="capitalize"
-                                                    >
-                                                        {purchaseOrder.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
+                                                    <ProjectBadge
+                                                        category="document"
+                                                        value={
+                                                            purchaseOrder.status
+                                                        }
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -1464,15 +1455,12 @@ export default function QuotationsShow({
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="capitalize"
-                                                    >
-                                                        {deliveryOrder.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
+                                                    <ProjectBadge
+                                                        category="document"
+                                                        value={
+                                                            deliveryOrder.status
+                                                        }
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -1555,15 +1543,12 @@ export default function QuotationsShow({
                                                 </TableCell>
                                                 <TableCell>
                                                     {invoice.payment_status ? (
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="capitalize"
-                                                        >
-                                                            {invoice.payment_status.replaceAll(
-                                                                '_',
-                                                                ' ',
-                                                            )}
-                                                        </Badge>
+                                                        <ProjectBadge
+                                                            category="payment"
+                                                            value={
+                                                                invoice.payment_status
+                                                            }
+                                                        />
                                                     ) : (
                                                         <span className="text-muted-foreground">
                                                             &mdash;
@@ -1571,15 +1556,10 @@ export default function QuotationsShow({
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="capitalize"
-                                                    >
-                                                        {invoice.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
+                                                    <ProjectBadge
+                                                        category="document"
+                                                        value={invoice.status}
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -1617,17 +1597,16 @@ export default function QuotationsShow({
 
                                         <div className="flex gap-2">
                                             {entry.is_current && (
-                                                <Badge>Current</Badge>
+                                                <ProjectBadge
+                                                    category="current"
+                                                    value="current"
+                                                    label="Current"
+                                                />
                                             )}
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {entry.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <ProjectBadge
+                                                category="document"
+                                                value={entry.status}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -1650,17 +1629,16 @@ export default function QuotationsShow({
 
                                         <div className="flex gap-2">
                                             {entry.is_current && (
-                                                <Badge>Current</Badge>
+                                                <ProjectBadge
+                                                    category="current"
+                                                    value="current"
+                                                    label="Current"
+                                                />
                                             )}
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {entry.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <ProjectBadge
+                                                category="document"
+                                                value={entry.status}
+                                            />
                                         </div>
                                     </div>
                                 </Link>

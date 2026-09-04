@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { ProjectBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -289,15 +289,10 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                                         {quotation.version_minor}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {quotation.status.replaceAll(
-                                                '_',
-                                                ' ',
-                                            )}
-                                        </Badge>
+                                        <ProjectBadge
+                                            category="document"
+                                            value={quotation.status}
+                                        />
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {quotation.valid_until ? (
