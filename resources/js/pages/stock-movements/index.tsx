@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -240,16 +240,10 @@ export default function StockMovementsIndex({
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                movement.type === 'out'
-                                                    ? 'destructive'
-                                                    : 'secondary'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {movement.type}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="inventory_movement"
+                                            value={movement.type}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {formatNumber(movement.quantity)}{' '}

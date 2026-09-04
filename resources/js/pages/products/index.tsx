@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -242,24 +242,16 @@ export default function ProductsIndex({ products, filters }: Props) {
                                         {product.brand}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {product.type}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="product_type"
+                                            value={product.type}
+                                        />
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                product.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {product.status}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="active"
+                                            value={product.status}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

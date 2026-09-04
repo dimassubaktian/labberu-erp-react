@@ -14,7 +14,7 @@ import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
 import { SectionIntro } from '@/components/dashboard/section-intro';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { cn, formatCompact } from '@/lib/utils';
 import { show as showInvoice } from '@/routes/invoices';
@@ -164,22 +164,22 @@ export function FinanceTab({
                                             </div>
                                             <div className="min-w-0 space-y-1">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <Badge
-                                                        variant="outline"
-                                                        className={cn(
-                                                            overdue &&
-                                                                'border-destructive/30 text-destructive',
-                                                            !overdue &&
-                                                                'border-amber-500/30 text-amber-700 dark:text-amber-400',
-                                                        )}
-                                                    >
-                                                        {overdue
-                                                            ? `${Math.abs(invoice.days_from_due)}d overdue`
-                                                            : invoice.days_from_due ===
-                                                                0
-                                                              ? 'Due today'
-                                                              : `Due in ${invoice.days_from_due}d`}
-                                                    </Badge>
+                                                    <StatusBadge
+                                                        category="severity"
+                                                        value={
+                                                            overdue
+                                                                ? 'danger'
+                                                                : 'warning'
+                                                        }
+                                                        label={
+                                                            overdue
+                                                                ? `${Math.abs(invoice.days_from_due)}d overdue`
+                                                                : invoice.days_from_due ===
+                                                                    0
+                                                                  ? 'Due today'
+                                                                  : `Due in ${invoice.days_from_due}d`
+                                                        }
+                                                    />
                                                     <span className="font-mono text-xs text-muted-foreground">
                                                         {invoice.invoice_code}
                                                     </span>

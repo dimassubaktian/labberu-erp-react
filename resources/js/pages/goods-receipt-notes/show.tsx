@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -148,15 +148,10 @@ export default function GoodsReceiptNotesShow({ goodsReceiptNote }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {goodsReceiptNote.status.replaceAll(
-                                        '_',
-                                        ' ',
-                                    )}
-                                </Badge>
+                                <StatusBadge
+                                    category="document"
+                                    value={goodsReceiptNote.status}
+                                />
                             </dd>
                         </div>
 

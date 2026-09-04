@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
+import { StatusBadge } from '@/components/project-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -251,16 +252,10 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                user.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {user.status}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="active"
+                                            value={user.status}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

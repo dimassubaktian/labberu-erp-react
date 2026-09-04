@@ -2,7 +2,7 @@ import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Search, Trash2, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -386,27 +386,17 @@ export default function CustomersShow({ customer }: Props) {
                                             {formatDate(project.request_date)}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {project.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <StatusBadge
+                                                category="status"
+                                                value={project.status}
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             {project.sales_status ? (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="capitalize"
-                                                >
-                                                    {project.sales_status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="sales"
+                                                    value={project.sales_status}
+                                                />
                                             ) : (
                                                 <span className="text-muted-foreground">
                                                     &mdash;
@@ -415,15 +405,10 @@ export default function CustomersShow({ customer }: Props) {
                                         </TableCell>
                                         <TableCell>
                                             {project.po_status ? (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="capitalize"
-                                                >
-                                                    {project.po_status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="po"
+                                                    value={project.po_status}
+                                                />
                                             ) : (
                                                 <span className="text-muted-foreground">
                                                     &mdash;
@@ -432,15 +417,12 @@ export default function CustomersShow({ customer }: Props) {
                                         </TableCell>
                                         <TableCell>
                                             {project.billing_status ? (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="capitalize"
-                                                >
-                                                    {project.billing_status.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="billing"
+                                                    value={
+                                                        project.billing_status
+                                                    }
+                                                />
                                             ) : (
                                                 <span className="text-muted-foreground">
                                                     &mdash;

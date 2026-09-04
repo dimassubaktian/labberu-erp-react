@@ -4,7 +4,7 @@ import React from 'react';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import Heading from '@/components/heading';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -105,17 +105,6 @@ function printQuery(filters: Filters): Record<string, string> {
 
     return query;
 }
-
-const STATUS_VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> =
-    {
-        available: 'secondary',
-        in_use: 'secondary',
-        in_calibration: 'outline',
-        under_maintenance: 'outline',
-        retired: 'outline',
-        lost: 'destructive',
-        damaged: 'destructive',
-    };
 
 export default function EquipmentIndex({
     equipment,
@@ -450,19 +439,10 @@ export default function EquipmentIndex({
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge
-                                                variant={
-                                                    STATUS_VARIANTS[
-                                                        item.status
-                                                    ] ?? 'secondary'
-                                                }
-                                                className="capitalize"
-                                            >
-                                                {item.status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <StatusBadge
+                                                category="equipment_status"
+                                                value={item.status}
+                                            />
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
                                             {item.current_project

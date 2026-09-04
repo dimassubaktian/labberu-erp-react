@@ -4,6 +4,7 @@ import {
     Ban,
     Check,
     ClipboardList,
+    LockKeyhole,
     Mail,
     PenLine,
     Pencil,
@@ -17,7 +18,7 @@ import { useMemo, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -425,12 +426,33 @@ export default function PurchaseOrdersShow({
                 </div>
 
                 {isLockedByReceiptsOrBilling && (
-                    <p className="rounded-lg border border-border/50 p-4 text-sm text-muted-foreground">
-                        This purchase order can no longer be edited: goods have
-                        been received or the vendor has billed against it.
-                        Corrections have to go through a cancellation or a new
-                        purchase order.
-                    </p>
+                    <div
+                        role="status"
+                        aria-label="Purchase order locked"
+                        className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
+                    >
+                        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300">
+                            <LockKeyhole
+                                className="size-4"
+                                aria-hidden="true"
+                            />
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                            <p className="font-medium">Purchase order locked</p>
+                            <p className="text-sm text-amber-800/80 dark:text-amber-200/80">
+                                This purchase order can no longer be edited:
+                                goods have been received or the vendor has
+                                billed against it.
+                            </p>
+                            <p className="text-sm text-amber-800/80 dark:text-amber-200/80">
+                                <span className="font-medium text-amber-950 dark:text-amber-100">
+                                    Next step:
+                                </span>{' '}
+                                Corrections have to go through a cancellation or
+                                a new purchase order.
+                            </p>
+                        </div>
+                    </div>
                 )}
 
                 <div>
@@ -441,12 +463,10 @@ export default function PurchaseOrdersShow({
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {purchaseOrder.status.replaceAll('_', ' ')}
-                                </Badge>
+                                <StatusBadge
+                                    category="document"
+                                    value={purchaseOrder.status}
+                                />
                             </dd>
                         </div>
 
@@ -456,15 +476,10 @@ export default function PurchaseOrdersShow({
                                     Progress
                                 </dt>
                                 <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {purchaseOrder.progress.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <StatusBadge
+                                        category="progress"
+                                        value={purchaseOrder.progress}
+                                    />
                                 </dd>
                             </div>
                         )}
@@ -475,15 +490,10 @@ export default function PurchaseOrdersShow({
                                     Payment
                                 </dt>
                                 <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {purchaseOrder.payment_status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <StatusBadge
+                                        category="payment"
+                                        value={purchaseOrder.payment_status}
+                                    />
                                 </dd>
                             </div>
                         )}
@@ -910,15 +920,12 @@ export default function PurchaseOrdersShow({
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className="capitalize"
-                                                    >
-                                                        {goodsReceiptNote.status.replaceAll(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </Badge>
+                                                    <StatusBadge
+                                                        category="document"
+                                                        value={
+                                                            goodsReceiptNote.status
+                                                        }
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         ),
@@ -1071,27 +1078,21 @@ export default function PurchaseOrdersShow({
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className="capitalize"
-                                                        >
-                                                            {purchaseInvoice.status.replaceAll(
-                                                                '_',
-                                                                ' ',
-                                                            )}
-                                                        </Badge>
+                                                        <StatusBadge
+                                                            category="document"
+                                                            value={
+                                                                purchaseInvoice.status
+                                                            }
+                                                        />
                                                     </TableCell>
                                                     <TableCell>
                                                         {purchaseInvoice.payment_status ? (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="capitalize"
-                                                            >
-                                                                {purchaseInvoice.payment_status.replaceAll(
-                                                                    '_',
-                                                                    ' ',
-                                                                )}
-                                                            </Badge>
+                                                            <StatusBadge
+                                                                category="payment"
+                                                                value={
+                                                                    purchaseInvoice.payment_status
+                                                                }
+                                                            />
                                                         ) : (
                                                             <span className="text-muted-foreground">
                                                                 &mdash;

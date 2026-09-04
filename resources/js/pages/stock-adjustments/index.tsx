@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -243,12 +243,10 @@ export default function StockAdjustmentsIndex({
                                         &mdash; {adjustment.product.name}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {adjustment.type}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="inventory_adjustment"
+                                            value={adjustment.type}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {formatNumber(adjustment.quantity)}{' '}

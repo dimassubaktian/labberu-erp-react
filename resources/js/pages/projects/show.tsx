@@ -2,19 +2,23 @@ import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import {
     ArrowLeft,
     Ban,
+    CalendarDays,
+    ClipboardList,
     CircleOff,
+    CircleDollarSign,
     Download,
     Package,
     Pencil,
     Plus,
     Search,
     Trash2,
+    TrendingUp,
     Upload,
     X,
 } from 'lucide-react';
 import React from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
-import Heading from '@/components/heading';
+import { KpiCard } from '@/components/dashboard/kpi-card';
 import InputError from '@/components/input-error';
 import { ProjectBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
@@ -436,6 +440,9 @@ export default function ProjectsShow({
         purchaseInvoicePaymentStatus,
     ]);
 
+    const formatAmount = (amount: string | null) =>
+        amount ? formatNumber(amount) : '\u2014';
+
     setLayoutProps({
         breadcrumbs: [
             { title: 'Projects', href: index() },
@@ -447,37 +454,139 @@ export default function ProjectsShow({
         <>
             <Head title={project.name} />
 
-            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <Heading
-                        title={project.name}
-                        description="Project details"
-                    />
+            <div className="mx-auto w-full max-w-6xl space-y-8 p-4 sm:p-6">
+                <section className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-sm sm:p-8">
+                    <div className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-primary/5 blur-3xl" />
+                    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 space-y-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full border border-border/70 bg-background/70 px-3 py-1 font-mono text-xs font-medium tracking-wide text-muted-foreground">
+                                    {project.project_code}
+                                </span>
+                                <ProjectBadge
+                                    category="status"
+                                    value={project.status}
+                                />
+                                <ProjectBadge
+                                    category="priority"
+                                    value={project.priority}
+                                />
+                            </div>
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button
-                            variant="destructive"
-                            asChild
-                            className="w-full sm:w-auto"
-                        >
-                            <Link href={index()}>
-                                <ArrowLeft />
-                                Back to Projects
-                            </Link>
-                        </Button>
+                            <div>
+                                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                                    {project.name}
+                                </h1>
+                                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                                    <Link
+                                        href={showCustomer(project.customer)}
+                                        className="font-medium text-foreground underline-offset-4 hover:underline"
+                                    >
+                                        {project.customer.name}
+                                    </Link>
+                                    <span className="text-border">/</span>
+                                    <span>
+                                        Requested{' '}
+                                        {formatDate(project.request_date)}
+                                    </span>
+                                    {project.person_in_charge && (
+                                        <>
+                                            <span className="text-border">
+                                                /
+                                            </span>
+                                            <span>
+                                                PIC:{' '}
+                                                {
+                                                    project.person_in_charge
+                                                        .full_name
+                                                }
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
 
-                        <Button asChild className="w-full sm:w-auto">
-                            <Link href={edit(project)}>
-                                <Pencil />
-                                Edit Project
-                            </Link>
-                        </Button>
+                        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
+                            <Button
+                                variant="outline"
+                                asChild
+                                className="w-full sm:w-auto"
+                            >
+                                <Link href={index()}>
+                                    <ArrowLeft />
+                                    Back to Projects
+                                </Link>
+                            </Button>
+
+                            <Button asChild className="w-full sm:w-auto">
+                                <Link href={edit(project)}>
+                                    <Pencil />
+                                    Edit Project
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
-                </div>
+                </section>
 
-                <div>
-                    <h2 className="mb-4 text-base font-semibold">Details</h2>
-                    <dl className="grid gap-4 sm:grid-cols-2">
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <KpiCard
+                        label="Estimated contract value"
+                        value={formatAmount(project.estimate_contract_value)}
+                        icon={CircleDollarSign}
+                        className="min-h-24"
+                        labelClassName="text-xs leading-snug sm:text-sm"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        compact
+                    />
+                    <KpiCard
+                        label="Planned cost (BOM)"
+                        value={formatAmount(plannedCost)}
+                        icon={ClipboardList}
+                        className="min-h-24"
+                        labelClassName="text-xs leading-snug sm:text-sm"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        compact
+                    />
+                    <KpiCard
+                        label="Actual cost (invoiced)"
+                        value={formatAmount(project.actual_cost)}
+                        icon={TrendingUp}
+                        className="min-h-24"
+                        labelClassName="text-xs leading-snug sm:text-sm"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        highlight={
+                            costVariance !== null && costVariance > 0
+                                ? 'danger'
+                                : undefined
+                        }
+                        compact
+                    />
+                    <KpiCard
+                        label="Project request date"
+                        value={formatDate(project.request_date)}
+                        icon={CalendarDays}
+                        className="min-h-24"
+                        labelClassName="text-xs leading-snug sm:text-sm"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        compact
+                    />
+                </section>
+
+                <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+                    <div className="border-b bg-muted/20 px-6 py-5">
+                        <h2 className="font-semibold">Project overview</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Key information, schedule, and financial context for
+                            this project.
+                        </p>
+                    </div>
+                    <dl className="grid gap-x-8 gap-y-5 p-6 sm:grid-cols-2">
+                        <div className="border-b border-border/60 pb-2 sm:col-span-2">
+                            <h3 className="text-sm font-semibold tracking-wide text-foreground">
+                                Project identity
+                            </h3>
+                        </div>
                         <div>
                             <dt className="text-sm text-muted-foreground">
                                 Project code
@@ -519,6 +628,12 @@ export default function ProjectsShow({
                                     </span>
                                 )}
                             </dd>
+                        </div>
+
+                        <div className="border-b border-border/60 pb-2 sm:col-span-2">
+                            <h3 className="text-sm font-semibold tracking-wide text-foreground">
+                                Project health
+                            </h3>
                         </div>
 
                         <div>
@@ -599,6 +714,12 @@ export default function ProjectsShow({
                             </dd>
                         </div>
 
+                        <div className="border-b border-border/60 pb-2 sm:col-span-2">
+                            <h3 className="text-sm font-semibold tracking-wide text-foreground">
+                                Schedule & operations
+                            </h3>
+                        </div>
+
                         <div>
                             <dt className="text-sm text-muted-foreground">
                                 Required equipment calibration recency
@@ -666,6 +787,12 @@ export default function ProjectsShow({
                                     </span>
                                 )}
                             </dd>
+                        </div>
+
+                        <div className="border-b border-border/60 pb-2 sm:col-span-2">
+                            <h3 className="text-sm font-semibold tracking-wide text-foreground">
+                                Financial overview
+                            </h3>
                         </div>
 
                         <div>
@@ -762,6 +889,12 @@ export default function ProjectsShow({
                             </dd>
                         </div>
 
+                        <div className="border-b border-border/60 pb-2 sm:col-span-2">
+                            <h3 className="text-sm font-semibold tracking-wide text-foreground">
+                                Notes & audit
+                            </h3>
+                        </div>
+
                         <div className="sm:col-span-2">
                             <dt className="text-sm text-muted-foreground">
                                 Description
@@ -815,28 +948,69 @@ export default function ProjectsShow({
                             </dd>
                         </div>
                     </dl>
-                </div>
+                </section>
 
-                <Tabs defaultValue="quotations">
-                    <TabsList className="w-full flex-nowrap justify-start overflow-x-auto">
-                        <TabsTrigger value="quotations">Quotations</TabsTrigger>
-                        <TabsTrigger value="purchase-orders">
-                            Purchase Orders
-                        </TabsTrigger>
-                        <TabsTrigger value="delivery-orders">
-                            Delivery Orders
-                        </TabsTrigger>
-                        <TabsTrigger value="invoices">Invoices</TabsTrigger>
-                        <TabsTrigger value="purchase-invoices">
-                            Purchase Invoices
-                        </TabsTrigger>
-                        <TabsTrigger value="attachments">
-                            Attachments
-                        </TabsTrigger>
-                        <TabsTrigger value="equipment">Equipment</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="quotations" className="space-y-4">
+                <Tabs
+                    defaultValue="quotations"
+                    className="overflow-hidden rounded-2xl border bg-card shadow-sm"
+                >
+                    <div className="flex flex-col gap-4 border-b bg-muted/20 px-4 py-4 sm:px-6">
+                        <div>
+                            <h2 className="font-semibold">Project activity</h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Documents, files, and equipment connected to
+                                this project.
+                            </p>
+                        </div>
+                        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 overflow-x-auto rounded-lg bg-background/80 p-1">
+                            <TabsTrigger value="quotations">
+                                Quotations
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {quotations.length}
+                                </span>
+                            </TabsTrigger>
+                            <TabsTrigger value="purchase-orders">
+                                Purchase Orders
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {purchaseOrders.length}
+                                </span>
+                            </TabsTrigger>
+                            <TabsTrigger value="delivery-orders">
+                                Delivery Orders
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {deliveryOrders.length}
+                                </span>
+                            </TabsTrigger>
+                            <TabsTrigger value="invoices">
+                                Invoices
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {invoices.length}
+                                </span>
+                            </TabsTrigger>
+                            <TabsTrigger value="purchase-invoices">
+                                Purchase Invoices
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {purchaseInvoices.length}
+                                </span>
+                            </TabsTrigger>
+                            <TabsTrigger value="attachments">
+                                Attachments
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {project.attachments.length}
+                                </span>
+                            </TabsTrigger>
+                            <TabsTrigger value="equipment">
+                                Equipment
+                                <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                    {equipmentAssignments.length}
+                                </span>
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+                    <TabsContent
+                        value="quotations"
+                        className="space-y-4 px-4 py-6 sm:px-6"
+                    >
                         <div className="flex items-center justify-between gap-2">
                             <h2 className="text-base font-semibold">
                                 Quotations
@@ -844,7 +1018,9 @@ export default function ProjectsShow({
                             <Button size="sm" asChild>
                                 <Link
                                     href={createQuotation({
-                                        query: { project: project.uuid },
+                                        query: {
+                                            project: project.uuid,
+                                        },
                                     })}
                                 >
                                     <Plus />
@@ -1010,7 +1186,10 @@ export default function ProjectsShow({
                         )}
                     </TabsContent>
 
-                    <TabsContent value="purchase-orders" className="space-y-4">
+                    <TabsContent
+                        value="purchase-orders"
+                        className="space-y-4 px-4 py-6 sm:px-6"
+                    >
                         <h2 className="text-base font-semibold">
                             Purchase Orders
                         </h2>
@@ -1153,7 +1332,10 @@ export default function ProjectsShow({
                         )}
                     </TabsContent>
 
-                    <TabsContent value="delivery-orders" className="space-y-4">
+                    <TabsContent
+                        value="delivery-orders"
+                        className="space-y-4 px-4 py-6 sm:px-6"
+                    >
                         <h2 className="text-base font-semibold">
                             Delivery Orders
                         </h2>
@@ -1298,7 +1480,10 @@ export default function ProjectsShow({
                         )}
                     </TabsContent>
 
-                    <TabsContent value="invoices" className="space-y-4">
+                    <TabsContent
+                        value="invoices"
+                        className="space-y-4 px-4 py-6 sm:px-6"
+                    >
                         <h2 className="text-base font-semibold">Invoices</h2>
                         {invoices.length === 0 ? (
                             <p className="text-sm text-muted-foreground">
@@ -1485,7 +1670,7 @@ export default function ProjectsShow({
 
                     <TabsContent
                         value="purchase-invoices"
-                        className="space-y-4"
+                        className="space-y-4 px-4 py-6 sm:px-6"
                     >
                         <h2 className="text-base font-semibold">
                             Purchase Invoices
@@ -1688,7 +1873,10 @@ export default function ProjectsShow({
                         )}
                     </TabsContent>
 
-                    <TabsContent value="attachments" className="space-y-4">
+                    <TabsContent
+                        value="attachments"
+                        className="space-y-4 px-4 py-6 sm:px-6"
+                    >
                         <h2 className="text-base font-semibold">Attachments</h2>
                         <Form
                             {...storeAttachment.form(project)}
@@ -1854,7 +2042,10 @@ export default function ProjectsShow({
                         )}
                     </TabsContent>
 
-                    <TabsContent value="equipment" className="space-y-4">
+                    <TabsContent
+                        value="equipment"
+                        className="space-y-4 px-4 py-6 sm:px-6"
+                    >
                         <h2 className="text-base font-semibold">Equipment</h2>
 
                         {project.equipment_calibration_max_age_months && (
@@ -2167,14 +2358,25 @@ export default function ProjectsShow({
                     </TabsContent>
                 </Tabs>
 
-                <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
-                    <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
-                        Danger Zone
-                    </h2>
+                <section className="space-y-4 rounded-2xl border border-destructive/30 bg-destructive/[0.02] p-4 sm:p-6">
+                    <div className="flex items-start gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                            <CircleOff className="size-4" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-destructive dark:text-destructive-foreground">
+                                Danger zone
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                These actions change or permanently remove the
+                                project record.
+                            </p>
+                        </div>
+                    </div>
                     {!['cancelled', 'voided', 'completed'].includes(
                         project.status,
                     ) && (
-                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                        <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                             <div className="space-y-0.5 text-red-600 dark:text-red-100">
                                 <p className="font-medium">
                                     Cancel this project
@@ -2254,7 +2456,7 @@ export default function ProjectsShow({
                     )}
 
                     {!['voided', 'completed'].includes(project.status) && (
-                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                        <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                             <div className="space-y-0.5 text-red-600 dark:text-red-100">
                                 <p className="font-medium">Void this project</p>
                                 <p className="text-sm">
@@ -2334,7 +2536,7 @@ export default function ProjectsShow({
                     )}
 
                     {!hasRelatedDocuments && (
-                        <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                        <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                             <div className="space-y-0.5 text-red-600 dark:text-red-100">
                                 <p className="font-medium">
                                     Delete this project
@@ -2398,7 +2600,7 @@ export default function ProjectsShow({
                             </Dialog>
                         </div>
                     )}
-                </div>
+                </section>
             </div>
         </>
     );

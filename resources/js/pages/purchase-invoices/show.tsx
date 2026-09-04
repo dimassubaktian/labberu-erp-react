@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -175,15 +175,10 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {purchaseInvoice.status.replaceAll(
-                                        '_',
-                                        ' ',
-                                    )}
-                                </Badge>
+                                <StatusBadge
+                                    category="document"
+                                    value={purchaseInvoice.status}
+                                />
                             </dd>
                         </div>
 
@@ -193,15 +188,10 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                     Payment
                                 </dt>
                                 <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {purchaseInvoice.payment_status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <StatusBadge
+                                        category="payment"
+                                        value={purchaseInvoice.payment_status}
+                                    />
                                 </dd>
                             </div>
                         )}
@@ -491,12 +481,11 @@ export default function PurchaseInvoicesShow({ purchaseInvoice }: Props) {
                                                     <TableCell>
                                                         {payment.cancelled_at ? (
                                                             <div className="space-y-0.5">
-                                                                <Badge
-                                                                    variant="secondary"
-                                                                    className="text-destructive dark:text-destructive-foreground"
-                                                                >
-                                                                    Cancelled
-                                                                </Badge>
+                                                                <StatusBadge
+                                                                    category="cancelled"
+                                                                    value="cancelled"
+                                                                    label="Cancelled"
+                                                                />
                                                                 {payment.cancel_reason && (
                                                                     <p className="text-xs text-muted-foreground">
                                                                         {

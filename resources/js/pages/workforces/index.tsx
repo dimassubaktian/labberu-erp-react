@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -253,16 +253,10 @@ export default function WorkforcesIndex({
                                         {workforce.email}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                workforce.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {workforce.status}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="active"
+                                            value={workforce.status}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

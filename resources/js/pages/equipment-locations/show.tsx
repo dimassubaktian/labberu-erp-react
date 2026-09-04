@@ -1,7 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -99,16 +99,14 @@ export default function EquipmentLocationsShow({ location }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant={
+                                <StatusBadge
+                                    category="active"
+                                    value={
                                         location.is_active
-                                            ? 'secondary'
-                                            : 'outline'
+                                            ? 'active'
+                                            : 'inactive'
                                     }
-                                    className="mt-1"
-                                >
-                                    {location.is_active ? 'Active' : 'Inactive'}
-                                </Badge>
+                                />
                             </dd>
                         </div>
 

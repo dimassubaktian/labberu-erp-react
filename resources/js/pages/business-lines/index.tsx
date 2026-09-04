@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -194,16 +194,10 @@ export default function BusinessLinesIndex({ businessLines, filters }: Props) {
                                         </Link>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                businessLine.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {businessLine.status}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="active"
+                                            value={businessLine.status}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

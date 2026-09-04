@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -317,27 +317,19 @@ export default function PurchaseInvoicesIndex({
                                         {formatDate(purchaseInvoice.due_date)}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {purchaseInvoice.status.replaceAll(
-                                                '_',
-                                                ' ',
-                                            )}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="document"
+                                            value={purchaseInvoice.status}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {purchaseInvoice.payment_status ? (
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {purchaseInvoice.payment_status.replaceAll(
-                                                    '_',
-                                                    ' ',
-                                                )}
-                                            </Badge>
+                                            <StatusBadge
+                                                category="payment"
+                                                value={
+                                                    purchaseInvoice.payment_status
+                                                }
+                                            />
                                         ) : (
                                             <span className="text-muted-foreground">
                                                 &mdash;

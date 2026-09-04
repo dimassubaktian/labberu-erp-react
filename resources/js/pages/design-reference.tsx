@@ -12,6 +12,7 @@ import {
 import * as React from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { StatusBadge } from '@/components/project-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -247,25 +248,19 @@ export default function DesignReference() {
 
                 <Section
                     title="Status badges"
-                    rule="Document statuses are always secondary + capitalize, with underscores replaced by spaces. Colour is not used to encode status; the label carries the meaning. outline is for classifications such as priority."
+                    rule="Workflow badges use semantic colors and capitalize their labels, with underscores replaced by spaces. Neutral outline badges are for classifications such as versions, roles, and permissions."
                 >
-                    <Snippet>{`<Badge variant="secondary" className="capitalize">
-    {record.status.replaceAll('_', ' ')}
-</Badge>`}</Snippet>
+                    <Snippet>{`<StatusBadge category="document" value={record.status} />`}</Snippet>
 
                     <div className="flex flex-wrap gap-2 rounded-xl border border-border/50 p-4">
                         {DOCUMENT_STATUSES.map((value) => (
-                            <Badge
+                            <StatusBadge
                                 key={value}
-                                variant="secondary"
-                                className="capitalize"
-                            >
-                                {value.replaceAll('_', ' ')}
-                            </Badge>
+                                category="document"
+                                value={value}
+                            />
                         ))}
-                        <Badge variant="outline" className="capitalize">
-                            high
-                        </Badge>
+                        <StatusBadge category="priority" value="high" />
                         <Badge>Default</Badge>
                         <Badge variant="destructive">Destructive</Badge>
                     </div>
@@ -390,12 +385,10 @@ formatDateTime(value)    // ${formatDateTime('2026-08-16 09:30:00')}`}</Snippet>
                                         </Link>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            issued
-                                        </Badge>
+                                        <StatusBadge
+                                            category="document"
+                                            value="issued"
+                                        />
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         Rp {formatNumber('1750000')}

@@ -1,7 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2, Users, X } from 'lucide-react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -103,16 +103,10 @@ export default function JobTitlesShow({ jobTitle, workforces }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant={
-                                        jobTitle.status === 'active'
-                                            ? 'secondary'
-                                            : 'outline'
-                                    }
-                                    className="mt-1 capitalize"
-                                >
-                                    {jobTitle.status}
-                                </Badge>
+                                <StatusBadge
+                                    category="active"
+                                    value={jobTitle.status}
+                                />
                             </dd>
                         </div>
 
@@ -185,17 +179,10 @@ export default function JobTitlesShow({ jobTitle, workforces }: Props) {
                                                 {workforce.email}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        workforce.status ===
-                                                        'active'
-                                                            ? 'secondary'
-                                                            : 'outline'
-                                                    }
-                                                    className="capitalize"
-                                                >
-                                                    {workforce.status}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="active"
+                                                    value={workforce.status}
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))}

@@ -1,6 +1,7 @@
 import { Form, Head, Link, setLayoutProps, usePage } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
+import { StatusBadge } from '@/components/project-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -95,16 +96,10 @@ export default function UsersShow({ user }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant={
-                                        user.status === 'active'
-                                            ? 'secondary'
-                                            : 'outline'
-                                    }
-                                    className="mt-1 capitalize"
-                                >
-                                    {user.status}
-                                </Badge>
+                                <StatusBadge
+                                    category="active"
+                                    value={user.status}
+                                />
                             </dd>
                         </div>
 

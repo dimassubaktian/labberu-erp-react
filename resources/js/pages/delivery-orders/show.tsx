@@ -12,7 +12,7 @@ import { useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -154,12 +154,10 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {deliveryOrder.status.replaceAll('_', ' ')}
-                                </Badge>
+                                <StatusBadge
+                                    category="document"
+                                    value={deliveryOrder.status}
+                                />
                             </dd>
                         </div>
 

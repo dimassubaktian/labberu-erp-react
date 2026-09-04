@@ -1,7 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -101,12 +101,10 @@ export default function TaxesShow({ tax }: Props) {
                                 Type
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="mt-1 capitalize"
-                                >
-                                    {tax.type}
-                                </Badge>
+                                <StatusBadge
+                                    category="tax_type"
+                                    value={tax.type}
+                                />
                             </dd>
                         </div>
 

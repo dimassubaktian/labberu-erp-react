@@ -1,7 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -144,12 +144,10 @@ export default function ProductsShow({ product, stockOnHand }: Props) {
                                 Type
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="mt-1 capitalize"
-                                >
-                                    {product.type}
-                                </Badge>
+                                <StatusBadge
+                                    category="product_type"
+                                    value={product.type}
+                                />
                             </dd>
                         </div>
 
@@ -158,16 +156,10 @@ export default function ProductsShow({ product, stockOnHand }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant={
-                                        product.status === 'active'
-                                            ? 'secondary'
-                                            : 'outline'
-                                    }
-                                    className="mt-1 capitalize"
-                                >
-                                    {product.status}
-                                </Badge>
+                                <StatusBadge
+                                    category="active"
+                                    value={product.status}
+                                />
                             </dd>
                         </div>
 

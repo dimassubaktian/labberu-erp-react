@@ -10,7 +10,7 @@ import { Cell, Pie, PieChart, Tooltip } from 'recharts';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
 import { SectionIntro } from '@/components/dashboard/section-intro';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { ChartContainer } from '@/components/ui/chart';
 import {
@@ -41,16 +41,6 @@ const BILLING_COLORS: Record<string, string> = {
     awaiting_payment: '#94a3b8',
     partially_paid: '#f59e0b',
     paid: '#22c55e',
-};
-
-const STATUS_VARIANT_MAP: Record<
-    string,
-    'default' | 'secondary' | 'destructive' | 'outline'
-> = {
-    planning: 'secondary',
-    in_progress: 'default',
-    completed: 'outline',
-    cancelled: 'destructive',
 };
 
 type Project = {
@@ -274,30 +264,16 @@ export function StaffTab({
                                         {project.customer_name}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                STATUS_VARIANT_MAP[
-                                                    project.status
-                                                ] ?? 'secondary'
-                                            }
-                                        >
-                                            {project.status.replace(/_/g, ' ')}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="status"
+                                            value={project.status}
+                                        />
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="outline"
-                                            className={
-                                                project.priority === 'urgent'
-                                                    ? 'border-destructive/30 text-destructive'
-                                                    : project.priority ===
-                                                        'high'
-                                                      ? 'border-amber-500/30 text-amber-700 dark:text-amber-400'
-                                                      : undefined
-                                            }
-                                        >
-                                            {project.priority}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="priority"
+                                            value={project.priority}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {project.end_date ? (

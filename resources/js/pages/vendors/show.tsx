@@ -2,7 +2,7 @@ import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Search, Trash2, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -412,24 +412,17 @@ export default function VendorsShow({ vendor, purchaseOrders }: Props) {
                                             {formatDate(po.created_at)}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge
-                                                variant="secondary"
-                                                className="capitalize"
-                                            >
-                                                {po.status}
-                                            </Badge>
+                                            <StatusBadge
+                                                category="document"
+                                                value={po.status}
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             {po.progress ? (
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="capitalize"
-                                                >
-                                                    {po.progress.replaceAll(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="progress"
+                                                    value={po.progress}
+                                                />
                                             ) : (
                                                 <span className="text-muted-foreground">
                                                     &mdash;

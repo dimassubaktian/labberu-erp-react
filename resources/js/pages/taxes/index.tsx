@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -200,12 +200,10 @@ export default function TaxesIndex({ taxes, filters }: Props) {
                                             : tax.rate}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant="secondary"
-                                            className="capitalize"
-                                        >
-                                            {tax.type}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="tax_type"
+                                            value={tax.type}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

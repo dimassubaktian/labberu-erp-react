@@ -15,7 +15,7 @@ import React from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -77,24 +77,6 @@ const RETURN_STATUS_OPTIONS = [
     { value: 'lost', label: 'Lost' },
     { value: 'damaged', label: 'Damaged' },
 ];
-
-const STATUS_VARIANTS: Record<string, 'secondary' | 'outline' | 'destructive'> =
-    {
-        available: 'secondary',
-        in_use: 'secondary',
-        in_calibration: 'outline',
-        under_maintenance: 'outline',
-        retired: 'outline',
-        lost: 'destructive',
-        damaged: 'destructive',
-    };
-
-const RESULT_VARIANTS: Record<string, 'secondary' | 'destructive' | 'outline'> =
-    {
-        passed: 'secondary',
-        failed: 'destructive',
-        conditional: 'outline',
-    };
 
 type VendorOption = { id: number; name: string; vendor_code: string };
 type ProjectOption = { id: number; uuid: string; name: string };
@@ -624,15 +606,10 @@ export default function EquipmentShow({
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant={
-                                        STATUS_VARIANTS[equipment.status] ??
-                                        'secondary'
-                                    }
-                                    className="capitalize"
-                                >
-                                    {equipment.status.replaceAll('_', ' ')}
-                                </Badge>
+                                <StatusBadge
+                                    category="equipment_status"
+                                    value={equipment.status}
+                                />
                             </dd>
                         </div>
 
@@ -1068,16 +1045,10 @@ export default function EquipmentShow({
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant={
-                                                            RESULT_VARIANTS[
-                                                                cal.result
-                                                            ] ?? 'secondary'
-                                                        }
-                                                        className="capitalize"
-                                                    >
-                                                        {cal.result}
-                                                    </Badge>
+                                                    <StatusBadge
+                                                        category="calibration_result"
+                                                        value={cal.result}
+                                                    />
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
@@ -1451,9 +1422,11 @@ export default function EquipmentShow({
                                                                 assignment.returned_at,
                                                             )
                                                         ) : (
-                                                            <Badge variant="secondary">
-                                                                Active
-                                                            </Badge>
+                                                            <StatusBadge
+                                                                category="active"
+                                                                value="active"
+                                                                label="Active"
+                                                            />
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="max-w-xs text-muted-foreground">

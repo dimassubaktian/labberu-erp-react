@@ -1,7 +1,7 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
 import { ArrowLeft, FolderKanban, Pencil, Trash2, X } from 'lucide-react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -105,16 +105,10 @@ export default function BusinessLinesShow({ businessLine, projects }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant={
-                                        businessLine.status === 'active'
-                                            ? 'secondary'
-                                            : 'outline'
-                                    }
-                                    className="mt-1 capitalize"
-                                >
-                                    {businessLine.status}
-                                </Badge>
+                                <StatusBadge
+                                    category="active"
+                                    value={businessLine.status}
+                                />
                             </dd>
                         </div>
 
@@ -196,15 +190,10 @@ export default function BusinessLinesShow({ businessLine, projects }: Props) {
                                                 {project.customer?.name ?? '—'}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge
-                                                    variant="outline"
-                                                    className="capitalize"
-                                                >
-                                                    {project.status.replace(
-                                                        '_',
-                                                        ' ',
-                                                    )}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="status"
+                                                    value={project.status}
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     ))}

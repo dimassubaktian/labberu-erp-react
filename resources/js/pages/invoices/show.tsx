@@ -14,8 +14,8 @@ import { useRef, useState } from 'react';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { PrintDocumentDialog } from '@/components/print-document-dialog';
+import { StatusBadge } from '@/components/project-badge';
 import { RichTextEditor } from '@/components/rich-text-editor';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -332,12 +332,10 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                 Status
                             </dt>
                             <dd>
-                                <Badge
-                                    variant="secondary"
-                                    className="capitalize"
-                                >
-                                    {invoice.status.replaceAll('_', ' ')}
-                                </Badge>
+                                <StatusBadge
+                                    category="document"
+                                    value={invoice.status}
+                                />
                             </dd>
                         </div>
 
@@ -347,15 +345,10 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                     Payment
                                 </dt>
                                 <dd>
-                                    <Badge
-                                        variant="secondary"
-                                        className="capitalize"
-                                    >
-                                        {invoice.payment_status.replaceAll(
-                                            '_',
-                                            ' ',
-                                        )}
-                                    </Badge>
+                                    <StatusBadge
+                                        category="payment"
+                                        value={invoice.payment_status}
+                                    />
                                 </dd>
                             </div>
                         )}
@@ -664,12 +657,11 @@ export default function InvoicesShow({ invoice, paymentTermTemplates }: Props) {
                                                 <TableCell>
                                                     {payment.cancelled_at ? (
                                                         <div className="space-y-0.5">
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="text-destructive dark:text-destructive-foreground"
-                                                            >
-                                                                Cancelled
-                                                            </Badge>
+                                                            <StatusBadge
+                                                                category="cancelled"
+                                                                value="cancelled"
+                                                                label="Cancelled"
+                                                            />
                                                             {payment.cancel_reason && (
                                                                 <p className="text-xs text-muted-foreground">
                                                                     {

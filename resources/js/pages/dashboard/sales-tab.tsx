@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { KpiCard } from '@/components/dashboard/kpi-card';
 import { SectionCard } from '@/components/dashboard/section-card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn, formatCompact } from '@/lib/utils';
 import { show as showProject } from '@/routes/projects';
@@ -236,19 +236,11 @@ export function SalesTab({
                                         </div>
                                         <div className="min-w-0 space-y-1">
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <Badge
-                                                    variant="outline"
-                                                    className={cn(
-                                                        item.severity ===
-                                                            'danger' &&
-                                                            'border-destructive/30 text-destructive',
-                                                        item.severity ===
-                                                            'warning' &&
-                                                            'border-amber-500/30 text-amber-700 dark:text-amber-400',
-                                                    )}
-                                                >
-                                                    {item.category}
-                                                </Badge>
+                                                <StatusBadge
+                                                    category="severity"
+                                                    value={item.severity}
+                                                    label={item.category}
+                                                />
                                                 <span className="font-mono text-xs text-muted-foreground">
                                                     {item.code}
                                                 </span>

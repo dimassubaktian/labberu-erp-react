@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Search, X } from 'lucide-react';
 import React from 'react';
 import Heading from '@/components/heading';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -190,16 +190,10 @@ export default function JobTitlesIndex({ jobTitles, filters }: Props) {
                                         </Link>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            variant={
-                                                jobTitle.status === 'active'
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                            className="capitalize"
-                                        >
-                                            {jobTitle.status}
-                                        </Badge>
+                                        <StatusBadge
+                                            category="active"
+                                            value={jobTitle.status}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}

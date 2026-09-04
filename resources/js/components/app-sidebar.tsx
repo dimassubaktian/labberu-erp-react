@@ -38,6 +38,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard, designReference } from '@/routes';
 import { index as activityLogsIndex } from '@/routes/activity-logs';
@@ -266,6 +267,7 @@ const navGroups: NavGroup[] = [
 
 export function AppSidebar() {
     const { auth } = usePage().props;
+    const { isMobile, setOpenMobile } = useSidebar();
     const permissions = auth.permissions ?? [];
     const roles = auth.roles ?? [];
 
@@ -287,7 +289,15 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link
+                                href={dashboard()}
+                                prefetch
+                                onClick={() => {
+                                    if (isMobile) {
+                                        setOpenMobile(false);
+                                    }
+                                }}
+                            >
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
