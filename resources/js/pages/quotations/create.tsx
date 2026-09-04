@@ -98,6 +98,7 @@ type PaymentTermTemplateOption = {
 };
 
 type LineItem = {
+    lineage_uuid?: string;
     product_id: string;
     product: ProductOption | null;
     description: string;
@@ -551,6 +552,13 @@ function LineItemRow({
             onClick={onEdit}
         >
             <TableCell className="whitespace-normal">
+                {item.lineage_uuid && (
+                    <input
+                        type="hidden"
+                        name={`${namePrefix}[lineage_uuid]`}
+                        value={item.lineage_uuid}
+                    />
+                )}
                 <input
                     type="hidden"
                     name={`${namePrefix}[product_id]`}

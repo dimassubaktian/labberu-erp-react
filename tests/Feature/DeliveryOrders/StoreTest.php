@@ -81,6 +81,43 @@ test('items must belong to the selected quotation', function () {
     ])->assertSessionHasErrors(['items.0.quotation_item_id']);
 });
 
+test('delivery order cannot exceed a quotation line quota across revisions', function () {
+    $user = User::factory()->create();
+    $quotation = approvedQuotationWithItem();
+    $item = $quotation->items->first();
+    $existingDeliveryOrder = DeliveryOrder::factory()->create([
+        'quotation_id' => $quotation->id,
+        'status' => 'confirmed',
+    ]);
+    $existingDeliveryOrder->items()->create([
+        'product_id' => $item->product_id,
+        'quotation_item_id' => $item->id,
+        'quantity_ordered' => $item->quantity,
+        'unit' => $item->unit,
+        'quantity_delivered' => 6,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('quotations.revisions.store', $quotation), ['version_type' => 'minor'])
+        ->assertSessionHasNoErrors();
+
+    $revision = Quotation::query()->where('id', '!=', $quotation->id)->sole();
+    $revision->update(['status' => 'approved']);
+    $revisionItem = $revision->items()->sole();
+
+    $this->actingAs($user)
+        ->post(route('delivery-orders.store'), [
+            'quotation_id' => $revision->id,
+            'delivery_date' => now()->toDateString(),
+            'items' => [
+                ['quotation_item_id' => $revisionItem->id, 'quantity_delivered' => 5],
+            ],
+        ])
+        ->assertSessionHasErrors(['items.0.quantity_delivered']);
+
+    expect(DeliveryOrder::query()->count())->toBe(1);
+});
+
 test('at least one item is required', function () {
     $user = User::factory()->create();
     $quotation = approvedQuotationWithItem();

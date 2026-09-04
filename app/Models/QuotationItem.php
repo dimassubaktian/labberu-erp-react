@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
  * @property int $quotation_id
+ * @property string $lineage_uuid
  * @property int|null $quotation_group_id
  * @property int $product_id
  * @property string|null $description
@@ -31,6 +33,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'quotation_id',
+    'lineage_uuid',
     'quotation_group_id',
     'product_id',
     'description',
@@ -49,6 +52,16 @@ class QuotationItem extends Model
 {
     /** @use HasFactory<QuotationItemFactory> */
     use HasFactory;
+
+    /**
+     * Bootstrap the model and generate the line identity for newly-created quotation items.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (QuotationItem $item): void {
+            $item->lineage_uuid ??= (string) Str::uuid();
+        });
+    }
 
     /**
      * Get the quotation this line item belongs to.

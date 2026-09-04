@@ -104,14 +104,79 @@ test('confirming enough delivery orders to cover every line sets fully_delivered
     expect($quotation->refresh()->progress)->toBe('fully_delivered');
 });
 
-test('progress derivation compares per line item, not an aggregate total', function () {
+test('confirmation cannot exceed a quotation line quota across revisions', function () {
+    [$user] = userWithWorkforce();
+    $quotation = quotationWithItemQuantities([10]);
+    $item = $quotation->items->first();
+    $existingDeliveryOrder = DeliveryOrder::factory()->create([
+        'quotation_id' => $quotation->id,
+        'status' => 'confirmed',
+    ]);
+    $existingDeliveryOrder->items()->create([
+        'product_id' => $item->product_id,
+        'quotation_item_id' => $item->id,
+        'quantity_ordered' => $item->quantity,
+        'unit' => $item->unit,
+        'quantity_delivered' => 6,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('quotations.revisions.store', $quotation), ['version_type' => 'minor'])
+        ->assertSessionHasNoErrors();
+
+    $revision = Quotation::query()->where('id', '!=', $quotation->id)->sole();
+    $revision->update(['status' => 'approved']);
+    $revisionItem = $revision->items()->sole();
+    $deliveryOrder = draftDeliveryOrderFor($revisionItem, 5);
+
+    $this->actingAs($user)
+        ->patch(route('delivery-orders.confirm', $deliveryOrder), [
+            'signed_document' => fakeSignedDocument(),
+        ])
+        ->assertSessionHasErrors('items');
+
+    expect($deliveryOrder->refresh()->status)->toBe('draft');
+    expect(Storage::disk('local')->allFiles())->toBe([]);
+});
+
+test('quotation progress counts deliveries across revisions', function () {
+    [$user] = userWithWorkforce();
+    $quotation = quotationWithItemQuantities([10]);
+    $item = $quotation->items->first();
+    $existingDeliveryOrder = DeliveryOrder::factory()->create([
+        'quotation_id' => $quotation->id,
+        'status' => 'confirmed',
+    ]);
+    $existingDeliveryOrder->items()->create([
+        'product_id' => $item->product_id,
+        'quotation_item_id' => $item->id,
+        'quantity_ordered' => $item->quantity,
+        'unit' => $item->unit,
+        'quantity_delivered' => 6,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('quotations.revisions.store', $quotation), ['version_type' => 'minor'])
+        ->assertSessionHasNoErrors();
+
+    $revision = Quotation::query()->where('id', '!=', $quotation->id)->sole();
+    $revision->update(['status' => 'approved']);
+    $deliveryOrder = draftDeliveryOrderFor($revision->items()->sole(), 4);
+
+    $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
+        'signed_document' => fakeSignedDocument(),
+    ])->assertSessionHasNoErrors();
+
+    expect($revision->refresh()->progress)->toBe('fully_delivered');
+});
+
+test('progress remains partial when one line is fully delivered and another is not', function () {
     [$user] = userWithWorkforce();
     $quotation = quotationWithItemQuantities([5, 5]);
     [$itemA] = $quotation->items;
 
-    // Item A is over-delivered to 10 (double its order); item B never ships.
-    // An aggregate sum (10 delivered / 10 ordered) would wrongly read as fully delivered.
-    $deliveryOrder = draftDeliveryOrderFor($itemA, 10);
+    // Item A is fully delivered; item B never ships.
+    $deliveryOrder = draftDeliveryOrderFor($itemA, 5);
 
     $this->actingAs($user)->patch(route('delivery-orders.confirm', $deliveryOrder), [
         'signed_document' => fakeSignedDocument(),

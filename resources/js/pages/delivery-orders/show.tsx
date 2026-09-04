@@ -338,6 +338,9 @@ export default function DeliveryOrdersShow({ deliveryOrder }: Props) {
                                                         errors.signed_document
                                                     }
                                                 />
+                                                <InputError
+                                                    message={errors.items}
+                                                />
                                             </div>
                                             <DialogFooter className="gap-2">
                                                 <DialogClose asChild>

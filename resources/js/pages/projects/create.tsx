@@ -319,7 +319,7 @@ export default function ProjectsCreate({ workforces, businessLines }: Props) {
                                 </div>
                             </div>
 
-                            <div className="grid gap-2 sm:max-w-xs">
+                            <div className="grid gap-2">
                                 <Label htmlFor="equipment_calibration_max_age_months">
                                     Required equipment calibration recency
                                     (months)

@@ -241,7 +241,11 @@ export default function StockMovementsIndex({
                                     </TableCell>
                                     <TableCell>
                                         <Badge
-                                            variant="secondary"
+                                            variant={
+                                                movement.type === 'out'
+                                                    ? 'destructive'
+                                                    : 'secondary'
+                                            }
                                             className="capitalize"
                                         >
                                             {movement.type}

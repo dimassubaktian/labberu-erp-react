@@ -78,6 +78,7 @@ type TaxOption = {
 };
 
 type LineItem = {
+    lineage_uuid?: string;
     product_id: string;
     product: ProductOption | null;
     description: string;
@@ -104,6 +105,7 @@ type LocationKey =
 
 type QuotationItemProp = {
     id: number;
+    lineage_uuid: string;
     product_id: number;
     description: string | null;
     quantity: string;
@@ -255,6 +257,7 @@ function calculateGroupTotals(group: GroupState, taxes: TaxOption[]) {
 
 function toLineItem(item: QuotationItemProp): LineItem {
     return {
+        lineage_uuid: item.lineage_uuid,
         product_id: String(item.product_id),
         product: item.product,
         description: item.description ?? '',
@@ -590,6 +593,13 @@ function LineItemRow({
             onClick={onEdit}
         >
             <TableCell className="whitespace-normal">
+                {item.lineage_uuid && (
+                    <input
+                        type="hidden"
+                        name={`${namePrefix}[lineage_uuid]`}
+                        value={item.lineage_uuid}
+                    />
+                )}
                 <input
                     type="hidden"
                     name={`${namePrefix}[product_id]`}

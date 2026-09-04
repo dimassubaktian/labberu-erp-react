@@ -12,18 +12,24 @@ use App\Models\DeliveryOrderItem;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\StockMovement;
+use App\Services\DeliveryOrderQuantityValidator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DeliveryOrderController extends Controller
 {
+    public function __construct(
+        private readonly DeliveryOrderQuantityValidator $quantityValidator,
+    ) {}
+
     /**
      * Display a listing of the delivery orders.
      */
@@ -185,11 +191,24 @@ class DeliveryOrderController extends Controller
      */
     public function confirm(DeliveryOrderConfirmRequest $request, DeliveryOrder $deliveryOrder): RedirectResponse
     {
+        $deliveryOrder->load(['quotation.project', 'items']);
         abort_if($deliveryOrder->quotation->status !== 'approved', 403, 'The linked quotation is no longer approved.');
 
-        $path = $request->file('signed_document')->store('delivery-order-documents', 'local');
+        DB::transaction(function () use ($request, $deliveryOrder): void {
+            $items = $deliveryOrder->items
+                ->map(fn (DeliveryOrderItem $item): array => [
+                    'quotation_item_id' => $item->quotation_item_id,
+                    'quantity_delivered' => $item->quantity_delivered,
+                ])
+                ->all();
+            $errors = $this->quantityValidator->errorsFor($deliveryOrder->quotation, $items, $deliveryOrder);
 
-        DB::transaction(function () use ($request, $deliveryOrder, $path): void {
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            $path = $request->file('signed_document')->store('delivery-order-documents', 'local');
+
             $deliveryOrder->update([
                 'status' => 'confirmed',
                 'delivered_by_id' => $request->validated('delivered_by_id'),
@@ -341,18 +360,14 @@ class DeliveryOrderController extends Controller
     {
         $items = $quotation->items;
 
-        $delivered = DeliveryOrderItem::query()
-            ->whereIn('quotation_item_id', $items->pluck('id'))
-            ->whereHas('deliveryOrder', fn ($query) => $query->where('status', 'confirmed'))
-            ->selectRaw('quotation_item_id, sum(quantity_delivered) as delivered')
-            ->groupBy('quotation_item_id')
-            ->pluck('delivered', 'quotation_item_id');
+        $delivered = $this->quantityValidator->deliveredQuantities($quotation);
 
         $anyDelivered = false;
         $allFullyDelivered = true;
 
         foreach ($items as $item) {
-            $deliveredQuantity = (float) ($delivered[$item->id] ?? 0);
+            $lineageUuid = $item->lineage_uuid ?? "item:{$item->id}";
+            $deliveredQuantity = (float) $delivered->get($lineageUuid, 0);
 
             if ($deliveredQuantity > 0) {
                 $anyDelivered = true;

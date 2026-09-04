@@ -14,7 +14,6 @@ use App\Models\BomSubgroup;
 use App\Models\CompanySetting;
 use App\Models\Currency;
 use App\Models\DeliveryOrder;
-use App\Models\DeliveryOrderItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\PaymentTermTemplate;
@@ -25,6 +24,7 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\Tax;
 use App\Services\BomService;
+use App\Services\DeliveryOrderQuantityValidator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -36,7 +36,10 @@ use Inertia\Response;
 
 class QuotationController extends Controller
 {
-    public function __construct(private readonly BomService $bomService) {}
+    public function __construct(
+        private readonly BomService $bomService,
+        private readonly DeliveryOrderQuantityValidator $deliveryOrderQuantityValidator,
+    ) {}
 
     /**
      * Search quotations for async select pickers, restricted to approved quotations (only
@@ -68,12 +71,7 @@ class QuotationController extends Controller
     {
         $items = $quotation->items()->with('product:id,product_code,name')->get();
 
-        $delivered = DeliveryOrderItem::query()
-            ->whereIn('quotation_item_id', $items->pluck('id'))
-            ->whereHas('deliveryOrder', fn ($query) => $query->where('status', 'confirmed'))
-            ->selectRaw('quotation_item_id, sum(quantity_delivered) as delivered')
-            ->groupBy('quotation_item_id')
-            ->pluck('delivered', 'quotation_item_id');
+        $delivered = $this->deliveryOrderQuantityValidator->deliveredQuantities($quotation);
 
         $invoiced = InvoiceItem::query()
             ->whereIn('quotation_item_id', $items->pluck('id'))
@@ -82,7 +80,8 @@ class QuotationController extends Controller
             ->pluck('invoiced', 'quotation_item_id');
 
         $data = $items->map(function (QuotationItem $item) use ($delivered, $invoiced): array {
-            $deliveredQuantity = (float) ($delivered[$item->id] ?? 0);
+            $lineageUuid = $item->lineage_uuid ?? "item:{$item->id}";
+            $deliveredQuantity = (float) $delivered->get($lineageUuid, 0);
             $invoicedQuantity = (float) ($invoiced[$item->id] ?? 0);
 
             return [
@@ -380,8 +379,9 @@ class QuotationController extends Controller
     public function update(QuotationUpdateRequest $request, Quotation $quotation): RedirectResponse
     {
         $data = $request->validated();
+        $lineageUuids = $quotation->items()->pluck('lineage_uuid')->filter()->all();
 
-        DB::transaction(function () use ($data, $quotation): void {
+        DB::transaction(function () use ($data, $quotation, $lineageUuids): void {
             $quotation->items()->delete();
             $quotation->groups()->delete();
 
@@ -399,7 +399,7 @@ class QuotationController extends Controller
                 'payment_terms_html' => $data['payment_terms_html'] ?? null,
             ]);
 
-            $this->syncGroupsAndItems($quotation, $data);
+            $this->syncGroupsAndItems($quotation, $data, $lineageUuids);
         });
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Quotation updated.')]);
@@ -666,13 +666,14 @@ class QuotationController extends Controller
      * the sum of the ungrouped items and each group's own total.
      *
      * @param  array<string, mixed>  $data
+     * @param  array<int, string>  $lineageUuids
      */
-    private function syncGroupsAndItems(Quotation $quotation, array $data): void
+    private function syncGroupsAndItems(Quotation $quotation, array $data, array $lineageUuids = []): void
     {
         $ungroupedTotal = 0;
 
         foreach ($data['items'] ?? [] as $item) {
-            $calculated = $this->calculateItem($item);
+            $calculated = $this->calculateItem($item, $lineageUuids);
 
             $quotation->items()->create($calculated);
 
@@ -682,7 +683,7 @@ class QuotationController extends Controller
         $groupsTotal = 0;
 
         foreach ($data['groups'] ?? [] as $index => $groupData) {
-            $calculatedGroup = $this->calculateGroup($groupData);
+            $calculatedGroup = $this->calculateGroup($groupData, $lineageUuids);
 
             $group = $quotation->groups()->create([
                 'name' => $groupData['name'],
@@ -723,15 +724,16 @@ class QuotationController extends Controller
      * Calculate a group's items, subtotal, discount, tax, and total.
      *
      * @param  array<string, mixed>  $group
+     * @param  array<int, string>  $lineageUuids
      * @return array<string, mixed>
      */
-    private function calculateGroup(array $group): array
+    private function calculateGroup(array $group, array $lineageUuids = []): array
     {
         $subtotal = 0;
         $items = [];
 
         foreach ($group['items'] as $item) {
-            $calculated = $this->calculateItem($item);
+            $calculated = $this->calculateItem($item, $lineageUuids);
             $items[] = $calculated;
             $subtotal += $calculated['total_price'];
         }
@@ -760,6 +762,7 @@ class QuotationController extends Controller
     {
         return [
             'product_id' => $item->product_id,
+            'lineage_uuid' => $item->lineage_uuid,
             'description' => $item->description,
             'quantity' => $item->quantity,
             'unit' => $item->unit,
@@ -817,9 +820,10 @@ class QuotationController extends Controller
      * Calculate a single line item's totals, margin, and margin percentage.
      *
      * @param  array<string, mixed>  $item
+     * @param  array<int, string>  $lineageUuids
      * @return array<string, mixed>
      */
-    private function calculateItem(array $item): array
+    private function calculateItem(array $item, array $lineageUuids = []): array
     {
         $quantity = (float) $item['quantity'];
         $unitPrice = (float) $item['unit_price'];
@@ -831,7 +835,7 @@ class QuotationController extends Controller
         $margin = $totalPrice - $totalCost;
         $marginPercent = $totalPrice > 0 ? round($margin / $totalPrice * 100, 2) : 0;
 
-        return [
+        $calculated = [
             'product_id' => $item['product_id'],
             'description' => $item['description'] ?? null,
             'quantity' => $quantity,
@@ -845,6 +849,12 @@ class QuotationController extends Controller
             'margin' => $margin,
             'margin_percent' => $marginPercent,
         ];
+
+        if (in_array($item['lineage_uuid'] ?? null, $lineageUuids, true)) {
+            $calculated['lineage_uuid'] = $item['lineage_uuid'];
+        }
+
+        return $calculated;
     }
 
     /**

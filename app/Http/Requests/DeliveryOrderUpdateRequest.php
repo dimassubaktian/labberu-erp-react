@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Models\DeliveryOrder;
+use App\Models\Quotation;
 use App\Models\QuotationItem;
+use App\Services\DeliveryOrderQuantityValidator;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -11,6 +13,12 @@ use Illuminate\Validation\Validator;
 
 class DeliveryOrderUpdateRequest extends FormRequest
 {
+    public function __construct(
+        private readonly DeliveryOrderQuantityValidator $quantityValidator,
+    ) {
+        parent::__construct();
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -39,19 +47,37 @@ class DeliveryOrderUpdateRequest extends FormRequest
             'delivery_date' => ['required', 'date'],
             'remarks' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.quotation_item_id' => ['required', Rule::exists('quotation_items', 'id')],
+            'items.*.quotation_item_id' => ['required', 'distinct', Rule::exists('quotation_items', 'id')],
             'items.*.quantity_delivered' => ['required', 'numeric', 'min:0'],
         ];
     }
 
     /**
-     * Configure the validator instance.
+     * Add cross-version delivery quantity validation.
+     *
+     * @return array<int, callable>
      */
-    public function withValidator(Validator $validator): void
+    public function after(): array
     {
-        $validator->after(function (Validator $validator): void {
-            $this->assertItemsBelongToQuotation($validator, (int) $this->input('quotation_id'));
-        });
+        return [function (Validator $validator): void {
+            $quotation = Quotation::query()->find((int) $this->input('quotation_id'));
+
+            if (! $quotation) {
+                return;
+            }
+
+            $this->assertItemsBelongToQuotation($validator, $quotation->id);
+
+            $deliveryOrder = $this->route('deliveryOrder');
+
+            foreach ($this->quantityValidator->errorsFor(
+                $quotation,
+                (array) $this->input('items', []),
+                $deliveryOrder instanceof DeliveryOrder ? $deliveryOrder : null,
+            ) as $field => $message) {
+                $validator->errors()->add($field, $message);
+            }
+        }];
     }
 
     /**
