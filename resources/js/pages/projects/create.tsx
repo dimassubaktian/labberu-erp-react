@@ -45,20 +45,27 @@ function todayDate(): string {
 }
 
 type Props = {
+    customer: CustomerOption | null;
     workforces: WorkforceOption[];
     businessLines: BusinessLineOption[];
 };
 
-export default function ProjectsCreate({ workforces, businessLines }: Props) {
+export default function ProjectsCreate({
+    customer,
+    workforces,
+    businessLines,
+}: Props) {
     const { auth } = usePage().props;
     const canCreateCustomer = auth.permissions.includes('customers.create');
     const canCreateBusinessLine = auth.permissions.includes(
         'business-lines.create',
     );
 
-    const [customerId, setCustomerId] = useState('');
+    const [customerId, setCustomerId] = useState(
+        customer ? String(customer.id) : '',
+    );
     const [selectedCustomer, setSelectedCustomer] =
-        useState<CustomerOption | null>(null);
+        useState<CustomerOption | null>(customer);
     const [personInChargeId, setPersonInChargeId] = useState('');
     const [businessLineId, setBusinessLineId] = useState('');
     const [status, setStatus] = useState('new');

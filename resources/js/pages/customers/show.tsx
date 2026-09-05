@@ -1,9 +1,26 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Search, Trash2, X } from 'lucide-react';
+import {
+    ArrowLeft,
+    Building2,
+    ClipboardList,
+    MapPin,
+    Pencil,
+    Plus,
+    Search,
+    Trash2,
+    UserRound,
+    X,
+} from 'lucide-react';
 import React from 'react';
-import Heading from '@/components/heading';
 import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -32,7 +49,10 @@ import {
 } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { destroy, edit, index, show } from '@/routes/customers';
-import { show as showProject } from '@/routes/projects';
+import {
+    create as createProject,
+    show as showProject,
+} from '@/routes/projects';
 
 type Project = {
     id: number;
@@ -91,6 +111,7 @@ export default function CustomersShow({ customer }: Props) {
                     .includes(projectSearch.toLowerCase());
             const matchesStatus =
                 projectStatus === 'all' || p.status === projectStatus;
+
             return matchesSearch && matchesStatus;
         });
     }, [customer.projects, projectSearch, projectStatus]);
@@ -109,338 +130,474 @@ export default function CustomersShow({ customer }: Props) {
         <>
             <Head title={customer.name} />
 
-            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <Heading
-                        title={customer.name}
-                        description="Customer details"
-                    />
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button
-                            variant="destructive"
-                            asChild
-                            className="w-full sm:w-auto"
-                        >
-                            <Link href={index()}>
-                                <ArrowLeft />
-                                Back to Customers
-                            </Link>
-                        </Button>
-
-                        <Button asChild className="w-full sm:w-auto">
-                            <Link href={edit(customer)}>
-                                <Pencil />
-                                Edit Customer
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-
-                <div>
-                    <h2 className="mb-4 text-base font-semibold">Details</h2>
-                    <dl className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Customer code
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.customer_code}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Name
-                            </dt>
-                            <dd className="font-medium">{customer.name}</dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Attention
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.attention ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
+            <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
+                <section className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+                    <div className="flex flex-col gap-6 bg-linear-to-br from-primary/[0.08] via-card to-card p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex min-w-0 gap-4">
+                            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                                <Building2 className="size-6" />
+                            </div>
+                            <div className="min-w-0 space-y-2">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Customer profile
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+                                        {customer.name}
+                                    </h1>
+                                    <span className="rounded-md border border-primary/15 bg-primary/10 px-2 py-1 font-mono text-xs font-medium text-primary">
+                                        {customer.customer_code}
                                     </span>
-                                )}
-                            </dd>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    Account details, contacts, and associated
+                                    project activity.
+                                </p>
+                            </div>
                         </div>
 
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Phone
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.phone ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Fax
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.fax ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                City
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.city ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Province
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.province ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Country
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.country ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Postal code
-                            </dt>
-                            <dd className="font-medium">
-                                {customer.postal_code ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                            <dt className="text-sm text-muted-foreground">
-                                Address
-                            </dt>
-                            <dd className="font-medium whitespace-pre-line">
-                                {customer.address ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                            <dt className="text-sm text-muted-foreground">
-                                Remarks
-                            </dt>
-                            <dd className="font-medium whitespace-pre-line">
-                                {customer.remarks ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Created at
-                            </dt>
-                            <dd className="font-medium">
-                                {formatDateTime(customer.created_at)}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Last updated
-                            </dt>
-                            <dd className="font-medium">
-                                {formatDateTime(customer.updated_at)}
-                            </dd>
-                        </div>
-                    </dl>
-                </div>
-
-                <div>
-                    <h2 className="mb-4 text-base font-semibold">Projects</h2>
-
-                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                        <div className="relative w-full sm:max-w-xs">
-                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                value={projectSearch}
-                                onChange={(e) =>
-                                    setProjectSearch(e.target.value)
-                                }
-                                placeholder="Search by code or name"
-                                className="pl-9"
-                            />
-                        </div>
-
-                        <Select
-                            value={projectStatus}
-                            onValueChange={setProjectStatus}
-                        >
-                            <SelectTrigger className="w-full sm:w-40">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    All statuses
-                                </SelectItem>
-                                {PROJECT_STATUS_OPTIONS.map((opt) => (
-                                    <SelectItem
-                                        key={opt.value}
-                                        value={opt.value}
-                                    >
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {hasActiveProjectFilters && (
+                        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
                             <Button
-                                variant="ghost"
-                                onClick={() => {
-                                    setProjectSearch('');
-                                    setProjectStatus('all');
-                                }}
-                                className="w-full text-destructive hover:text-destructive sm:w-auto"
+                                variant="destructive"
+                                asChild
+                                className="w-full sm:w-auto"
                             >
-                                <X />
-                                Reset
+                                <Link href={index()}>
+                                    <ArrowLeft />
+                                    Back to Customers
+                                </Link>
                             </Button>
-                        )}
+
+                            <Button asChild className="w-full sm:w-auto">
+                                <Link href={edit(customer)}>
+                                    <Pencil />
+                                    Edit Customer
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-border/50">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Project code</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Sales</TableHead>
-                                    <TableHead>PO</TableHead>
-                                    <TableHead>Billing</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredProjects.length === 0 && (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={7}
-                                            className="h-24 text-center text-muted-foreground"
+                    <div className="grid divide-y divide-border/60 border-t border-border/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                        <div className="flex items-center gap-3 p-4 sm:p-5">
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <ClipboardList className="size-4" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-semibold tracking-tight">
+                                    {customer.projects.length}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Associated projects
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 sm:p-5">
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <UserRound className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="truncate font-medium">
+                                    {customer.attention ?? '\u2014'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Primary contact
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-4 sm:p-5">
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <MapPin className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="truncate font-medium">
+                                    {[customer.city, customer.province]
+                                        .filter(Boolean)
+                                        .join(', ') || '\u2014'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Location
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <Card>
+                    <CardHeader className="border-b border-border/60 pb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <UserRound className="size-4" />
+                            </div>
+                            <div>
+                                <CardTitle>Customer details</CardTitle>
+                                <CardDescription>
+                                    Contact, location, and account information.
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <dl className="grid gap-x-8 gap-y-0 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="border-b border-border/60 py-4 first:pt-0 sm:pt-0">
+                                <dt className="text-sm text-muted-foreground">
+                                    Customer code
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.customer_code}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4 sm:pt-0">
+                                <dt className="text-sm text-muted-foreground">
+                                    Name
+                                </dt>
+                                <dd className="font-medium">{customer.name}</dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4 sm:pt-0 lg:pt-0">
+                                <dt className="text-sm text-muted-foreground">
+                                    Attention
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.attention ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4">
+                                <dt className="text-sm text-muted-foreground">
+                                    Phone
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.phone ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4">
+                                <dt className="text-sm text-muted-foreground">
+                                    Fax
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.fax ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4">
+                                <dt className="text-sm text-muted-foreground">
+                                    City
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.city ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4">
+                                <dt className="text-sm text-muted-foreground">
+                                    Province
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.province ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4">
+                                <dt className="text-sm text-muted-foreground">
+                                    Country
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.country ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4">
+                                <dt className="text-sm text-muted-foreground">
+                                    Postal code
+                                </dt>
+                                <dd className="font-medium">
+                                    {customer.postal_code ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4 sm:col-span-2 lg:col-span-3">
+                                <dt className="text-sm text-muted-foreground">
+                                    Address
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {customer.address ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="border-b border-border/60 py-4 sm:col-span-2 lg:col-span-3">
+                                <dt className="text-sm text-muted-foreground">
+                                    Remarks
+                                </dt>
+                                <dd className="font-medium whitespace-pre-line">
+                                    {customer.remarks ?? (
+                                        <span className="text-muted-foreground">
+                                            &mdash;
+                                        </span>
+                                    )}
+                                </dd>
+                            </div>
+
+                            <div className="py-4 sm:pb-0">
+                                <dt className="text-sm text-muted-foreground">
+                                    Created at
+                                </dt>
+                                <dd className="font-medium">
+                                    {formatDateTime(customer.created_at)}
+                                </dd>
+                            </div>
+
+                            <div className="py-4 sm:pb-0">
+                                <dt className="text-sm text-muted-foreground">
+                                    Last updated
+                                </dt>
+                                <dd className="font-medium">
+                                    {formatDateTime(customer.updated_at)}
+                                </dd>
+                            </div>
+                        </dl>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="gap-4 border-b border-border/60 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <ClipboardList className="size-4" />
+                            </div>
+                            <div>
+                                <CardTitle>Projects</CardTitle>
+                                <CardDescription>
+                                    {customer.projects.length} associated
+                                    {customer.projects.length === 1
+                                        ? ' project'
+                                        : ' projects'}
+                                </CardDescription>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:items-end">
+                            <span className="self-start rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground sm:self-auto">
+                                Showing {filteredProjects.length} of{' '}
+                                {customer.projects.length}
+                            </span>
+                            <Button
+                                asChild
+                                size="sm"
+                                className="w-full sm:w-auto"
+                            >
+                                <Link
+                                    href={createProject({
+                                        query: { customer: customer.uuid },
+                                    })}
+                                >
+                                    <Plus />
+                                    Add Project
+                                </Link>
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                            <div className="relative w-full sm:max-w-xs">
+                                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    value={projectSearch}
+                                    onChange={(e) =>
+                                        setProjectSearch(e.target.value)
+                                    }
+                                    placeholder="Search by code or name"
+                                    className="pl-9"
+                                />
+                            </div>
+
+                            <Select
+                                value={projectStatus}
+                                onValueChange={setProjectStatus}
+                            >
+                                <SelectTrigger className="w-full sm:w-40">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All statuses
+                                    </SelectItem>
+                                    {PROJECT_STATUS_OPTIONS.map((opt) => (
+                                        <SelectItem
+                                            key={opt.value}
+                                            value={opt.value}
                                         >
-                                            No projects found.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                                {filteredProjects.map((project) => (
-                                    <TableRow key={project.id}>
-                                        <TableCell className="font-medium">
-                                            <Link href={showProject(project)}>
-                                                {project.project_code}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Link href={showProject(project)}>
-                                                {project.name}
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {formatDate(project.request_date)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <StatusBadge
-                                                category="status"
-                                                value={project.status}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            {project.sales_status ? (
-                                                <StatusBadge
-                                                    category="sales"
-                                                    value={project.sales_status}
-                                                />
-                                            ) : (
-                                                <span className="text-muted-foreground">
-                                                    &mdash;
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {project.po_status ? (
-                                                <StatusBadge
-                                                    category="po"
-                                                    value={project.po_status}
-                                                />
-                                            ) : (
-                                                <span className="text-muted-foreground">
-                                                    &mdash;
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {project.billing_status ? (
-                                                <StatusBadge
-                                                    category="billing"
-                                                    value={
-                                                        project.billing_status
-                                                    }
-                                                />
-                                            ) : (
-                                                <span className="text-muted-foreground">
-                                                    &mdash;
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </div>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
-                    <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
-                        Danger Zone
-                    </h2>
-                    <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
+                            {hasActiveProjectFilters && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setProjectSearch('');
+                                        setProjectStatus('all');
+                                    }}
+                                    className="w-full text-destructive hover:text-destructive sm:w-auto"
+                                >
+                                    <X />
+                                    Reset filters
+                                </Button>
+                            )}
+                        </div>
+
+                        <div className="overflow-hidden rounded-xl border border-border/60">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Project code</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Sales</TableHead>
+                                        <TableHead>PO</TableHead>
+                                        <TableHead>Billing</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredProjects.length === 0 && (
+                                        <TableRow>
+                                            <TableCell
+                                                colSpan={7}
+                                                className="h-28 text-center text-muted-foreground"
+                                            >
+                                                No projects match these filters.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                    {filteredProjects.map((project) => (
+                                        <TableRow key={project.id}>
+                                            <TableCell className="font-medium">
+                                                <Link
+                                                    href={showProject(project)}
+                                                    className="hover:text-primary hover:underline"
+                                                >
+                                                    {project.project_code}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link
+                                                    href={showProject(project)}
+                                                    className="font-medium hover:text-primary hover:underline"
+                                                >
+                                                    {project.name}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {formatDate(
+                                                    project.request_date,
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <StatusBadge
+                                                    category="status"
+                                                    value={project.status}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                {project.sales_status ? (
+                                                    <StatusBadge
+                                                        category="sales"
+                                                        value={
+                                                            project.sales_status
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        &mdash;
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {project.po_status ? (
+                                                    <StatusBadge
+                                                        category="po"
+                                                        value={
+                                                            project.po_status
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        &mdash;
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {project.billing_status ? (
+                                                    <StatusBadge
+                                                        category="billing"
+                                                        value={
+                                                            project.billing_status
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        &mdash;
+                                                    </span>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <section className="space-y-4 rounded-2xl border border-destructive/30 bg-destructive/[0.02] p-4 sm:p-6">
+                    <div className="flex items-start gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                            <Trash2 className="size-4" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-destructive dark:text-destructive-foreground">
+                                Danger zone
+                            </h2>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Permanently remove this customer and its record.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-4 rounded-xl border border-red-100 bg-red-50/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
                             <p className="font-medium">Delete this customer</p>
                             <p className="text-sm">
@@ -498,7 +655,7 @@ export default function CustomersShow({ customer }: Props) {
                             </DialogContent>
                         </Dialog>
                     </div>
-                </div>
+                </section>
             </div>
         </>
     );

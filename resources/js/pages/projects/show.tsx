@@ -509,7 +509,7 @@ export default function ProjectsShow({
 
                         <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
                             <Button
-                                variant="outline"
+                                variant="destructive"
                                 asChild
                                 className="w-full sm:w-auto"
                             >
@@ -536,7 +536,7 @@ export default function ProjectsShow({
                         icon={CircleDollarSign}
                         className="min-h-24"
                         labelClassName="text-xs leading-snug sm:text-sm"
-                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl"
                         compact
                     />
                     <KpiCard
@@ -545,7 +545,7 @@ export default function ProjectsShow({
                         icon={ClipboardList}
                         className="min-h-24"
                         labelClassName="text-xs leading-snug sm:text-sm"
-                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl"
                         compact
                     />
                     <KpiCard
@@ -554,7 +554,7 @@ export default function ProjectsShow({
                         icon={TrendingUp}
                         className="min-h-24"
                         labelClassName="text-xs leading-snug sm:text-sm"
-                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl"
                         highlight={
                             costVariance !== null && costVariance > 0
                                 ? 'danger'
@@ -568,7 +568,7 @@ export default function ProjectsShow({
                         icon={CalendarDays}
                         className="min-h-24"
                         labelClassName="text-xs leading-snug sm:text-sm"
-                        valueClassName="text-lg leading-tight break-words sm:text-xl lg:text-2xl"
+                        valueClassName="text-lg leading-tight break-words sm:text-xl"
                         compact
                     />
                 </section>

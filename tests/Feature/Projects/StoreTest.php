@@ -17,6 +17,23 @@ test('project create page is displayed', function () {
         );
 });
 
+test('project create page preselects the requested customer', function () {
+    $user = User::factory()->create();
+    $customer = Customer::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('projects.create', ['customer' => $customer->uuid]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('projects/create')
+            ->where('customer', [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'customer_code' => $customer->customer_code,
+            ]),
+        );
+});
+
 test('project can be created', function () {
     $user = User::factory()->create();
     $customer = Customer::factory()->create(['name' => 'Zeta Corp']);

@@ -7,6 +7,7 @@ use App\Http\Requests\ProjectStoreRequest;
 use App\Http\Requests\ProjectUpdateRequest;
 use App\Http\Requests\ProjectVoidRequest;
 use App\Models\BusinessLine;
+use App\Models\Customer;
 use App\Models\EquipmentAssignment;
 use App\Models\EquipmentCalibration;
 use App\Models\Project;
@@ -14,6 +15,7 @@ use App\Models\Workforce;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -92,8 +94,12 @@ class ProjectController extends Controller
     /**
      * Show the form for creating a new project.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
+        $validated = $request->validate([
+            'customer' => ['nullable', 'uuid', Rule::exists(Customer::class, 'uuid')],
+        ]);
+
         $workforces = Workforce::query()
             ->where('status', 'active')
             ->orderBy('full_name')
@@ -105,6 +111,11 @@ class ProjectController extends Controller
             ->get(['id', 'name']);
 
         return Inertia::render('projects/create', [
+            'customer' => isset($validated['customer'])
+                ? Customer::query()
+                    ->where('uuid', $validated['customer'])
+                    ->first(['id', 'name', 'customer_code'])
+                : null,
             'workforces' => $workforces,
             'businessLines' => $businessLines,
         ]);

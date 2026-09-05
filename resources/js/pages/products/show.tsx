@@ -1,8 +1,23 @@
 import { Form, Head, Link, setLayoutProps } from '@inertiajs/react';
-import { ArrowLeft, Pencil, Trash2, X } from 'lucide-react';
-import Heading from '@/components/heading';
+import {
+    ArrowLeft,
+    Boxes,
+    CircleDollarSign,
+    Package,
+    Pencil,
+    Tags,
+    Trash2,
+    X,
+} from 'lucide-react';
 import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -51,177 +66,294 @@ export default function ProductsShow({ product, stockOnHand }: Props) {
         <>
             <Head title={product.name} />
 
-            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <Heading
-                        title={product.name}
-                        description="Product details"
-                    />
-
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button
-                            variant="destructive"
-                            asChild
-                            className="w-full sm:w-auto"
-                        >
-                            <Link href={index()}>
-                                <ArrowLeft />
-                                Back to Products
-                            </Link>
-                        </Button>
-
-                        <Button asChild className="w-full sm:w-auto">
-                            <Link href={edit(product)}>
-                                <Pencil />
-                                Edit Product
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-
-                <div>
-                    <h2 className="mb-4 text-base font-semibold">Details</h2>
-                    <dl className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Product code
-                            </dt>
-                            <dd className="font-medium">
-                                {product.product_code}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Name
-                            </dt>
-                            <dd className="font-medium">{product.name}</dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Reference number
-                            </dt>
-                            <dd className="font-medium">
-                                {product.reference_number}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Brand
-                            </dt>
-                            <dd className="font-medium">{product.brand}</dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Unit
-                            </dt>
-                            <dd className="font-medium">{product.unit}</dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Price
-                            </dt>
-                            <dd className="font-medium">
-                                {formatNumber(product.price)}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Cost
-                            </dt>
-                            <dd className="font-medium">
-                                {formatNumber(product.cost)}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Type
-                            </dt>
-                            <dd>
-                                <StatusBadge
-                                    category="product_type"
-                                    value={product.type}
-                                />
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Status
-                            </dt>
-                            <dd>
-                                <StatusBadge
-                                    category="active"
-                                    value={product.status}
-                                />
-                            </dd>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                            <dt className="text-sm text-muted-foreground">
-                                Descriptions
-                            </dt>
-                            <dd className="font-medium whitespace-pre-line">
-                                {product.descriptions}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Created at
-                            </dt>
-                            <dd className="font-medium">
-                                {formatDateTime(product.created_at)}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Last updated
-                            </dt>
-                            <dd className="font-medium">
-                                {formatDateTime(product.updated_at)}
-                            </dd>
-                        </div>
-                    </dl>
-                </div>
-
-                {product.type === 'goods' && (
-                    <div>
-                        <h2 className="mb-4 text-base font-semibold">Stock</h2>
-                        <dl className="flex items-center justify-between">
-                            <div>
-                                <dt className="text-sm text-muted-foreground">
-                                    On hand
-                                </dt>
-                                <dd className="font-medium">
-                                    {formatNumber(stockOnHand)} {product.unit}
-                                </dd>
+            <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
+                <section className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+                    <div className="flex flex-col gap-6 bg-linear-to-br from-primary/[0.08] via-card to-card p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex min-w-0 items-start gap-4">
+                            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-14">
+                                <Package className="size-6 sm:size-7" />
                             </div>
+                            <div className="min-w-0 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Product profile
+                                    </p>
+                                    <StatusBadge
+                                        category="product_type"
+                                        value={product.type}
+                                    />
+                                    <StatusBadge
+                                        category="active"
+                                        value={product.status}
+                                    />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">
+                                        {product.name}
+                                    </h1>
+                                    <p className="mt-1 text-sm break-words text-muted-foreground sm:text-base">
+                                        {product.brand || 'Unbranded product'}
+                                        {product.reference_number &&
+                                            ` · Ref. ${product.reference_number}`}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
-                            <Button variant="outline" asChild>
-                                <Link
-                                    href={stockMovementsIndex({
-                                        query: { product: product.uuid },
-                                    })}
-                                >
-                                    View Movements
+                        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
+                            <Button
+                                variant="destructive"
+                                asChild
+                                className="w-full sm:w-auto"
+                            >
+                                <Link href={index()}>
+                                    <ArrowLeft />
+                                    Back to Products
                                 </Link>
                             </Button>
-                        </dl>
-                    </div>
-                )}
 
-                <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
-                    <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
-                        Danger Zone
-                    </h2>
+                            <Button asChild className="w-full sm:w-auto">
+                                <Link href={edit(product)}>
+                                    <Pencil />
+                                    Edit Product
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="grid divide-y divide-border/60 border-t border-border/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                        <div className="space-y-1 p-4 sm:p-5">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Product code
+                            </p>
+                            <p className="font-semibold break-all">
+                                {product.product_code}
+                            </p>
+                        </div>
+                        <div className="space-y-1 p-4 sm:p-5">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Selling price
+                            </p>
+                            <p className="font-semibold">
+                                {formatNumber(product.price)}
+                            </p>
+                        </div>
+                        <div className="space-y-1 p-4 sm:p-5">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                {product.type === 'goods'
+                                    ? 'Available on hand'
+                                    : 'Unit of measure'}
+                            </p>
+                            <p className="font-semibold">
+                                {product.type === 'goods'
+                                    ? `${formatNumber(stockOnHand)} ${product.unit}`
+                                    : product.unit}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
+                    <Card>
+                        <CardHeader className="border-b border-border/60 pb-5">
+                            <CardTitle>Product details</CardTitle>
+                            <CardDescription>
+                                Identification, classification, and lifecycle
+                                information.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Product code
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {product.product_code}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Reference number
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {product.reference_number || '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Brand
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {product.brand || '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Unit of measure
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {product.unit || '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-2">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Product type
+                                    </dt>
+                                    <dd>
+                                        <StatusBadge
+                                            category="product_type"
+                                            value={product.type}
+                                        />
+                                    </dd>
+                                </div>
+                                <div className="space-y-2">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Status
+                                    </dt>
+                                    <dd>
+                                        <StatusBadge
+                                            category="active"
+                                            value={product.status}
+                                        />
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Created at
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {formatDateTime(product.created_at)}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Last updated
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {formatDateTime(product.updated_at)}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader className="border-b border-border/60 pb-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-muted p-2 text-muted-foreground">
+                                        <CircleDollarSign className="size-5" />
+                                    </div>
+                                    <div>
+                                        <CardTitle>Pricing</CardTitle>
+                                        <CardDescription>
+                                            Current commercial values.
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="grid gap-5 pt-6 sm:grid-cols-2 lg:grid-cols-1">
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        Selling price
+                                    </p>
+                                    <p className="text-xl font-semibold tracking-tight">
+                                        {formatNumber(product.price)}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        Cost
+                                    </p>
+                                    <p className="text-xl font-semibold tracking-tight">
+                                        {formatNumber(product.cost)}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {product.type === 'goods' && (
+                            <Card>
+                                <CardHeader className="border-b border-border/60 pb-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="rounded-lg bg-muted p-2 text-muted-foreground">
+                                            <Boxes className="size-5" />
+                                        </div>
+                                        <div>
+                                            <CardTitle>Inventory</CardTitle>
+                                            <CardDescription>
+                                                Current stock availability.
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-5 pt-6">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">
+                                            On hand
+                                        </p>
+                                        <p className="mt-1 text-2xl font-semibold tracking-tight">
+                                            {formatNumber(stockOnHand)}{' '}
+                                            <span className="text-base font-medium text-muted-foreground">
+                                                {product.unit}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <Button variant="outline" asChild>
+                                        <Link
+                                            href={stockMovementsIndex({
+                                                query: {
+                                                    product: product.uuid,
+                                                },
+                                            })}
+                                        >
+                                            View movements
+                                        </Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </div>
+
+                <Card>
+                    <CardHeader className="border-b border-border/60 pb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-muted p-2 text-muted-foreground">
+                                <Tags className="size-5" />
+                            </div>
+                            <div>
+                                <CardTitle>Description</CardTitle>
+                                <CardDescription>
+                                    Notes and specifications for this product.
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <p className="max-w-4xl text-sm leading-6 whitespace-pre-line text-muted-foreground">
+                            {product.descriptions ||
+                                'No product description has been added yet.'}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <section className="space-y-4 rounded-2xl border border-destructive/30 bg-destructive/[0.02] p-4 sm:p-6">
+                    <div className="flex items-start gap-3">
+                        <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
+                            <Trash2 className="size-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-destructive">
+                                Danger zone
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                Permanently remove this product and its detail
+                                record.
+                            </p>
+                        </div>
+                    </div>
                     <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
                             <p className="font-medium">Delete this product</p>
@@ -280,7 +412,7 @@ export default function ProductsShow({ product, stockOnHand }: Props) {
                             </DialogContent>
                         </Dialog>
                     </div>
-                </div>
+                </section>
             </div>
         </>
     );

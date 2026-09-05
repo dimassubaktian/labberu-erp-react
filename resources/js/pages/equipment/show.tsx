@@ -13,10 +13,16 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import { AsyncCombobox } from '@/components/async-combobox';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { StatusBadge } from '@/components/project-badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogClose,
@@ -554,239 +560,270 @@ export default function EquipmentShow({
         <>
             <Head title={equipment.name} />
 
-            <div className="mx-auto w-full max-w-5xl space-y-6 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <Heading
-                        title={equipment.name}
-                        description={equipment.equipment_code}
-                    />
+            <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
+                <section className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+                    <div className="flex flex-col gap-6 bg-linear-to-br from-primary/[0.08] via-card to-card p-5 sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex min-w-0 items-start gap-4">
+                            {equipment.picture ? (
+                                <img
+                                    src={picture(equipment).url}
+                                    alt={equipment.name}
+                                    className="size-14 shrink-0 rounded-xl border border-border/60 object-cover sm:size-16"
+                                />
+                            ) : (
+                                <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:size-16">
+                                    <Package className="size-7" />
+                                </div>
+                            )}
+                            <div className="min-w-0 space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <p className="text-sm font-medium text-muted-foreground">
+                                        Equipment profile
+                                    </p>
+                                    <StatusBadge
+                                        category="equipment_status"
+                                        value={equipment.status}
+                                    />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">
+                                        {equipment.name}
+                                    </h1>
+                                    <p className="mt-1 text-sm break-words text-muted-foreground sm:text-base">
+                                        {equipment.equipment_code}
+                                        {equipment.brand &&
+                                            ` · ${equipment.brand}`}
+                                        {equipment.model_type &&
+                                            ` · ${equipment.model_type}`}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                        <Button variant="destructive" asChild>
-                            <Link href={index()}>
-                                <ArrowLeft />
-                                Back to Equipment
-                            </Link>
-                        </Button>
+                        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
+                            <Button
+                                variant="destructive"
+                                asChild
+                                className="w-full sm:w-auto"
+                            >
+                                <Link href={index()}>
+                                    <ArrowLeft />
+                                    Back to Equipment
+                                </Link>
+                            </Button>
 
-                        <Button asChild>
-                            <Link href={edit(equipment)}>
-                                <Pencil />
-                                Edit Equipment
-                            </Link>
-                        </Button>
+                            <Button asChild className="w-full sm:w-auto">
+                                <Link href={edit(equipment)}>
+                                    <Pencil />
+                                    Edit Equipment
+                                </Link>
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div className="grid divide-y divide-border/60 border-t border-border/60 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                        <div className="space-y-1 p-4 sm:p-5">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Equipment code
+                            </p>
+                            <p className="font-semibold">
+                                {equipment.equipment_code}
+                            </p>
+                        </div>
+                        <div className="space-y-1 p-4 sm:p-5">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Current placement
+                            </p>
+                            <p className="font-semibold">
+                                {equipment.current_project?.name ??
+                                    equipment.current_custodian?.full_name ??
+                                    equipment.current_location?.name ??
+                                    'In storage'}
+                            </p>
+                        </div>
+                        <div className="space-y-1 p-4 sm:p-5">
+                            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                                Calibration
+                            </p>
+                            <p
+                                className={
+                                    isCalibrationOverdue
+                                        ? 'font-semibold text-destructive'
+                                        : 'font-semibold'
+                                }
+                            >
+                                {!equipment.calibration_required
+                                    ? 'Not required'
+                                    : equipment.next_calibration_due_date
+                                      ? formatDate(
+                                            equipment.next_calibration_due_date,
+                                        )
+                                      : 'Not recorded'}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
+                    <Card>
+                        <CardHeader className="border-b border-border/60 pb-5">
+                            <CardTitle>Equipment details</CardTitle>
+                            <CardDescription>
+                                Identification, procurement, and warranty
+                                information.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Category
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.category ?? '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Model / type
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.model_type ?? '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Brand
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.brand ?? '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Serial number
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.serial_number ?? '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Purchased from
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.vendor?.name ?? '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Purchase date
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.purchase_date
+                                            ? formatDate(
+                                                  equipment.purchase_date,
+                                              )
+                                            : '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Purchase cost
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.purchase_cost
+                                            ? formatNumber(
+                                                  equipment.purchase_cost,
+                                              )
+                                            : '—'}
+                                    </dd>
+                                </div>
+                                <div className="space-y-1">
+                                    <dt className="text-sm text-muted-foreground">
+                                        Warranty expiry
+                                    </dt>
+                                    <dd className="font-medium">
+                                        {equipment.warranty_expiry_date
+                                            ? formatDate(
+                                                  equipment.warranty_expiry_date,
+                                              )
+                                            : '—'}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </CardContent>
+                    </Card>
+
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader className="border-b border-border/60 pb-5">
+                                <CardTitle>Operational status</CardTitle>
+                                <CardDescription>
+                                    Current custody and calibration state.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-5 pt-6">
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        Checked out to
+                                    </p>
+                                    <p className="font-medium">
+                                        {equipment.current_project?.name ??
+                                            equipment.current_custodian
+                                                ?.full_name ??
+                                            'In storage'}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        Storage location
+                                    </p>
+                                    <p className="font-medium">
+                                        {equipment.current_location?.name ??
+                                            'Unassigned'}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        Next calibration due
+                                    </p>
+                                    <p
+                                        className={
+                                            isCalibrationOverdue
+                                                ? 'font-medium text-destructive'
+                                                : 'font-medium'
+                                        }
+                                    >
+                                        {!equipment.calibration_required
+                                            ? 'Not required'
+                                            : equipment.next_calibration_due_date
+                                              ? `${formatDate(equipment.next_calibration_due_date)}${isCalibrationOverdue ? ' (overdue)' : ''}`
+                                              : 'No calibration recorded yet'}
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="border-b border-border/60 pb-5">
+                                <CardTitle>Remarks</CardTitle>
+                                <CardDescription>
+                                    Notes for this asset.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <p className="text-sm leading-6 whitespace-pre-line text-muted-foreground">
+                                    {equipment.remarks ??
+                                        'No remarks added yet.'}
+                                </p>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-6 sm:flex-row">
-                    {equipment.picture && (
-                        <img
-                            src={picture(equipment).url}
-                            alt={equipment.name}
-                            className="size-32 shrink-0 rounded-lg border border-border/50 object-cover"
-                        />
-                    )}
-
-                    <dl className="grid flex-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Category
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.category ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Status
-                            </dt>
-                            <dd>
-                                <StatusBadge
-                                    category="equipment_status"
-                                    value={equipment.status}
-                                />
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Model / type
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.model_type ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Serial number
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.serial_number ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Brand
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.brand ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Checked out to
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.current_project ? (
-                                    equipment.current_project.name
-                                ) : equipment.current_custodian ? (
-                                    equipment.current_custodian.full_name
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Storage location
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.current_location?.name ?? (
-                                    <span className="text-muted-foreground">
-                                        Unassigned
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Purchased from
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.vendor?.name ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Purchase date
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.purchase_date ? (
-                                    formatDate(equipment.purchase_date)
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Purchase cost
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.purchase_cost ? (
-                                    formatNumber(equipment.purchase_cost)
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Warranty expiry
-                            </dt>
-                            <dd className="font-medium">
-                                {equipment.warranty_expiry_date ? (
-                                    formatDate(equipment.warranty_expiry_date)
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div>
-                            <dt className="text-sm text-muted-foreground">
-                                Next calibration due
-                            </dt>
-                            <dd className="font-medium">
-                                {!equipment.calibration_required ? (
-                                    <span className="text-muted-foreground">
-                                        Not required
-                                    </span>
-                                ) : equipment.next_calibration_due_date ? (
-                                    <span
-                                        className={
-                                            isCalibrationOverdue
-                                                ? 'text-destructive'
-                                                : ''
-                                        }
-                                    >
-                                        {formatDate(
-                                            equipment.next_calibration_due_date,
-                                        )}
-                                        {isCalibrationOverdue && ' (overdue)'}
-                                    </span>
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        No calibration recorded yet
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                            <dt className="text-sm text-muted-foreground">
-                                Remarks
-                            </dt>
-                            <dd className="font-medium whitespace-pre-line">
-                                {equipment.remarks ?? (
-                                    <span className="text-muted-foreground">
-                                        &mdash;
-                                    </span>
-                                )}
-                            </dd>
-                        </div>
-                    </dl>
-                </div>
-
-                <Tabs defaultValue="calibrations">
-                    <TabsList className="w-full flex-nowrap justify-start overflow-x-auto">
+                <Tabs defaultValue="calibrations" className="space-y-4">
+                    <TabsList className="h-auto w-full flex-nowrap justify-start overflow-x-auto rounded-xl border border-border/60 bg-card p-1">
                         <TabsTrigger value="calibrations">
                             Calibration History
                         </TabsTrigger>
@@ -1640,10 +1677,21 @@ export default function EquipmentShow({
                     </TabsContent>
                 </Tabs>
 
-                <div className="space-y-4 rounded-lg border border-destructive/50 p-4">
-                    <h2 className="text-base font-semibold text-destructive dark:text-destructive-foreground">
-                        Danger Zone
-                    </h2>
+                <section className="space-y-4 rounded-2xl border border-destructive/30 bg-destructive/[0.02] p-4 sm:p-6">
+                    <div className="flex items-start gap-3">
+                        <div className="rounded-lg bg-destructive/10 p-2 text-destructive">
+                            <Trash2 className="size-5" />
+                        </div>
+                        <div>
+                            <h2 className="font-semibold text-destructive">
+                                Danger zone
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                Remove this equipment record from the active
+                                register.
+                            </p>
+                        </div>
+                    </div>
                     <div className="flex flex-col gap-4 rounded-lg border border-red-100 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-red-200/10 dark:bg-red-700/10">
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
                             <p className="font-medium">Delete this equipment</p>
@@ -1703,7 +1751,7 @@ export default function EquipmentShow({
                             </DialogContent>
                         </Dialog>
                     </div>
-                </div>
+                </section>
             </div>
         </>
     );
