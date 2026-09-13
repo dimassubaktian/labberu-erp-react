@@ -20,6 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn, formatDate } from '@/lib/utils';
 import { create, index as invoicesIndex, show } from '@/routes/invoices';
 import type { Paginated } from '@/types';
@@ -61,6 +62,57 @@ const DEFAULT_FILTERS: Filters = {
     sort: 'latest',
 };
 
+function normalizeFilters(filters: Filters): Filters {
+    return {
+        search: filters.search ?? DEFAULT_FILTERS.search,
+        status: filters.status || DEFAULT_FILTERS.status,
+        payment_status:
+            filters.payment_status || DEFAULT_FILTERS.payment_status,
+        sort: filters.sort || DEFAULT_FILTERS.sort,
+    };
+}
+
+function EmptyInvoicesState({
+    hasActiveFilters,
+    onReset,
+}: {
+    hasActiveFilters: boolean;
+    onReset: () => void;
+}) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+            <div className="rounded-xl bg-muted p-3 text-muted-foreground">
+                <Search className="size-6" />
+            </div>
+            <div className="space-y-1">
+                <p className="font-medium">
+                    {hasActiveFilters
+                        ? 'No invoices match your filters'
+                        : 'No invoices yet'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    {hasActiveFilters
+                        ? 'Try clearing a filter or searching for a different invoice.'
+                        : 'Create an invoice to start tracking customer billing.'}
+                </p>
+            </div>
+            {hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={onReset}>
+                    <X />
+                    Clear filters
+                </Button>
+            ) : (
+                <Button asChild size="sm">
+                    <Link href={create()}>
+                        <Plus />
+                        New invoice
+                    </Link>
+                </Button>
+            )}
+        </div>
+    );
+}
+
 const STATUS_OPTIONS = [
     { value: 'draft', label: 'Draft' },
     { value: 'issued', label: 'Issued' },
@@ -79,28 +131,58 @@ const SORT_OPTIONS = [
 ];
 
 export default function InvoicesIndex({ invoices, filters }: Props) {
-    const [search, setSearch] = React.useState(filters.search);
-    const [status, setStatus] = React.useState(filters.status || 'all');
-    const [paymentStatus, setPaymentStatus] = React.useState(
-        filters.payment_status || 'all',
-    );
-    const [sort, setSort] = React.useState(filters.sort || 'latest');
+    const initialFilters = normalizeFilters(filters);
+    const isMobile = useIsMobile();
+    const [filterState, setFilterStateValue] =
+        React.useState<Filters>(initialFilters);
+    const filterStateRef = React.useRef(initialFilters);
+    const [isUpdating, setIsUpdating] = React.useState(false);
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasActiveFilters =
-        search !== DEFAULT_FILTERS.search ||
-        status !== DEFAULT_FILTERS.status ||
-        paymentStatus !== DEFAULT_FILTERS.payment_status ||
-        sort !== DEFAULT_FILTERS.sort;
+        filterState.search !== DEFAULT_FILTERS.search ||
+        filterState.status !== DEFAULT_FILTERS.status ||
+        filterState.payment_status !== DEFAULT_FILTERS.payment_status ||
+        filterState.sort !== DEFAULT_FILTERS.sort;
+
+    const resultSummary =
+        invoices.from !== null && invoices.to !== null
+            ? `Showing ${invoices.from}-${invoices.to} of ${invoices.total} invoices`
+            : 'No invoices found';
+
+    React.useEffect(() => {
+        const removeStartListener = router.on('start', () =>
+            setIsUpdating(true),
+        );
+        const removeFinishListener = router.on('finish', () =>
+            setIsUpdating(false),
+        );
+
+        return () => {
+            removeStartListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    React.useEffect(() => {
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, []);
+
+    function updateFilters(overrides: Partial<Filters>): Filters {
+        const next = { ...filterStateRef.current, ...overrides };
+
+        filterStateRef.current = next;
+        setFilterStateValue(next);
+
+        return next;
+    }
 
     function applyFilters(overrides: Partial<Filters>): void {
-        const next = {
-            search,
-            status,
-            payment_status: paymentStatus,
-            sort,
-            ...overrides,
-        };
+        const next = updateFilters(overrides);
 
         router.get(
             invoicesIndex.url({
@@ -120,7 +202,7 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
     }
 
     function handleSearchChange(value: string): void {
-        setSearch(value);
+        updateFilters({ search: value });
 
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -132,17 +214,14 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
     }
 
     function handleStatusChange(value: string): void {
-        setStatus(value);
         applyFilters({ status: value });
     }
 
     function handlePaymentStatusChange(value: string): void {
-        setPaymentStatus(value);
         applyFilters({ payment_status: value });
     }
 
     function handleSortChange(value: string): void {
-        setSort(value);
         applyFilters({ sort: value });
     }
 
@@ -151,10 +230,9 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
             clearTimeout(debounceRef.current);
         }
 
-        setSearch(DEFAULT_FILTERS.search);
-        setStatus(DEFAULT_FILTERS.status);
-        setPaymentStatus(DEFAULT_FILTERS.payment_status);
-        setSort(DEFAULT_FILTERS.sort);
+        const next = { ...DEFAULT_FILTERS };
+        filterStateRef.current = next;
+        setFilterStateValue(next);
 
         router.get(
             invoicesIndex.url(),
@@ -186,14 +264,17 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
                     <div className="relative w-full sm:max-w-xs">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                            value={search}
+                            value={filterState.search}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Search by invoice code, quotation, or customer"
                             className="pl-9"
                         />
                     </div>
 
-                    <Select value={status} onValueChange={handleStatusChange}>
+                    <Select
+                        value={filterState.status}
+                        onValueChange={handleStatusChange}
+                    >
                         <SelectTrigger className="w-full sm:w-36">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -211,7 +292,7 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
                     </Select>
 
                     <Select
-                        value={paymentStatus}
+                        value={filterState.payment_status}
                         onValueChange={handlePaymentStatusChange}
                     >
                         <SelectTrigger className="w-full sm:w-44">
@@ -230,7 +311,10 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
                         </SelectContent>
                     </Select>
 
-                    <Select value={sort} onValueChange={handleSortChange}>
+                    <Select
+                        value={filterState.sort}
+                        onValueChange={handleSortChange}
+                    >
                         <SelectTrigger className="w-full sm:w-44">
                             <SelectValue placeholder="Sort" />
                         </SelectTrigger>
@@ -259,98 +343,238 @@ export default function InvoicesIndex({ invoices, filters }: Props) {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Invoice code</TableHead>
-                                <TableHead>Quotation</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Invoice date</TableHead>
-                                <TableHead>Due date</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Payment</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {invoices.data.length === 0 && (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={7}
-                                        className="h-24 text-center text-muted-foreground"
-                                    >
-                                        No invoices found.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-
-                            {invoices.data.map((invoice) => (
-                                <TableRow key={invoice.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={show(invoice)}>
-                                            {invoice.invoice_code}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {invoice.quotation.quotation_code}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {
-                                            invoice.quotation.project.customer
-                                                .name
-                                        }
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDate(invoice.invoice_date)}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDate(invoice.due_date)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusBadge
-                                            category="document"
-                                            value={invoice.status}
+                    <div
+                        className={cn(
+                            'transition-opacity',
+                            isUpdating && 'opacity-60',
+                        )}
+                    >
+                        {isMobile ? (
+                            <div className="divide-y divide-border/50">
+                                {invoices.data.length === 0 ? (
+                                    <div className="p-8">
+                                        <EmptyInvoicesState
+                                            hasActiveFilters={hasActiveFilters}
+                                            onReset={handleReset}
                                         />
-                                    </TableCell>
-                                    <TableCell>
-                                        {invoice.payment_status ? (
-                                            <StatusBadge
-                                                category="payment"
-                                                value={invoice.payment_status}
-                                            />
-                                        ) : (
-                                            <span className="text-muted-foreground">
-                                                &mdash;
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                                    </div>
+                                ) : (
+                                    invoices.data.map((invoice) => (
+                                        <article
+                                            key={invoice.id}
+                                            className="space-y-4 p-4"
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <Link
+                                                        href={show(invoice)}
+                                                        className="font-mono text-xs font-medium text-muted-foreground hover:text-primary hover:underline"
+                                                    >
+                                                        {invoice.invoice_code}
+                                                    </Link>
+                                                    <p className="mt-1 truncate font-medium">
+                                                        {
+                                                            invoice.quotation
+                                                                .quotation_code
+                                                        }
+                                                    </p>
+                                                </div>
+                                                <StatusBadge
+                                                    category="document"
+                                                    value={invoice.status}
+                                                />
+                                            </div>
 
-                {invoices.last_page > 1 && (
-                    <nav className="flex flex-wrap items-center gap-1">
-                        {invoices.links.map((link, index) => (
-                            <Link
-                                key={index}
-                                href={link.url ?? '#'}
-                                preserveScroll
-                                className={cn(
-                                    'rounded-md px-3 py-1.5 text-sm',
-                                    link.active
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                                    !link.url &&
-                                        'pointer-events-none opacity-50',
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="min-w-0 space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Customer
+                                                    </p>
+                                                    <p className="truncate font-medium">
+                                                        {
+                                                            invoice.quotation
+                                                                .project
+                                                                .customer.name
+                                                        }
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Invoice date
+                                                    </p>
+                                                    <p className="font-medium">
+                                                        {formatDate(
+                                                            invoice.invoice_date,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Due date
+                                                    </p>
+                                                    <p className="font-medium">
+                                                        {formatDate(
+                                                            invoice.due_date,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Payment
+                                                    </p>
+                                                    {invoice.payment_status ? (
+                                                        <StatusBadge
+                                                            category="payment"
+                                                            value={
+                                                                invoice.payment_status
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <p className="font-medium text-muted-foreground">
+                                                            Not set
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </article>
+                                    ))
                                 )}
-                                dangerouslySetInnerHTML={{
-                                    __html: link.label,
-                                }}
-                            />
-                        ))}
-                    </nav>
-                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Invoice code</TableHead>
+                                            <TableHead>Quotation</TableHead>
+                                            <TableHead>Customer</TableHead>
+                                            <TableHead>Invoice date</TableHead>
+                                            <TableHead>Due date</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Payment</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {invoices.data.length === 0 && (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={7}
+                                                    className="h-52"
+                                                >
+                                                    <EmptyInvoicesState
+                                                        hasActiveFilters={
+                                                            hasActiveFilters
+                                                        }
+                                                        onReset={handleReset}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                        {invoices.data.map((invoice) => (
+                                            <TableRow
+                                                key={invoice.id}
+                                                className="hover:bg-muted/30"
+                                            >
+                                                <TableCell className="font-medium">
+                                                    <Link
+                                                        href={show(invoice)}
+                                                        className="font-mono text-xs hover:text-primary hover:underline"
+                                                    >
+                                                        {invoice.invoice_code}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="max-w-40 text-muted-foreground">
+                                                    <span className="block truncate">
+                                                        {
+                                                            invoice.quotation
+                                                                .quotation_code
+                                                        }
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="max-w-56 text-muted-foreground">
+                                                    <span className="block truncate">
+                                                        {
+                                                            invoice.quotation
+                                                                .project
+                                                                .customer.name
+                                                        }
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap text-muted-foreground">
+                                                    {formatDate(
+                                                        invoice.invoice_date,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap text-muted-foreground">
+                                                    {formatDate(
+                                                        invoice.due_date,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge
+                                                        category="document"
+                                                        value={invoice.status}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    {invoice.payment_status ? (
+                                                        <StatusBadge
+                                                            category="payment"
+                                                            value={
+                                                                invoice.payment_status
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            Not set
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                {resultSummary}
+                            </p>
+                            {isUpdating && (
+                                <span className="text-xs text-muted-foreground">
+                                    Updating...
+                                </span>
+                            )}
+                        </div>
+
+                        {invoices.last_page > 1 && (
+                            <nav className="flex flex-wrap items-center gap-1">
+                                {invoices.links.map((link, index) => (
+                                    <Link
+                                        key={index}
+                                        href={link.url ?? '#'}
+                                        preserveScroll
+                                        className={cn(
+                                            'rounded-md px-3 py-1.5 text-sm',
+                                            link.active
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                                            !link.url &&
+                                                'pointer-events-none opacity-50',
+                                        )}
+                                        dangerouslySetInnerHTML={{
+                                            __html: link.label,
+                                        }}
+                                    />
+                                ))}
+                            </nav>
+                        )}
+                    </div>
+                </div>
             </div>
         </>
     );

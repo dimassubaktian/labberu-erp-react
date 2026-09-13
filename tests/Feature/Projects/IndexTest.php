@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\BusinessLine;
+use App\Models\Customer;
 use App\Models\Project;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -61,6 +63,36 @@ test('projects can be searched by name', function () {
         );
 });
 
+test('projects can be searched by customer name', function () {
+    $user = User::factory()->create();
+    $customer = Customer::factory()->create(['name' => 'Acme Robotics']);
+    $otherCustomer = Customer::factory()->create(['name' => 'Panel Works']);
+    $match = Project::factory()->create(['customer_id' => $customer->id]);
+    Project::factory()->create(['customer_id' => $otherCustomer->id]);
+
+    $this->actingAs($user)
+        ->get(route('projects.index', ['search' => 'Robotics']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.project_code', $match->project_code),
+        );
+});
+
+test('projects can be searched by business line name', function () {
+    $user = User::factory()->create();
+    $businessLine = BusinessLine::factory()->create(['name' => 'Calibration Services']);
+    $otherBusinessLine = BusinessLine::factory()->create(['name' => 'Panel Services']);
+    $match = Project::factory()->create(['business_line_id' => $businessLine->id]);
+    Project::factory()->create(['business_line_id' => $otherBusinessLine->id]);
+
+    $this->actingAs($user)
+        ->get(route('projects.index', ['search' => 'Calibration']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.project_code', $match->project_code),
+        );
+});
+
 test('projects can be filtered by status', function () {
     $user = User::factory()->create();
     Project::factory()->create(['status' => 'completed']);
@@ -84,6 +116,21 @@ test('projects can be filtered by priority', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->has('projects.data', 1)
             ->where('projects.data.0.priority', 'urgent'),
+        );
+});
+
+test('projects can be filtered by business line', function () {
+    $user = User::factory()->create();
+    $businessLine = BusinessLine::factory()->create();
+    $match = Project::factory()->create(['business_line_id' => $businessLine->id]);
+    Project::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('projects.index', ['business_line' => $businessLine->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('projects.data', 1)
+            ->where('projects.data.0.project_code', $match->project_code)
+            ->where('filters.business_line', (string) $businessLine->id),
         );
 });
 

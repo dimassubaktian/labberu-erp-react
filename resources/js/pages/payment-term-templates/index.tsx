@@ -12,6 +12,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn, formatDateTime } from '@/lib/utils';
 import {
     create,
@@ -38,17 +39,105 @@ type Props = {
 
 const DEFAULT_FILTERS: Filters = { search: '' };
 
+function normalizeFilters(filters: Filters): Filters {
+    return {
+        search: filters.search ?? DEFAULT_FILTERS.search,
+    };
+}
+
+function EmptyPaymentTermTemplatesState({
+    hasActiveFilters,
+    onReset,
+}: {
+    hasActiveFilters: boolean;
+    onReset: () => void;
+}) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+            <div className="rounded-xl bg-muted p-3 text-muted-foreground">
+                <Search className="size-6" />
+            </div>
+            <div className="space-y-1">
+                <p className="font-medium">
+                    {hasActiveFilters
+                        ? 'No payment term templates match your search'
+                        : 'No payment term templates yet'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    {hasActiveFilters
+                        ? 'Try clearing the search or using a different template name.'
+                        : 'Create a template to reuse payment terms across quotations.'}
+                </p>
+            </div>
+            {hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={onReset}>
+                    <X />
+                    Clear search
+                </Button>
+            ) : (
+                <Button asChild size="sm">
+                    <Link href={create()}>
+                        <Plus />
+                        New template
+                    </Link>
+                </Button>
+            )}
+        </div>
+    );
+}
+
 export default function PaymentTermTemplatesIndex({
     paymentTermTemplates,
     filters,
 }: Props) {
-    const [search, setSearch] = React.useState(filters.search);
+    const initialFilters = normalizeFilters(filters);
+    const isMobile = useIsMobile();
+    const [filterState, setFilterStateValue] =
+        React.useState<Filters>(initialFilters);
+    const filterStateRef = React.useRef(initialFilters);
+    const [isUpdating, setIsUpdating] = React.useState(false);
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
-    const hasActiveFilters = search !== DEFAULT_FILTERS.search;
+    const hasActiveFilters = filterState.search !== DEFAULT_FILTERS.search;
+
+    const resultSummary =
+        paymentTermTemplates.from !== null && paymentTermTemplates.to !== null
+            ? `Showing ${paymentTermTemplates.from}-${paymentTermTemplates.to} of ${paymentTermTemplates.total} templates`
+            : 'No templates found';
+
+    React.useEffect(() => {
+        const removeStartListener = router.on('start', () =>
+            setIsUpdating(true),
+        );
+        const removeFinishListener = router.on('finish', () =>
+            setIsUpdating(false),
+        );
+
+        return () => {
+            removeStartListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    React.useEffect(() => {
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, []);
+
+    function updateFilters(overrides: Partial<Filters>): Filters {
+        const next = { ...filterStateRef.current, ...overrides };
+
+        filterStateRef.current = next;
+        setFilterStateValue(next);
+
+        return next;
+    }
 
     function applyFilters(overrides: Partial<Filters>): void {
-        const next = { search, ...overrides };
+        const next = updateFilters(overrides);
 
         router.get(
             paymentTermTemplatesIndex.url({
@@ -62,7 +151,7 @@ export default function PaymentTermTemplatesIndex({
     }
 
     function handleSearchChange(value: string): void {
-        setSearch(value);
+        updateFilters({ search: value });
 
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -78,7 +167,9 @@ export default function PaymentTermTemplatesIndex({
             clearTimeout(debounceRef.current);
         }
 
-        setSearch(DEFAULT_FILTERS.search);
+        const next = { ...DEFAULT_FILTERS };
+        filterStateRef.current = next;
+        setFilterStateValue(next);
 
         router.get(
             paymentTermTemplatesIndex.url(),
@@ -110,7 +201,7 @@ export default function PaymentTermTemplatesIndex({
                     <div className="relative w-full sm:max-w-xs">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                            value={search}
+                            value={filterState.search}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Search by name"
                             className="pl-9"
@@ -130,63 +221,144 @@ export default function PaymentTermTemplatesIndex({
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Last updated</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paymentTermTemplates.data.length === 0 && (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={2}
-                                        className="h-24 text-center text-muted-foreground"
-                                    >
-                                        No payment term templates found.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-
-                            {paymentTermTemplates.data.map((template) => (
-                                <TableRow key={template.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={show(template)}>
-                                            {template.name}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDateTime(template.updated_at)}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-
-                {paymentTermTemplates.last_page > 1 && (
-                    <nav className="flex flex-wrap items-center gap-1">
-                        {paymentTermTemplates.links.map((link, index) => (
-                            <Link
-                                key={index}
-                                href={link.url ?? '#'}
-                                preserveScroll
-                                className={cn(
-                                    'rounded-md px-3 py-1.5 text-sm',
-                                    link.active
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                                    !link.url &&
-                                        'pointer-events-none opacity-50',
+                    <div
+                        className={cn(
+                            'transition-opacity',
+                            isUpdating && 'opacity-60',
+                        )}
+                    >
+                        {isMobile ? (
+                            <div className="divide-y divide-border/50">
+                                {paymentTermTemplates.data.length === 0 ? (
+                                    <div className="p-8">
+                                        <EmptyPaymentTermTemplatesState
+                                            hasActiveFilters={hasActiveFilters}
+                                            onReset={handleReset}
+                                        />
+                                    </div>
+                                ) : (
+                                    paymentTermTemplates.data.map(
+                                        (template) => (
+                                            <article
+                                                key={template.id}
+                                                className="space-y-4 p-4"
+                                            >
+                                                <Link
+                                                    href={show(template)}
+                                                    className="block truncate font-medium hover:text-primary hover:underline"
+                                                >
+                                                    {template.name}
+                                                </Link>
+                                                <div className="space-y-1 text-sm">
+                                                    <p className="text-muted-foreground">
+                                                        Last updated
+                                                    </p>
+                                                    <p className="font-medium">
+                                                        {formatDateTime(
+                                                            template.updated_at,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </article>
+                                        ),
+                                    )
                                 )}
-                                dangerouslySetInnerHTML={{
-                                    __html: link.label,
-                                }}
-                            />
-                        ))}
-                    </nav>
-                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Last updated</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paymentTermTemplates.data.length ===
+                                            0 && (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={2}
+                                                    className="h-52"
+                                                >
+                                                    <EmptyPaymentTermTemplatesState
+                                                        hasActiveFilters={
+                                                            hasActiveFilters
+                                                        }
+                                                        onReset={handleReset}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                        {paymentTermTemplates.data.map(
+                                            (template) => (
+                                                <TableRow
+                                                    key={template.id}
+                                                    className="hover:bg-muted/30"
+                                                >
+                                                    <TableCell className="max-w-72 font-medium">
+                                                        <Link
+                                                            href={show(
+                                                                template,
+                                                            )}
+                                                            className="block truncate hover:text-primary hover:underline"
+                                                        >
+                                                            {template.name}
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                                                        {formatDateTime(
+                                                            template.updated_at,
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ),
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                {resultSummary}
+                            </p>
+                            {isUpdating && (
+                                <span className="text-xs text-muted-foreground">
+                                    Updating...
+                                </span>
+                            )}
+                        </div>
+
+                        {paymentTermTemplates.last_page > 1 && (
+                            <nav className="flex flex-wrap items-center gap-1">
+                                {paymentTermTemplates.links.map(
+                                    (link, index) => (
+                                        <Link
+                                            key={index}
+                                            href={link.url ?? '#'}
+                                            preserveScroll
+                                            className={cn(
+                                                'rounded-md px-3 py-1.5 text-sm',
+                                                link.active
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                                                !link.url &&
+                                                    'pointer-events-none opacity-50',
+                                            )}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
+                                        />
+                                    ),
+                                )}
+                            </nav>
+                        )}
+                    </div>
+                </div>
             </div>
         </>
     );

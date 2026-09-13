@@ -20,6 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn, formatDate } from '@/lib/utils';
 import {
     create,
@@ -62,6 +63,57 @@ const DEFAULT_FILTERS: Filters = {
     sort: 'latest',
 };
 
+function normalizeFilters(filters: Filters): Filters {
+    return {
+        search: filters.search ?? DEFAULT_FILTERS.search,
+        status: filters.status || DEFAULT_FILTERS.status,
+        payment_status:
+            filters.payment_status || DEFAULT_FILTERS.payment_status,
+        sort: filters.sort || DEFAULT_FILTERS.sort,
+    };
+}
+
+function EmptyPurchaseInvoicesState({
+    hasActiveFilters,
+    onReset,
+}: {
+    hasActiveFilters: boolean;
+    onReset: () => void;
+}) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+            <div className="rounded-xl bg-muted p-3 text-muted-foreground">
+                <Search className="size-6" />
+            </div>
+            <div className="space-y-1">
+                <p className="font-medium">
+                    {hasActiveFilters
+                        ? 'No purchase invoices match your filters'
+                        : 'No purchase invoices yet'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    {hasActiveFilters
+                        ? 'Try clearing a filter or searching for a different purchase invoice.'
+                        : 'Create a purchase invoice to start tracking vendor billing.'}
+                </p>
+            </div>
+            {hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={onReset}>
+                    <X />
+                    Clear filters
+                </Button>
+            ) : (
+                <Button asChild size="sm">
+                    <Link href={create()}>
+                        <Plus />
+                        New purchase invoice
+                    </Link>
+                </Button>
+            )}
+        </div>
+    );
+}
+
 const STATUS_OPTIONS = [
     { value: 'draft', label: 'Draft' },
     { value: 'issued', label: 'Issued' },
@@ -83,28 +135,58 @@ export default function PurchaseInvoicesIndex({
     purchaseInvoices,
     filters,
 }: Props) {
-    const [search, setSearch] = React.useState(filters.search);
-    const [status, setStatus] = React.useState(filters.status || 'all');
-    const [paymentStatus, setPaymentStatus] = React.useState(
-        filters.payment_status || 'all',
-    );
-    const [sort, setSort] = React.useState(filters.sort || 'latest');
+    const initialFilters = normalizeFilters(filters);
+    const isMobile = useIsMobile();
+    const [filterState, setFilterStateValue] =
+        React.useState<Filters>(initialFilters);
+    const filterStateRef = React.useRef(initialFilters);
+    const [isUpdating, setIsUpdating] = React.useState(false);
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasActiveFilters =
-        search !== DEFAULT_FILTERS.search ||
-        status !== DEFAULT_FILTERS.status ||
-        paymentStatus !== DEFAULT_FILTERS.payment_status ||
-        sort !== DEFAULT_FILTERS.sort;
+        filterState.search !== DEFAULT_FILTERS.search ||
+        filterState.status !== DEFAULT_FILTERS.status ||
+        filterState.payment_status !== DEFAULT_FILTERS.payment_status ||
+        filterState.sort !== DEFAULT_FILTERS.sort;
+
+    const resultSummary =
+        purchaseInvoices.from !== null && purchaseInvoices.to !== null
+            ? `Showing ${purchaseInvoices.from}-${purchaseInvoices.to} of ${purchaseInvoices.total} purchase invoices`
+            : 'No purchase invoices found';
+
+    React.useEffect(() => {
+        const removeStartListener = router.on('start', () =>
+            setIsUpdating(true),
+        );
+        const removeFinishListener = router.on('finish', () =>
+            setIsUpdating(false),
+        );
+
+        return () => {
+            removeStartListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    React.useEffect(() => {
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, []);
+
+    function updateFilters(overrides: Partial<Filters>): Filters {
+        const next = { ...filterStateRef.current, ...overrides };
+
+        filterStateRef.current = next;
+        setFilterStateValue(next);
+
+        return next;
+    }
 
     function applyFilters(overrides: Partial<Filters>): void {
-        const next = {
-            search,
-            status,
-            payment_status: paymentStatus,
-            sort,
-            ...overrides,
-        };
+        const next = updateFilters(overrides);
 
         router.get(
             purchaseInvoicesIndex.url({
@@ -124,7 +206,7 @@ export default function PurchaseInvoicesIndex({
     }
 
     function handleSearchChange(value: string): void {
-        setSearch(value);
+        updateFilters({ search: value });
 
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -136,17 +218,14 @@ export default function PurchaseInvoicesIndex({
     }
 
     function handleStatusChange(value: string): void {
-        setStatus(value);
         applyFilters({ status: value });
     }
 
     function handlePaymentStatusChange(value: string): void {
-        setPaymentStatus(value);
         applyFilters({ payment_status: value });
     }
 
     function handleSortChange(value: string): void {
-        setSort(value);
         applyFilters({ sort: value });
     }
 
@@ -155,10 +234,9 @@ export default function PurchaseInvoicesIndex({
             clearTimeout(debounceRef.current);
         }
 
-        setSearch(DEFAULT_FILTERS.search);
-        setStatus(DEFAULT_FILTERS.status);
-        setPaymentStatus(DEFAULT_FILTERS.payment_status);
-        setSort(DEFAULT_FILTERS.sort);
+        const next = { ...DEFAULT_FILTERS };
+        filterStateRef.current = next;
+        setFilterStateValue(next);
 
         router.get(
             purchaseInvoicesIndex.url(),
@@ -190,14 +268,17 @@ export default function PurchaseInvoicesIndex({
                     <div className="relative w-full sm:max-w-xs">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                            value={search}
+                            value={filterState.search}
                             onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Search by invoice code, PO, or vendor"
                             className="pl-9"
                         />
                     </div>
 
-                    <Select value={status} onValueChange={handleStatusChange}>
+                    <Select
+                        value={filterState.status}
+                        onValueChange={handleStatusChange}
+                    >
                         <SelectTrigger className="w-full sm:w-36">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -215,7 +296,7 @@ export default function PurchaseInvoicesIndex({
                     </Select>
 
                     <Select
-                        value={paymentStatus}
+                        value={filterState.payment_status}
                         onValueChange={handlePaymentStatusChange}
                     >
                         <SelectTrigger className="w-full sm:w-44">
@@ -234,7 +315,10 @@ export default function PurchaseInvoicesIndex({
                         </SelectContent>
                     </Select>
 
-                    <Select value={sort} onValueChange={handleSortChange}>
+                    <Select
+                        value={filterState.sort}
+                        onValueChange={handleSortChange}
+                    >
                         <SelectTrigger className="w-full sm:w-44">
                             <SelectValue placeholder="Sort" />
                         </SelectTrigger>
@@ -263,107 +347,258 @@ export default function PurchaseInvoicesIndex({
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Invoice code</TableHead>
-                                <TableHead>Purchase order</TableHead>
-                                <TableHead>Vendor</TableHead>
-                                <TableHead>Invoice date</TableHead>
-                                <TableHead>Due date</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Payment</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {purchaseInvoices.data.length === 0 && (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={7}
-                                        className="h-24 text-center text-muted-foreground"
-                                    >
-                                        No purchase invoices found.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-
-                            {purchaseInvoices.data.map((purchaseInvoice) => (
-                                <TableRow key={purchaseInvoice.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={show(purchaseInvoice)}>
-                                            {
-                                                purchaseInvoice.purchase_invoice_code
-                                            }
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {
-                                            purchaseInvoice.purchase_order
-                                                .purchase_order_code
-                                        }
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {
-                                            purchaseInvoice.purchase_order
-                                                .vendor.name
-                                        }
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDate(
-                                            purchaseInvoice.invoice_date,
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDate(purchaseInvoice.due_date)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusBadge
-                                            category="document"
-                                            value={purchaseInvoice.status}
+                    <div
+                        className={cn(
+                            'transition-opacity',
+                            isUpdating && 'opacity-60',
+                        )}
+                    >
+                        {isMobile ? (
+                            <div className="divide-y divide-border/50">
+                                {purchaseInvoices.data.length === 0 ? (
+                                    <div className="p-8">
+                                        <EmptyPurchaseInvoicesState
+                                            hasActiveFilters={hasActiveFilters}
+                                            onReset={handleReset}
                                         />
-                                    </TableCell>
-                                    <TableCell>
-                                        {purchaseInvoice.payment_status ? (
-                                            <StatusBadge
-                                                category="payment"
-                                                value={
-                                                    purchaseInvoice.payment_status
-                                                }
-                                            />
-                                        ) : (
-                                            <span className="text-muted-foreground">
-                                                &mdash;
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                                    </div>
+                                ) : (
+                                    purchaseInvoices.data.map(
+                                        (purchaseInvoice) => (
+                                            <article
+                                                key={purchaseInvoice.id}
+                                                className="space-y-4 p-4"
+                                            >
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="min-w-0">
+                                                        <Link
+                                                            href={show(
+                                                                purchaseInvoice,
+                                                            )}
+                                                            className="font-mono text-xs font-medium text-muted-foreground hover:text-primary hover:underline"
+                                                        >
+                                                            {
+                                                                purchaseInvoice.purchase_invoice_code
+                                                            }
+                                                        </Link>
+                                                        <p className="mt-1 truncate font-medium">
+                                                            {
+                                                                purchaseInvoice
+                                                                    .purchase_order
+                                                                    .purchase_order_code
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                    <StatusBadge
+                                                        category="document"
+                                                        value={
+                                                            purchaseInvoice.status
+                                                        }
+                                                    />
+                                                </div>
 
-                {purchaseInvoices.last_page > 1 && (
-                    <nav className="flex flex-wrap items-center gap-1">
-                        {purchaseInvoices.links.map((link, index) => (
-                            <Link
-                                key={index}
-                                href={link.url ?? '#'}
-                                preserveScroll
-                                className={cn(
-                                    'rounded-md px-3 py-1.5 text-sm',
-                                    link.active
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                                    !link.url &&
-                                        'pointer-events-none opacity-50',
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div className="min-w-0 space-y-1">
+                                                        <p className="text-muted-foreground">
+                                                            Vendor
+                                                        </p>
+                                                        <p className="truncate font-medium">
+                                                            {
+                                                                purchaseInvoice
+                                                                    .purchase_order
+                                                                    .vendor.name
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-muted-foreground">
+                                                            Invoice date
+                                                        </p>
+                                                        <p className="font-medium">
+                                                            {formatDate(
+                                                                purchaseInvoice.invoice_date,
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-muted-foreground">
+                                                            Due date
+                                                        </p>
+                                                        <p className="font-medium">
+                                                            {formatDate(
+                                                                purchaseInvoice.due_date,
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <p className="text-muted-foreground">
+                                                            Payment
+                                                        </p>
+                                                        {purchaseInvoice.payment_status ? (
+                                                            <StatusBadge
+                                                                category="payment"
+                                                                value={
+                                                                    purchaseInvoice.payment_status
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <p className="font-medium text-muted-foreground">
+                                                                Not set
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        ),
+                                    )
                                 )}
-                                dangerouslySetInnerHTML={{
-                                    __html: link.label,
-                                }}
-                            />
-                        ))}
-                    </nav>
-                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Invoice code</TableHead>
+                                            <TableHead>
+                                                Purchase order
+                                            </TableHead>
+                                            <TableHead>Vendor</TableHead>
+                                            <TableHead>Invoice date</TableHead>
+                                            <TableHead>Due date</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Payment</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {purchaseInvoices.data.length === 0 && (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={7}
+                                                    className="h-52"
+                                                >
+                                                    <EmptyPurchaseInvoicesState
+                                                        hasActiveFilters={
+                                                            hasActiveFilters
+                                                        }
+                                                        onReset={handleReset}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                        {purchaseInvoices.data.map(
+                                            (purchaseInvoice) => (
+                                                <TableRow
+                                                    key={purchaseInvoice.id}
+                                                    className="hover:bg-muted/30"
+                                                >
+                                                    <TableCell className="font-medium">
+                                                        <Link
+                                                            href={show(
+                                                                purchaseInvoice,
+                                                            )}
+                                                            className="font-mono text-xs hover:text-primary hover:underline"
+                                                        >
+                                                            {
+                                                                purchaseInvoice.purchase_invoice_code
+                                                            }
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell className="max-w-40 text-muted-foreground">
+                                                        <span className="block truncate">
+                                                            {
+                                                                purchaseInvoice
+                                                                    .purchase_order
+                                                                    .purchase_order_code
+                                                            }
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="max-w-56 text-muted-foreground">
+                                                        <span className="block truncate">
+                                                            {
+                                                                purchaseInvoice
+                                                                    .purchase_order
+                                                                    .vendor.name
+                                                            }
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                                                        {formatDate(
+                                                            purchaseInvoice.invoice_date,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                                                        {formatDate(
+                                                            purchaseInvoice.due_date,
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <StatusBadge
+                                                            category="document"
+                                                            value={
+                                                                purchaseInvoice.status
+                                                            }
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {purchaseInvoice.payment_status ? (
+                                                            <StatusBadge
+                                                                category="payment"
+                                                                value={
+                                                                    purchaseInvoice.payment_status
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                Not set
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ),
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                {resultSummary}
+                            </p>
+                            {isUpdating && (
+                                <span className="text-xs text-muted-foreground">
+                                    Updating...
+                                </span>
+                            )}
+                        </div>
+
+                        {purchaseInvoices.last_page > 1 && (
+                            <nav className="flex flex-wrap items-center gap-1">
+                                {purchaseInvoices.links.map((link, index) => (
+                                    <Link
+                                        key={index}
+                                        href={link.url ?? '#'}
+                                        preserveScroll
+                                        className={cn(
+                                            'rounded-md px-3 py-1.5 text-sm',
+                                            link.active
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                                            !link.url &&
+                                                'pointer-events-none opacity-50',
+                                        )}
+                                        dangerouslySetInnerHTML={{
+                                            __html: link.label,
+                                        }}
+                                    />
+                                ))}
+                            </nav>
+                        )}
+                    </div>
+                </div>
             </div>
         </>
     );

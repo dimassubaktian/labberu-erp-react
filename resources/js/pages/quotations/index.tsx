@@ -20,7 +20,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { cn, formatDate, formatNumber } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn, formatNumber } from '@/lib/utils';
 import { show as showCustomer } from '@/routes/customers';
 import { show as showProject } from '@/routes/projects';
 import { create, index as quotationsIndex, show } from '@/routes/quotations';
@@ -88,19 +89,119 @@ const DEFAULT_FILTERS: Filters = {
     sort: 'latest',
 };
 
+function normalizeFilters(filters: Filters): Filters {
+    return {
+        search: filters.search ?? DEFAULT_FILTERS.search,
+        status: filters.status || DEFAULT_FILTERS.status,
+        sort: filters.sort || DEFAULT_FILTERS.sort,
+    };
+}
+
+function formatQuotationDate(value: string): string {
+    return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    }).format(new Date(value));
+}
+
+function formatQuotationTotal(quotation: Quotation): string {
+    return `${quotation.currency.symbol ?? quotation.currency.iso_code} ${formatNumber(quotation.total)}`;
+}
+
+function EmptyQuotationsState({
+    hasActiveFilters,
+    onReset,
+}: {
+    hasActiveFilters: boolean;
+    onReset: () => void;
+}) {
+    return (
+        <div className="flex flex-col items-center justify-center gap-3 text-center">
+            <div className="rounded-xl bg-muted p-3 text-muted-foreground">
+                <Search className="size-6" />
+            </div>
+            <div className="space-y-1">
+                <p className="font-medium">
+                    {hasActiveFilters
+                        ? 'No quotations match your filters'
+                        : 'No quotations yet'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    {hasActiveFilters
+                        ? 'Try clearing a filter or searching for a different quotation.'
+                        : 'Create a quotation to start tracking project pricing.'}
+                </p>
+            </div>
+            {hasActiveFilters ? (
+                <Button variant="outline" size="sm" onClick={onReset}>
+                    <X />
+                    Clear filters
+                </Button>
+            ) : (
+                <Button asChild size="sm">
+                    <Link href={create()}>
+                        <Plus />
+                        New quotation
+                    </Link>
+                </Button>
+            )}
+        </div>
+    );
+}
+
 export default function QuotationsIndex({ quotations, filters }: Props) {
-    const [search, setSearch] = React.useState(filters.search);
-    const [status, setStatus] = React.useState(filters.status || 'all');
-    const [sort, setSort] = React.useState<Sort>(filters.sort || 'latest');
+    const initialFilters = normalizeFilters(filters);
+    const isMobile = useIsMobile();
+    const [filterState, setFilterStateValue] =
+        React.useState<Filters>(initialFilters);
+    const filterStateRef = React.useRef(initialFilters);
+    const [isUpdating, setIsUpdating] = React.useState(false);
     const debounceRef = React.useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasActiveFilters =
-        search !== DEFAULT_FILTERS.search ||
-        status !== DEFAULT_FILTERS.status ||
-        sort !== DEFAULT_FILTERS.sort;
+        filterState.search !== DEFAULT_FILTERS.search ||
+        filterState.status !== DEFAULT_FILTERS.status ||
+        filterState.sort !== DEFAULT_FILTERS.sort;
+
+    const resultSummary =
+        quotations.from !== null && quotations.to !== null
+            ? `Showing ${quotations.from}-${quotations.to} of ${quotations.total} quotations`
+            : 'No quotations found';
+
+    React.useEffect(() => {
+        const removeStartListener = router.on('start', () =>
+            setIsUpdating(true),
+        );
+        const removeFinishListener = router.on('finish', () =>
+            setIsUpdating(false),
+        );
+
+        return () => {
+            removeStartListener();
+            removeFinishListener();
+        };
+    }, []);
+
+    React.useEffect(() => {
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, []);
+
+    function updateFilters(overrides: Partial<Filters>): Filters {
+        const next = { ...filterStateRef.current, ...overrides };
+
+        filterStateRef.current = next;
+        setFilterStateValue(next);
+
+        return next;
+    }
 
     function applyFilters(overrides: Partial<Filters>): void {
-        const next = { search, status, sort, ...overrides };
+        const next = updateFilters(overrides);
 
         router.get(
             quotationsIndex.url({
@@ -116,7 +217,7 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
     }
 
     function handleSearchChange(value: string): void {
-        setSearch(value);
+        updateFilters({ search: value });
 
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
@@ -128,12 +229,10 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
     }
 
     function handleStatusChange(value: string): void {
-        setStatus(value);
         applyFilters({ status: value });
     }
 
     function handleSortChange(value: string): void {
-        setSort(value as Sort);
         applyFilters({ sort: value as Sort });
     }
 
@@ -142,9 +241,9 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
             clearTimeout(debounceRef.current);
         }
 
-        setSearch(DEFAULT_FILTERS.search);
-        setStatus(DEFAULT_FILTERS.status);
-        setSort(DEFAULT_FILTERS.sort);
+        const next = { ...DEFAULT_FILTERS };
+        filterStateRef.current = next;
+        setFilterStateValue(next);
 
         router.get(
             quotationsIndex.url(),
@@ -176,7 +275,7 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                     <div className="relative w-full sm:max-w-xs">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                            value={search}
+                            value={filterState.search}
                             onChange={(event) =>
                                 handleSearchChange(event.target.value)
                             }
@@ -185,7 +284,10 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         />
                     </div>
 
-                    <Select value={status} onValueChange={handleStatusChange}>
+                    <Select
+                        value={filterState.status}
+                        onValueChange={handleStatusChange}
+                    >
                         <SelectTrigger className="w-full sm:w-52">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -202,7 +304,10 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                         </SelectContent>
                     </Select>
 
-                    <Select value={sort} onValueChange={handleSortChange}>
+                    <Select
+                        value={filterState.sort}
+                        onValueChange={handleSortChange}
+                    >
                         <SelectTrigger className="w-full sm:w-44">
                             <SelectValue placeholder="Sort by" />
                         </SelectTrigger>
@@ -231,114 +336,275 @@ export default function QuotationsIndex({ quotations, filters }: Props) {
                 </div>
 
                 <div className="overflow-hidden rounded-xl border border-border/50">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Quotation code</TableHead>
-                                <TableHead>Project</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Version</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Valid until</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Created date</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {quotations.data.length === 0 && (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={8}
-                                        className="h-24 text-center text-muted-foreground"
-                                    >
-                                        No quotations found.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-
-                            {quotations.data.map((quotation) => (
-                                <TableRow key={quotation.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={show(quotation)}>
-                                            {quotation.quotation_code}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Link
-                                            href={
-                                                showProject(quotation.project)
-                                                    .url
-                                            }
-                                        >
-                                            {quotation.project.name}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        <Link
-                                            href={
-                                                showCustomer(
-                                                    quotation.project.customer,
-                                                ).url
-                                            }
-                                        >
-                                            {quotation.project.customer.name}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {quotation.version_major}.
-                                        {quotation.version_minor}
-                                    </TableCell>
-                                    <TableCell>
-                                        <ProjectBadge
-                                            category="document"
-                                            value={quotation.status}
+                    <div
+                        className={cn(
+                            'transition-opacity',
+                            isUpdating && 'opacity-60',
+                        )}
+                    >
+                        {isMobile ? (
+                            <div className="divide-y divide-border/50">
+                                {quotations.data.length === 0 ? (
+                                    <div className="p-8">
+                                        <EmptyQuotationsState
+                                            hasActiveFilters={hasActiveFilters}
+                                            onReset={handleReset}
                                         />
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {quotation.valid_until ? (
-                                            formatDate(quotation.valid_until)
-                                        ) : (
-                                            <span className="text-muted-foreground">
-                                                &mdash;
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {quotation.currency.symbol ??
-                                            quotation.currency.iso_code}{' '}
-                                        {formatNumber(quotation.total)}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {formatDate(quotation.created_at)}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                                    </div>
+                                ) : (
+                                    quotations.data.map((quotation) => (
+                                        <article
+                                            key={quotation.id}
+                                            className="space-y-4 p-4"
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <Link
+                                                        href={show(quotation)}
+                                                        className="font-mono text-xs font-medium text-muted-foreground hover:text-primary hover:underline"
+                                                    >
+                                                        {
+                                                            quotation.quotation_code
+                                                        }
+                                                    </Link>
+                                                    <Link
+                                                        href={
+                                                            showProject(
+                                                                quotation.project,
+                                                            ).url
+                                                        }
+                                                        className="mt-1 block truncate font-medium hover:text-primary hover:underline"
+                                                    >
+                                                        {quotation.project.name}
+                                                    </Link>
+                                                </div>
+                                                <ProjectBadge
+                                                    category="document"
+                                                    value={quotation.status}
+                                                />
+                                            </div>
 
-                {quotations.last_page > 1 && (
-                    <nav className="flex flex-wrap items-center gap-1">
-                        {quotations.links.map((link, index) => (
-                            <Link
-                                key={index}
-                                href={link.url ?? '#'}
-                                preserveScroll
-                                className={cn(
-                                    'rounded-md px-3 py-1.5 text-sm',
-                                    link.active
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                                    !link.url &&
-                                        'pointer-events-none opacity-50',
+                                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                                <div className="min-w-0 space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Customer
+                                                    </p>
+                                                    <Link
+                                                        href={
+                                                            showCustomer(
+                                                                quotation
+                                                                    .project
+                                                                    .customer,
+                                                            ).url
+                                                        }
+                                                        className="block truncate font-medium hover:text-primary hover:underline"
+                                                    >
+                                                        {
+                                                            quotation.project
+                                                                .customer.name
+                                                        }
+                                                    </Link>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Version
+                                                    </p>
+                                                    <p className="font-mono text-xs font-medium">
+                                                        {
+                                                            quotation.version_major
+                                                        }
+                                                        .
+                                                        {
+                                                            quotation.version_minor
+                                                        }
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Valid until
+                                                    </p>
+                                                    <p className="font-medium">
+                                                        {quotation.valid_until
+                                                            ? formatQuotationDate(
+                                                                  quotation.valid_until,
+                                                              )
+                                                            : 'Not set'}
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Created
+                                                    </p>
+                                                    <p className="font-medium">
+                                                        {formatQuotationDate(
+                                                            quotation.created_at,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="col-span-2 space-y-1">
+                                                    <p className="text-muted-foreground">
+                                                        Total
+                                                    </p>
+                                                    <p className="font-medium">
+                                                        {formatQuotationTotal(
+                                                            quotation,
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    ))
                                 )}
-                                dangerouslySetInnerHTML={{
-                                    __html: link.label,
-                                }}
-                            />
-                        ))}
-                    </nav>
-                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>
+                                                Quotation code
+                                            </TableHead>
+                                            <TableHead>Project</TableHead>
+                                            <TableHead>Customer</TableHead>
+                                            <TableHead>Version</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Valid until</TableHead>
+                                            <TableHead>Total</TableHead>
+                                            <TableHead>Created date</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {quotations.data.length === 0 && (
+                                            <TableRow>
+                                                <TableCell
+                                                    colSpan={8}
+                                                    className="h-52"
+                                                >
+                                                    <EmptyQuotationsState
+                                                        hasActiveFilters={
+                                                            hasActiveFilters
+                                                        }
+                                                        onReset={handleReset}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+
+                                        {quotations.data.map((quotation) => (
+                                            <TableRow
+                                                key={quotation.id}
+                                                className="hover:bg-muted/30"
+                                            >
+                                                <TableCell className="font-medium">
+                                                    <Link
+                                                        href={show(quotation)}
+                                                        className="font-mono text-xs hover:text-primary hover:underline"
+                                                    >
+                                                        {
+                                                            quotation.quotation_code
+                                                        }
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="max-w-72">
+                                                    <Link
+                                                        href={
+                                                            showProject(
+                                                                quotation.project,
+                                                            ).url
+                                                        }
+                                                        className="block truncate font-medium hover:text-primary hover:underline"
+                                                    >
+                                                        {quotation.project.name}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="max-w-56 text-muted-foreground">
+                                                    <Link
+                                                        href={
+                                                            showCustomer(
+                                                                quotation
+                                                                    .project
+                                                                    .customer,
+                                                            ).url
+                                                        }
+                                                        className="block truncate hover:text-primary hover:underline"
+                                                    >
+                                                        {
+                                                            quotation.project
+                                                                .customer.name
+                                                        }
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                                    {quotation.version_major}.
+                                                    {quotation.version_minor}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <ProjectBadge
+                                                        category="document"
+                                                        value={quotation.status}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {quotation.valid_until
+                                                        ? formatQuotationDate(
+                                                              quotation.valid_until,
+                                                          )
+                                                        : 'Not set'}
+                                                </TableCell>
+                                                <TableCell className="text-right text-muted-foreground">
+                                                    {formatQuotationTotal(
+                                                        quotation,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {formatQuotationDate(
+                                                        quotation.created_at,
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-border/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                {resultSummary}
+                            </p>
+                            {isUpdating && (
+                                <span className="text-xs text-muted-foreground">
+                                    Updating...
+                                </span>
+                            )}
+                        </div>
+
+                        {quotations.last_page > 1 && (
+                            <nav className="flex flex-wrap items-center gap-1">
+                                {quotations.links.map((link, index) => (
+                                    <Link
+                                        key={index}
+                                        href={link.url ?? '#'}
+                                        preserveScroll
+                                        className={cn(
+                                            'rounded-md px-3 py-1.5 text-sm',
+                                            link.active
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                                            !link.url &&
+                                                'pointer-events-none opacity-50',
+                                        )}
+                                        dangerouslySetInnerHTML={{
+                                            __html: link.label,
+                                        }}
+                                    />
+                                ))}
+                            </nav>
+                        )}
+                    </div>
+                </div>
             </div>
         </>
     );

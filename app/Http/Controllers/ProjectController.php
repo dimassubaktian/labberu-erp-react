@@ -64,28 +64,43 @@ class ProjectController extends Controller
         $search = $request->string('search')->trim()->toString();
         $status = $request->string('status')->toString();
         $priority = $request->string('priority')->toString();
+        $businessLineId = $request->integer('business_line');
         $sort = $request->string('sort', 'desc')->toString() === 'asc' ? 'asc' : 'desc';
 
         $projects = Project::query()
             ->with('customer', 'businessLine:id,name')
             ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($inner) use ($search): void {
-                    $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('project_code', 'like', "%{$search}%");
+                $like = "%{$search}%";
+
+                $query->where(function ($inner) use ($like): void {
+                    $inner->where('name', 'like', $like)
+                        ->orWhere('project_code', 'like', $like)
+                        ->orWhereIn('customer_id', Customer::query()
+                            ->where('name', 'like', $like)
+                            ->select('id'))
+                        ->orWhereIn('business_line_id', BusinessLine::query()
+                            ->where('name', 'like', $like)
+                            ->select('id'));
                 });
             })
             ->when($status !== '', fn ($query) => $query->where('status', $status))
             ->when($priority !== '', fn ($query) => $query->where('priority', $priority))
+            ->when($businessLineId > 0, fn ($query) => $query->where('business_line_id', $businessLineId))
             ->orderBy('request_date', $sort)
+            ->orderBy('id', $sort)
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('projects/index', [
             'projects' => $projects,
+            'businessLines' => BusinessLine::query()
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'filters' => [
                 'search' => $search,
                 'status' => $status,
                 'priority' => $priority,
+                'business_line' => $businessLineId > 0 ? (string) $businessLineId : '',
                 'sort' => $sort,
             ],
         ]);
